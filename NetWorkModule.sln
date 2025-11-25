@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35312.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetWorkModule", "NetWorkModule\NetWorkModule.csproj", "{467F8B09-9766-4206-9129-2C47601D5622}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSampleServer", "CSampleServer\CSampleServer.csproj", "{23FA470A-73F7-4556-A111-8EE1C9F5E95B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{467F8B09-9766-4206-9129-2C47601D5622} = {467F8B09-9766-4206-9129-2C47601D5622}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSampleClient", "CSampleClient\CSampleClient.csproj", "{A9DDF745-7766-436A-A7E5-F225A3F2564E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{467F8B09-9766-4206-9129-2C47601D5622} = {467F8B09-9766-4206-9129-2C47601D5622}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Virus_War_Game_Server", "Virus_War_Game_Server\Virus_War_Game_Server.csproj", "{56C995B8-AF01-4785-9AF3-95DB8B7A01B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Multi_player_Whack_a_Mole", "Multi_player_Whack_a_Mole\Multi_player_Whack_a_Mole.csproj", "{77AB6645-709D-405B-88D2-B3319BBD038F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{467F8B09-9766-4206-9129-2C47601D5622}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{467F8B09-9766-4206-9129-2C47601D5622}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{467F8B09-9766-4206-9129-2C47601D5622}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{467F8B09-9766-4206-9129-2C47601D5622}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23FA470A-73F7-4556-A111-8EE1C9F5E95B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23FA470A-73F7-4556-A111-8EE1C9F5E95B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23FA470A-73F7-4556-A111-8EE1C9F5E95B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23FA470A-73F7-4556-A111-8EE1C9F5E95B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9DDF745-7766-436A-A7E5-F225A3F2564E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9DDF745-7766-436A-A7E5-F225A3F2564E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9DDF745-7766-436A-A7E5-F225A3F2564E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9DDF745-7766-436A-A7E5-F225A3F2564E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56C995B8-AF01-4785-9AF3-95DB8B7A01B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56C995B8-AF01-4785-9AF3-95DB8B7A01B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56C995B8-AF01-4785-9AF3-95DB8B7A01B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56C995B8-AF01-4785-9AF3-95DB8B7A01B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77AB6645-709D-405B-88D2-B3319BBD038F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77AB6645-709D-405B-88D2-B3319BBD038F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77AB6645-709D-405B-88D2-B3319BBD038F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77AB6645-709D-405B-88D2-B3319BBD038F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5A629327-710A-44DC-A527-69EF0477F2B1}
+	EndGlobalSection
+EndGlobal
