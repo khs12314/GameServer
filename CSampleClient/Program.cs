@@ -18,23 +18,31 @@ namespace CSampleClient
             CConnector connector = new CConnector(service);//2
             // 접속 성공 시 호출될 콜백 메소드 지정.
             connector.connected_callback += on_connected_gameserver;
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 7979);
+            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8000);
             connector.connect(endpoint);
-
+            Console.ReadLine();
+            CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
+            game_servers[0].send(msg);
+            //Thread.Sleep(1000);
+            //msg = CPacket.create((short)PROTOCOL.LOADING_COMPLETED);
+            //game_servers[0].send(msg);
             while (true)
             {
-                Console.WriteLine("> ");
-                string line = Console.ReadLine();//31
-                if(line == "q")
-                {
-                    break;
-                }
-                CPacket msg = CPacket.create((short)PROTOCOL.CHAT_MSG_REQ);
-                msg.push(line);
-                game_servers[0].send(msg);
+
+                //Console.WriteLine("> ");
+                //string line = Console.ReadLine();//31
+                //if (line == "q")
+                //{
+                //    break;
+                //}
+
+                //CPacket msg = CPacket.create((short)PROTOCOL.CHAT_MSG_REQ);
+                //msg.push(line);
+                //Console.WriteLine($"{game_servers.Count}");
+                //game_servers[0].send(msg);
 
             }
-            ((CRemoteServerPeer)game_servers[0]).token.disconnect();    
+            ((CRemoteServerPeer)game_servers[0]).token.disconnect();
             Console.ReadKey();
         }
         /// <summary>

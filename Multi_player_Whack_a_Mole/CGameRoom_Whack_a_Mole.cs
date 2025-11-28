@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Multi_player_Whack_a_Mole
 {
@@ -15,7 +16,21 @@ namespace Multi_player_Whack_a_Mole
             ENTER_ROOM,
             LOADING_COMPLETE,
         }
-       
+
+
+        List<GameUser> _users = new List<GameUser>();
+
+
+        Timer _moleTimer;
+
+
+        int _currentMoleIndex = -1;//0~9 -1이면 없음
+        //기존에는 bool로 설계하였지만 lock-free 방식 도입을 통해 성능 최적화를 위해 Interlocked.Decremnet를 사용해 생존해 있는 두더지는 1, 아닌 두더지는 0으로 제어
+        int _isMoleAlive = 0;
+
+        //동기화 객체
+        object _lock = new object();
+
         //플레이어 관리
         Player[] players;
         //플레이어들의 상태 관리
@@ -28,7 +43,8 @@ namespace Multi_player_Whack_a_Mole
         short duration;
         static byte column_count = 5;
         readonly short EMPTY_SLOT = short.MaxValue;
-        public CGameRoom_Whack_a_Mole() 
+
+        public CGameRoom_Whack_a_Mole()
         {
             players = new Player[2];
             player_state = new Dictionary<byte, PLAYER_STATE>();
@@ -36,10 +52,50 @@ namespace Multi_player_Whack_a_Mole
             gameboard = new short[25];
             table_board = new short[25];
             //보드 초기화
-            for (int i = 0; i < 25; i++) {
+            for (int i = 0; i < 25; i++)
+            {
                 gameboard[i] = 0;
                 table_board[i] = 0;
             }
+
+            _moleTimer = new Timer(SpawnMole, null, 0, 3000);
+            Console.WriteLine("[GameRoom] Room Created. Timer Started.");
+        }
+        void SpawnMole(object state)
+        {
+            Random rand = new Random();
+            _currentMoleIndex = rand.Next(0, 9);
+
+            //1. 랜덤 위치 결정(0~9)
+            Interlocked.Increment(ref _isMoleAlive);
+
+            Console.WriteLine($"[Server] Mole Spawned at Index : {_currentMoleIndex}");
+
+            //2 패킷 생성 브로드 캐스트 구현
+            CPacket msg = CPacket.create((short)PROTOCOL.SPAWN_MOLE);
+            msg.push(_currentMoleIndex);
+            broadcast(msg);
+
+        }
+        //public void HandleHit(int hitIndex, string userId)
+        //{
+        //    //경쟁 상태 해결
+        //    if (!_isMoleAlive) return;//죽거나 없음
+        //    if (hitIndex != _currentMoleIndex) return;
+
+        //    //당첨
+        //    _isMoleAlive = false;
+        //    Console.WriteLine($"[Server] User {userId} Hit the Mole!");
+        //    //3. 점수 올리고 db 저장
+        //    //int currentScore = MockDB.Login(userId);
+        //    //MockDB.UpdateScore(userId, currentScore + 10);
+
+        //}
+        public void destroy()
+        {
+            CPacket msg = CPacket.create((short)PROTOCOL.ROOM_REMOVED);
+            broadcast(msg);
+            Array.Clear(players);
         }
         //메시지 전송
         /// <summary>
@@ -48,15 +104,18 @@ namespace Multi_player_Whack_a_Mole
         /// <param name="msg"></param>
         void broadcast(CPacket msg)
         {
+            //Console.WriteLine("BroadCast : send");
             //참조 카운팅
+
             foreach (var item in players)
             {
-                item.send_for_broadcast(msg);
+                item.send(msg);
             }
             //반납
             CPacket.destroy(msg);
         }
-        void change_player_state(Player player, PLAYER_STATE state) {
+        void change_player_state(Player player, PLAYER_STATE state)
+        {
 
             if (this.player_state.ContainsKey(player.player_index))
             {
@@ -66,26 +125,68 @@ namespace Multi_player_Whack_a_Mole
             {
                 this.player_state.Add(player.player_index, state);
             }
-            
+
         }
         //유저 행동
         bool all_player_ready(PLAYER_STATE state)
         {
-            foreach(KeyValuePair<byte, PLAYER_STATE> item in this.player_state)
+            foreach (KeyValuePair<byte, PLAYER_STATE> item in this.player_state)
             {
-                if(item.Value != state)
+                if (item.Value != state)
                 {
                     return false;
                 }
             }
             return true;
         }
+        public void EnterRoom(GameUser user)
+        {
+            lock (_lock)
+            {
+                _users.Add(user);
+            }
+        }
+
+        //void Spawn_Mole(object state)
+        //{
+        //    lock (_lock)
+        //    {
+        //        Random random = new Random();
+        //        _currentMoleIndex = random.Next(0, 25);
+        //        _isMoleAlive = true;
+
+        //        Console.WriteLine($"Server Mole Spawned at Index {_currentMoleIndex}");
+
+        //        CPacket msg = CPacket.create((short)PROTOCOL.SPAWN_MOLE);
+        //        msg.push(_currentMoleIndex);
+
+        //        broadcast(msg);
+
+        //    }
+        //}
+        public void HandleHit(GameUser user, int hitIndex, string ID)
+        {
+
+            if (_isMoleAlive == 0) return;
+            if (hitIndex != _currentMoleIndex) return;
+
+            Interlocked.Decrement(ref _isMoleAlive);
+
+            //점수 증가
+            MockDB.AddScore("TestUser", 10);
+
+            Console.WriteLine($"[Server] User {ID} Hit the Mole!");
+        }
         public void Enter_Game_Room(GameUser user1, GameUser user2)
         {
+
             //인덱스 부여
-            Player player1 = new Player(user1 as GameUser, 0);
-            Player player2 = new Player(user2 as GameUser, 1);
-            Array.Clear(players);
+            Player player1 = new Player(user1, 0);
+            Player player2 = new Player(user2, 1);
+            if (players != null)
+            {
+                Array.Clear(players);
+            }
             players[0] = player1;
             players[1] = player2;
 
@@ -94,9 +195,14 @@ namespace Multi_player_Whack_a_Mole
             change_player_state(player1, PLAYER_STATE.ENTER_ROOM);
             change_player_state(player2, PLAYER_STATE.ENTER_ROOM);
             //로딩 시작
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+
+            });
             foreach (var item in players)
             {
-                CPacket msg = CPacket.create((short)PLAYER_STATE.LOADING_COMPLETE);
+                CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
                 msg.push(item.player_index);
                 item.send(msg);
             }
@@ -141,7 +247,7 @@ namespace Multi_player_Whack_a_Mole
             Array.Clear(table_board);
 
         }
-        
+
 
 
         //게임 규칙 설정

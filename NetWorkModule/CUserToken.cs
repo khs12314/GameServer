@@ -59,6 +59,8 @@ namespace NetWorkModule
         }
         void on_message(Const<byte[]> buffer)
         {
+
+            Console.WriteLine("on_message");
             if (this.peer != null)
             {
                 this.peer.on_message(buffer);
@@ -102,6 +104,7 @@ namespace NetWorkModule
                 if (this.sending_queue.Count <= 0)
                 {
                     this.sending_queue.Enqueue(msg);
+                    Console.WriteLine($"2 - Null ref Test");
                     start_send();
                     return;
                 }
@@ -136,6 +139,7 @@ namespace NetWorkModule
                 msg.record_size();
 
                 //이번에 보낼 패킷 사이즈만큼 버퍼 크기를 설정하고
+                Console.WriteLine($"1 - Null ref Test");
                 this.send_event_args.SetBuffer(this.send_event_args.Offset, msg.position);
 
                 //패킷 내용을 SocketAsyncEventArgs 버퍼에 복사한다.

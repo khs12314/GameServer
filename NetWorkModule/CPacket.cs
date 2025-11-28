@@ -9,8 +9,8 @@ namespace NetWorkModule
     {
         public IPeer owner { get; private set; }
         public byte[] buffer { get; private set; }
-        public int position { get; private set; }   
-        public Int16 protocol_id { get; private set; }  
+        public int position { get; private set; }
+        public Int16 protocol_id { get; private set; }
         public static CPacket create(Int16 protocol_id)
         {
             CPacket packet = CPacketBufferManger.pop();
@@ -58,14 +58,14 @@ namespace NetWorkModule
         }
         public Int16 pop_int16()
         {
-            Int16 data = BitConverter.ToInt16(this.buffer,this.position);
+            Int16 data = BitConverter.ToInt16(this.buffer, this.position);
             this.position += sizeof(Int16);
             return data;
         }
         public Int32 pop_int32()
         {
-            Int32 data = (byte)BitConverter.ToInt16(this.buffer,this.position);
-            this.position += sizeof(byte);
+            Int32 data = (byte)BitConverter.ToInt32(this.buffer, this.position);
+            this.position += sizeof(Int32);
             return data;
         }
         public string pop_string()
@@ -84,8 +84,8 @@ namespace NetWorkModule
         {
             this.protocol_id = protocol_id;
             //헤더는 나중에 넣을것이므로 데이터부터 넣을  수있도록 위치 점프
-            this.position = Define.HEADER_SIZE; 
-            push_int16(protocol_id);    
+            this.position = Define.HEADER_SIZE;
+            push_int16(protocol_id);
         }
         public void record_size()
         {
@@ -99,7 +99,7 @@ namespace NetWorkModule
             temp_buffer.CopyTo(this.buffer, this.position);
             this.position += temp_buffer.Length;
         }
-       
+
         public void push(byte data)
         {
             byte[] temp_buffer = BitConverter.GetBytes((short)data);
@@ -120,7 +120,10 @@ namespace NetWorkModule
             temp_buffer.CopyTo(this.buffer, this.position);
             this.position += temp_buffer.Length;
         }
-
+        public void SetOwner(IPeer peer)
+        {
+            this.owner = peer;
+        }
         public void push(string data)
         {
             byte[] temp_buffer = Encoding.UTF8.GetBytes(data);

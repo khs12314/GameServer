@@ -147,9 +147,11 @@ namespace NetWorkModule
             SocketAsyncEventArgs send_args = this.send_event_args_pool.Pop();
 
             CUserToken user_token = null;
+            user_token = receive_args.UserToken as CUserToken;
+            user_token.socket = client_socket;
+            user_token.set_event_args(receive_args, send_args);
             if (this.session_created_callback != null)
             {
-                user_token = receive_args.UserToken as CUserToken;
                 this.session_created_callback(user_token);
             }
 
@@ -220,14 +222,14 @@ namespace NetWorkModule
             //Free the SocketAsyncEventArg so they can be reused by another client
             //버퍼는 반환할 필요가 없다. SocketAsyncEventArg가 버퍼를 들고 있기 때문에
             //이것을 재사용 할 때 물고 있는 버퍼를 그대로 사용되기 때문이다.
-            if(this.receive_event_args_pool != null)
+            if (this.receive_event_args_pool != null)
             {
                 this.receive_event_args_pool.Push(token.receive_event_args);
             }
 
-            if(this.send_event_args_pool != null)
+            if (this.send_event_args_pool != null)
             {
-                this.send_event_args_pool.Push(token.send_event_args);  
+                this.send_event_args_pool.Push(token.send_event_args);
             }
         }
 

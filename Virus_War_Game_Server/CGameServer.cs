@@ -41,8 +41,10 @@ namespace Virus_War_Game_Server
 
         void gameloop()
         {
+            Console.WriteLine("game loop");
             while (true)
             {
+                Console.WriteLine("While Input");
                 CPacket packet = null;
                 lock (this.operation_lock)
                 {
@@ -54,6 +56,7 @@ namespace Virus_War_Game_Server
                 if(packet != null)
                 {
                     //패킷처리
+                    Console.WriteLine("Input Packet");
                     process_receive(packet);
                 }
                 //더이성 처리할 패킷이 없으면 스레드 대기
@@ -77,6 +80,7 @@ namespace Virus_War_Game_Server
         {
             //todo
             //user msg fillter 체크
+            Console.WriteLine("Process receive");
             msg.owner.process_user_operation(msg);
         }
 
@@ -87,6 +91,7 @@ namespace Virus_War_Game_Server
         /// <param name="user">매칭을 신청한 유저 객체</param>
         public void matching_req(CGameUser user)
         {
+            Console.WriteLine("Matching......");
             //대기 리스트에 중복 추가되지 않도록 체크.
             if (this.matching_waiting_users.Contains(user))
             {

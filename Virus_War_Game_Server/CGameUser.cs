@@ -40,9 +40,10 @@ namespace Virus_War_Game_Server
             this.token.socket.Disconnect(false);
         }
 
-        void IPeer.process_user_operation(CPacket msg)
+        void IPeer.process_user_operation(CPacket msg, short protocolID = 0)
         {
-            PROTOCOL protocol = (PROTOCOL)msg.pop_protocol_id();
+            Console.WriteLine("Enter_Game_Room_REQ");
+            PROTOCOL protocol = (PROTOCOL)protocolID;
             Console.WriteLine("protocol id " + protocol);
 
             switch (protocol)
@@ -58,7 +59,6 @@ namespace Virus_War_Game_Server
                         short begin_pos = msg.pop_int16();
                         short target_pos = msg.pop_int16();
                         this.battle_room.moving_req(this.player, begin_pos, target_pos);
-
                     }
                     break;
                 case PROTOCOL.TURN_FINISHED_REQ:
