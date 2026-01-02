@@ -16,7 +16,7 @@ namespace NetWorkModule
 
 
         //클라이언트 접속을 받아들이기 위한 객체
-        CListener cleint_listener;
+        CListener client_listener;
 
 
         //메시지 수신용 풀.
@@ -97,9 +97,9 @@ namespace NetWorkModule
         }
         public void listen(string host, int port, int backlog)
         {
-            this.cleint_listener = new CListener();
-            this.cleint_listener.callback_on_newclient += on_new_client;
-            this.cleint_listener.start(host, port, backlog);
+            this.client_listener = new CListener();
+            this.client_listener.callback_on_newclient += on_new_client;
+            this.client_listener.start(host, port, backlog);
         }
         /// <summary>
         /// todo:검토중....
@@ -138,9 +138,7 @@ namespace NetWorkModule
             // peer list 처리.
             Interlocked.Increment(ref this.connected_count);
 
-            Console.WriteLine(string.Format("[{0}] A client connected. handle {1}, count {2}",
-                Thread.CurrentThread.ManagedThreadId, client_socket.Handle,
-                this.connected_count));
+           
 
             //풀에서 하나 꺼내와 사용한다.
             SocketAsyncEventArgs receive_args = this.receive_event_args_pool.Pop();
@@ -205,13 +203,13 @@ namespace NetWorkModule
                 bool pending = token.socket.ReceiveAsync(e);
                 if (!pending)
                 {
-                    // Oh! stack overflow??
+                    // Oh! stack overflow?? 
                     process_receive(e);
                 }
             }
             else
             {
-                Console.WriteLine(string.Format("error {0},  transferred {1}", e.SocketError, e.BytesTransferred));
+                
                 close_clientsocket(token);
             }
         }

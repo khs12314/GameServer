@@ -8,7 +8,7 @@ namespace Multi_player_Whack_a_Mole
         public static GameServer game_main = new GameServer();
         static void Main(string[] args)
         {
-            CPacketBufferManger.initialize(2000);
+            CPacketBufferManger.initialize(10000);
             userlist = new List<GameUser>();
 
             CNetworkService service = new CNetworkService();
@@ -16,13 +16,13 @@ namespace Multi_player_Whack_a_Mole
             service.session_created_callback += on_session_created;
             //초기화
             service.initialize();
-            service.listen("127.0.0.1", 8000, 100);
+            service.listen("127.0.0.1", 8000, 5000);
 
-            Console.WriteLine("Started!");
+            
             while (true)
             {
-                string input = Console.ReadLine();
-                System.Threading.Thread.Sleep(100);
+                
+                
             }
         }
 

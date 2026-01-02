@@ -25,6 +25,7 @@ namespace Multi_player_Whack_a_Mole
             battleroom.Enter_Game_Room(user1, user2);
             //방 리스트에 추가하여 관리
             this.rooms.Add(battleroom);
+            
         }
         public void remove_room(CGameRoom_Whack_a_Mole room)
         {

@@ -11,15 +11,24 @@ namespace NetWorkModule
         public byte[] buffer { get; private set; }
         public int position { get; private set; }
         public Int16 protocol_id { get; private set; }
+        public bool is_using = true;
         public static CPacket create(Int16 protocol_id)
         {
             CPacket packet = CPacketBufferManger.pop();
+            packet.is_using = true;
             packet.set_protocol(protocol_id);
             return packet;
         }
 
         public static void destroy(CPacket packet)
         {
+            if (packet.is_using == false)
+            {
+                return;
+            }
+
+            packet.is_using = false;
+            
             CPacketBufferManger.push(packet);
         }
         public CPacket(byte[] buffer, IPeer owner)
@@ -37,49 +46,92 @@ namespace NetWorkModule
         }
         public Int16 pop_protocol_id()
         {
-
+            
             return pop_int16();
         }
         public void copy_to(CPacket target)
         {
             target.set_protocol(this.protocol_id);
             target.overwrite(this.buffer, this.position);
+
         }
         public void overwrite(byte[] source, int position)
         {
             Array.Copy(source, 0, this.buffer, 0, position);
             this.position = position;
         }
+        public void reset_position()
+        {
+            this.position = 0;
+            
+        }
+
+        // 혹은 원하는 위치로 이동시키는 메서드
+        public void move_position(int pos)
+        {
+
+            this.position = pos;
+           
+        }
         public byte pop_byte()
         {
-            byte data = (byte)BitConverter.ToInt16(this.buffer, this.position);
+            byte data = this.buffer[this.position];
             this.position += sizeof(byte);
             return data;
         }
         public Int16 pop_int16()
         {
-            Int16 data = BitConverter.ToInt16(this.buffer, this.position);
+            
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(Int16));
+            Int16 data = BitConverter.ToInt16(SpanSpace);
             this.position += sizeof(Int16);
+            
             return data;
         }
         public Int32 pop_int32()
         {
-            Int32 data = (byte)BitConverter.ToInt32(this.buffer, this.position);
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(Int32));
+            Int32 data = BitConverter.ToInt32(SpanSpace);
             this.position += sizeof(Int32);
             return data;
         }
         public string pop_string()
         {
             //문자열 최대 2바이트까지 0~32767
-            Int16 len = BitConverter.ToInt16(this.buffer, this.position);
-            this.position += sizeof(Int16);
-
-            //인코딩은 utf8로 통일
-            string data = Encoding.UTF8.GetString(this.buffer, this.position, len);
+            Int16 len = pop_int16();
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, len);
+            string data = Encoding.UTF8.GetString(SpanSpace);
             this.position += len;
             return data;
         }
-
+        public long pop_long()
+        {
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(long));
+            long data = BitConverter.ToInt64(SpanSpace);
+            this.position += sizeof(long);
+            return data;
+        }
+        public float pop_float()
+        {
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(float));
+            float data = BitConverter.ToSingle(SpanSpace);
+            this.position += sizeof(float);
+            return data;
+        }
+        public double pop_double()
+        {
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(double));
+            double data = BitConverter.ToDouble(SpanSpace);
+            this.position += sizeof(double);
+            return data;
+        }
+        public Int64 pop_int64()
+        {
+            ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(Int64));
+            Int64 data = BitConverter.ToInt64(SpanSpace);
+            this.position += sizeof(Int64);
+            return data;
+        }
         public void set_protocol(Int16 protocol_id)
         {
             this.protocol_id = protocol_id;
@@ -90,51 +142,102 @@ namespace NetWorkModule
         public void record_size()
         {
             Int16 body_size = (Int16)(this.position - Define.HEADER_SIZE);
-            byte[] header = BitConverter.GetBytes(body_size);
-            header.CopyTo(this.buffer, 0);
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));   
+            BitConverter.TryWriteBytes(SpanSpace, body_size);
         }
         public void push_int16(Int16 data)
         {
-            byte[] temp_buffer = BitConverter.GetBytes(data);
-            temp_buffer.CopyTo(this.buffer, this.position);
-            this.position += temp_buffer.Length;
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data); 
+
+            if (success)
+            {
+                this.position += sizeof(Int16);
+                return;
+            }
+            else
+            {
+                
+            }
         }
 
         public void push(byte data)
         {
-            byte[] temp_buffer = BitConverter.GetBytes((short)data);
-            temp_buffer.CopyTo(this.buffer, this.position);
+            this.buffer[this.position] = data;
             this.position += sizeof(byte);
         }
 
         public void push(Int16 data)
         {
-            byte[] temp_buffer = BitConverter.GetBytes(data);
-            temp_buffer.CopyTo(this.buffer, this.position);
-            this.position += temp_buffer.Length;
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));  
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data); 
+
+            if (success)
+            {
+                this.position += sizeof(Int16);
+                return;
+            }
         }
 
         public void push(Int32 data)
         {
-            byte[] temp_buffer = BitConverter.GetBytes(data);
-            temp_buffer.CopyTo(this.buffer, this.position);
-            this.position += temp_buffer.Length;
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int32));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
+
+            if (success)
+            {
+                this.position += sizeof(Int32);
+                return;
+            }
         }
+        public void push(Int64 data)
+        {
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int64));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
+            if (success)
+            {
+                this.position += sizeof(Int64);
+                return;
+            }
+        }
+        public void push(float data)
+        {
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(float));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
+            if (success)
+            {
+                this.position += sizeof(float);
+                return;
+            }
+        }
+        public void push(double data)
+        {
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(double));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
+            if (success)
+            {
+                this.position += sizeof(double);
+                return;
+            }
+        }
+        
+
         public void SetOwner(IPeer peer)
         {
             this.owner = peer;
         }
         public void push(string data)
         {
-            byte[] temp_buffer = Encoding.UTF8.GetBytes(data);
+            int byteCount = Encoding.UTF8.GetByteCount(data);
 
-            Int16 len = (Int16)temp_buffer.Length;
-            byte[] len_buffer = BitConverter.GetBytes(len);
-            len_buffer.CopyTo(this.buffer, this.position);
-            this.position += sizeof(Int16);
+            push((Int16)byteCount);
 
-            temp_buffer.CopyTo(this.buffer, this.position);
-            this.position += temp_buffer.Length;
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, byteCount);
+
+            Encoding.UTF8.GetBytes(data, SpanSpace);
+
+            this.position += byteCount;
+
         }
     }
 }

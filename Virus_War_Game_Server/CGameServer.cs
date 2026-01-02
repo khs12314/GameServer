@@ -80,7 +80,7 @@ namespace Virus_War_Game_Server
         {
             //todo
             //user msg fillter 체크
-            Console.WriteLine("Process receive");
+            //Console.WriteLine("Process receive");
             msg.owner.process_user_operation(msg);
         }
 

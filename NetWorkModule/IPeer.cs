@@ -43,6 +43,6 @@ namespace NetWorkModule
         void on_removed();
         void send(CPacket msg);
         void disconnect();
-        void process_user_operation(CPacket msg, short protocolID = 0);
+        void process_user_operation(CPacket msg);
     }
 }

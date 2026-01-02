@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+	<Packet name="PlayerInfoReq">
+		<long name="playerId"/>
+		<string name="name"/>
+	</Packet>
+
+	<Packet name="TestMove">
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+	</Packet>
+
+	<Packet name="C_EnterGame">
+		<int name="tempId"/>
+	</Packet>
+
+	<Packet name="C_LoadingComplete">
+	</Packet>
+
+	<Packet name="C_HitMole">
+		<int name="gameRoomId"/>
+		<int name="moleIndex"/>
+	</Packet>
+
+	<Packet name="S_ScoreUpdate">
+		<int name="score"/>
+	</Packet>
+</PDL>

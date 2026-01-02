@@ -12,25 +12,27 @@ namespace CSampleClient
     class CRemoteServerPeer : IPeer
     {
         public CUserToken token { get; private set; }
-        string myID = "";
+        int myID;
         static Random _rand = new Random();
         public CRemoteServerPeer(CUserToken token)
         {
             this.token = token;
             this.token.set_peer(this);
+            myID = 0;
         }
         void IPeer.on_message(Const<byte[]> buufer)
         {
             CPacket msg = new CPacket(buufer.Value, this);
             PROTOCOL protocol_id = (PROTOCOL)msg.pop_protocol_id();
             Console.WriteLine($"[Client] Received from server{protocol_id}");
-            string text = null;
             switch (protocol_id) 
             { 
                 case PROTOCOL.ENTER_GAME_ROOM_REQ:
                     {
-                         text = msg.pop_string();
-                        Console.WriteLine(string.Format("Received from server: {0}", text));
+                        
+                        myID = msg.pop_int32();
+                        
+                        Console.WriteLine(string.Format("Received from server: {0}", myID));
                     }
                     break;
                 case PROTOCOL.SPAWN_MOLE:
@@ -39,7 +41,7 @@ namespace CSampleClient
                     Task.Run(async () =>
                     {
                         // 50ms ~ 500ms 랜덤 지연 (사람 반응 속도 + 핑 시뮬레이션)
-                        int delay = _rand.Next(50, 500);
+                        int delay = _rand.Next(50, 250);
 
                         Console.WriteLine($"[Client] Saw mole at {index}. Reacting in {delay}ms...");
                         await Task.Delay(delay);
@@ -49,12 +51,12 @@ namespace CSampleClient
                     Console.WriteLine($"[Client] Hit REQ{index}");
                     break;
                 case PROTOCOL.LOGIN_OK:
-                    myID = msg.pop_string();
+                    myID = msg.pop_int32();
                     Console.WriteLine($"myid : {myID}");
                     break;
             }
         }
-        void SetMyId(string ID)
+        void SetMyId(int ID)
         {
             myID = ID;
             Console.WriteLine($"MyID : {myID}");

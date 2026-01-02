@@ -20,7 +20,7 @@ namespace NetWorkModule
 
         //session객체, 어플리케이션 단에서 구현하여 사용
         IPeer peer;
-
+        CMessage_resolver.CompltedMessageCallback _onMessageCallback;
         //전송할 패킷을 보관해놓는 큐.1-send로 처리하기 위한 큐이다.
         Queue<CPacket> sending_queue;
         //Sending_queue lock처리에 사용되는 객체
@@ -34,6 +34,7 @@ namespace NetWorkModule
 
             this.peer = null;
             this.sending_queue = new Queue<CPacket>();
+            this._onMessageCallback = new CMessage_resolver.CompltedMessageCallback(on_message);
         }
         public void set_peer(IPeer peer)
         {
@@ -55,12 +56,12 @@ namespace NetWorkModule
         /// <param name="transferred"></param>
         public void on_receive(byte[] buffer, int offset, int transfered)
         {
-            this.message_resolver.on_receive(buffer, offset, transfered, on_message);
+            this.message_resolver.on_receive(buffer, offset, transfered, this._onMessageCallback);
         }
         void on_message(Const<byte[]> buffer)
         {
 
-            Console.WriteLine("on_message");
+            
             if (this.peer != null)
             {
                 this.peer.on_message(buffer);
@@ -68,7 +69,15 @@ namespace NetWorkModule
         }
         public void on_removed()
         {
-            this.sending_queue.Clear();
+            // [수정] 연결이 끊길 때, 큐에 남은 패킷들을 전부 구조해서 반납해야 함
+            lock (this.cs_sending_queue)
+            {
+                while (this.sending_queue.Count > 0)
+                {
+                    CPacket packet = this.sending_queue.Dequeue();
+                    CPacket.destroy(packet); // "집으로 돌아가라"
+                }
+            }
 
             if (this.peer != null)
             {
@@ -96,15 +105,17 @@ namespace NetWorkModule
         //5) 데이터가 없을 경우 더 이상 아무런 작업을 하지 않고 리턴
         public void send(CPacket msg)
         {
-            CPacket clone = new CPacket();
+            //이 코드는 불필요함
+            CPacket clone = CPacket.create(0);
             msg.copy_to(clone);
+
             lock (this.cs_sending_queue)
             {
                 //큐가 비어있다면 큐에 추가, 바로 비동기 전송 메소드 호출
                 if (this.sending_queue.Count <= 0)
                 {
-                    this.sending_queue.Enqueue(msg);
-                    Console.WriteLine($"2 - Null ref Test");
+                    this.sending_queue.Enqueue(clone);
+                   
                     start_send();
                     return;
                 }
@@ -112,10 +123,8 @@ namespace NetWorkModule
                 //큐에 무언가가 들어 있다면 아직 이전 전송이 완료 되지않은 상태이므로
                 //큐에 추가만 하고 리턴
                 //현재 수행중인 sendasync가 완료된 이후 큐를 검사해 데이터가 있으면 sendasync를 호출해 전송해 줄 것이다.
-                this.sending_queue.Enqueue(msg);
+                this.sending_queue.Enqueue(clone);          
             }
-
-
         }
         /// <summary>
         /// 비동기 전송을 시작한다.
@@ -139,7 +148,7 @@ namespace NetWorkModule
                 msg.record_size();
 
                 //이번에 보낼 패킷 사이즈만큼 버퍼 크기를 설정하고
-                Console.WriteLine($"1 - Null ref Test");
+                
                 this.send_event_args.SetBuffer(this.send_event_args.Offset, msg.position);
 
                 //패킷 내용을 SocketAsyncEventArgs 버퍼에 복사한다.
@@ -165,50 +174,57 @@ namespace NetWorkModule
 
         public void process_send(SocketAsyncEventArgs e)
         {
+            // [수정 1] 에러 처리 시에도 Lock 필수!
             if (e.BytesTransferred <= 0 || e.SocketError != SocketError.Success)
             {
-                Console.WriteLine(string.Format("send error {0}, transferred {1}", e.SocketError, e.BytesTransferred));
+                lock (this.cs_sending_queue)
+                {
+                    // 에러가 났어도 큐에 있는 건 빼서 반납해야 함
+                    if (this.sending_queue.Count > 0)
+                    {
+                        CPacket packet = this.sending_queue.Dequeue();
+                        CPacket.destroy(packet);
+                    }
+                }
                 return;
             }
 
             lock (this.cs_sending_queue)
             {
-                //count가 0이하일 경우는 없겠지만
-
                 if (this.sending_queue.Count <= 0)
                 {
-                    throw new Exception("Sending queue count is less than zero!");//방어적 코드, 있을 수 없는 상황, send 시 큐 할당은 필수이기 때문
-                }
-
-                //todo: 재전송 로직 다시 검토
-                //패킷 하나를 다 못보낸 경우는??
-                int size = this.sending_queue.Peek().position;
-                if (e.BytesTransferred != size)
-                {
-                    string error = string.Format("Need to send more! transferred {0}, need to send {1}", e.BytesTransferred, size);
-                    Console.WriteLine(error);
+                    // 방어 코드
                     return;
                 }
 
-                //System.Threading.Interlocked.Increment(ref sent_count);   
-                lock (cs_count)
+                // [수정 2] 부분 전송(Partial Send) 처리
+                // BytesTransferred가 요청한 크기(Count)보다 작으면 재전송
+                if (e.BytesTransferred < e.Count)
                 {
-                    ++sent_count;//전위 연산하는 이유 분석
-                    //if(sent_count % 20000 == 0)  //2만으로 나눈 나머지인 이유 분석
+                    int sent = e.BytesTransferred;
+                    int remain = e.Count - sent;
+                    int new_offset = e.Offset + sent;
+
+                    // 남은 거 다시 보내! (재귀)
+                    e.SetBuffer(new_offset, remain);
+                    bool pending = this.socket.SendAsync(e);
+                    if (!pending)
                     {
-                        Console.WriteLine(string.Format("process send : {0}, transferred{1}, sent count{2}",
-                            e.SocketError, e.BytesTransferred, sent_count));
+                        process_send(e);
                     }
+                    // 여기서 리턴해야 아래 destroy로 안 넘어감 (아직 다 안 보냈으니까)
+                    return;
                 }
-                //Console.WriteLine(string.Format("process send : {0}, transferred {1}, sent count {2}",
-                //	e.SocketError, e.BytesTransferred, sent_count));
 
-                // 전송 완료된 패킷을 큐에서 제거한다.
-                //CPacket packet = this.sending_queue.Dequeue();
-                //CPacket.destroy(packet);
-                this.sending_queue.Dequeue();
+                // [전송 완료] 다 보냈을 때만 이리로 내려옴
 
-                //아직 전송하지 않은 대기중인 패킷이 있다면 다시한번 전송을 요청한다.
+                lock (cs_count) { ++sent_count; }
+
+                // 큐에서 꺼내고 반납
+                CPacket packet = this.sending_queue.Dequeue();
+                CPacket.destroy(packet); // <-- 여기서 정상 반납됨
+
+                // 다음 패킷 전송
                 if (this.sending_queue.Count > 0)
                 {
                     start_send();

@@ -60,7 +60,7 @@ namespace NetWorkModule
             else
             {
                 //failed
-                Console.WriteLine(string.Format("Failed to connect. {0}", e.SocketError));
+                
             }
         }
     }

@@ -116,7 +116,7 @@ namespace NetWorkModule
             this.remain_bytes = transffered;
 
             //원본 버퍼의 포지션값
-            //패킷이 여러개 ㅁ우쳐올 경우 원본 버퍼의 포지션은 계속 앞으로 가야하는데 그 처리를 위한 변수
+            //패킷이 여러개 뭉쳐올 경우 원본 버퍼의 포지션은 계속 앞으로 가야하는데 그 처리를 위한 변수
             int scr_position = offset;
 
             //남은 데이터가 있다면 계속 반복

@@ -52,10 +52,10 @@ namespace NetWorkModule
             {
                 this.listen_socket.Bind(endPoint);
                 this.listen_socket.Listen(backlog);
-                Console.WriteLine($"[START] before init  t={T()} th={Th()}");
+                
                 this.accept_args = new SocketAsyncEventArgs();
                 this.accept_args.Completed += new EventHandler<SocketAsyncEventArgs>(on_accept_completed);
-                Console.WriteLine($"[START] before init  t={T()} th={Th()}");
+                
                 //클라이언트가 들어오기를 기다린다.
                 //비동기 메소드이므로 블로킹되지 않고 바로 리턴
                 //콜백 메소드를 통해 접속 통보 받음.
@@ -75,7 +75,7 @@ namespace NetWorkModule
         {
 
             this.flow_control_event = new AutoResetEvent(false); //1
-            Console.WriteLine($"[LOOP] flow_control_event created  t={T()} th={Th()}");
+            
             while (true)//2
             {
                 //SocketAsyncEventArgs를 재사용하기 위해서 null로 만들어 준다.
@@ -85,16 +85,16 @@ namespace NetWorkModule
 
                 try
                 {
-                    Console.WriteLine($"[LOOP] flow_control_event created  t={T()} th={Th()}");
+                    
                     //비동기 accept를 호출해 클라이언트 접속을 받아들인다.
                     //비동기 메소드지만 동기적으로 수행이 완료될 경우도 있으니
                     //리턴 값을 확인해 분기 처리 해줘야함
                     pending = listen_socket.AcceptAsync(this.accept_args);//3 동기적으로 수행이 완료될 경우 콜백이 실행되지 않고 false를 반환해 해당 부분을 처리 해주어야함.
-                    Console.WriteLine($"[LOOP] flow_control_event created  t={T()} th={Th()}");
+                    
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    
                     continue;
                 }
                 //죽시 완료(리턴 값이 false일 때 가 되면
@@ -127,8 +127,8 @@ namespace NetWorkModule
         /// <param name="e">acceptAsync 메소드 호출시 사용된 EventArgs</param>
         void on_accept_completed(object sender, SocketAsyncEventArgs e)
         {
-            Console.WriteLine($"[CALLBACK] enter  t={T()} th={Th()} evNull={(flow_control_event == null)} " 
-                +$"sockError={e.SocketError}");
+            
+            
             if (e.SocketError == SocketError.Success)
             {
                 //새로 생긴 소켓을 보관해 놓은 뒤
@@ -156,7 +156,7 @@ namespace NetWorkModule
             else
             {
                 //Accept 실패 처리
-                Console.WriteLine("Failed to accept client.");
+                
 
             }
             //다음 연결을 받아들인다.

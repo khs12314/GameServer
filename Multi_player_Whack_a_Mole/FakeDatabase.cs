@@ -21,7 +21,7 @@ namespace Multi_player_Whack_a_Mole
         {
             // 원자적(Atomic) 연산으로 점수 업데이트
             _scores.AddOrUpdate(userId, points, (key, oldValue) => oldValue + points);
-            Console.WriteLine($"[MockDB] User {userId} Score Updated: {_scores[userId]}");
+            
         }
     }
 }

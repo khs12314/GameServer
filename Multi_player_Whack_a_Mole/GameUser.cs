@@ -7,39 +7,57 @@ using System.Threading.Tasks;
 using NetWorkModule;
 namespace Multi_player_Whack_a_Mole
 {
-    public class GameUser :IPeer
+    class Define
     {
+        public static readonly short HEADER_SIZE = 2;
+    }
+    public class GameUser : IPeer
+    {
+        
         CUserToken token;
-        public string UserID { get; private set; }
-        public CGameRoom_Whack_a_Mole battle_room {  get; set; }
+        private static int _globalPlayerIdCounter = 0;
+        public int UserID { get; private set; }
+        static int count;
+        public CGameRoom_Whack_a_Mole battle_room { get; set; }
         Player player;
         public GameUser(CUserToken token)
         {
+
             this.token = token;
             this.token.set_peer(this);
-            this.UserID = null;
+            this.UserID = 0;
+            count = 0;
         }
         void SendLoginOk()
         {
             CPacket msg = CPacket.create((short)PROTOCOL.LOGIN_OK);
             msg.push(this.UserID); // 문자열(String) 밀어넣기
             send(msg);
+
         }
-        public string GetID()
+        public int GetID()
         {
             return this.UserID;
         }
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            //ex)
-            byte[] clone = new byte[1024];
-            Array.Copy(buffer.Value, clone, buffer.Value.Length);
-            CPacket msg = new CPacket(clone,this);
+            CPacket msg = CPacket.create(0);
+
+
+            msg.overwrite(buffer.Value, buffer.Value.Length);
+
+            msg.reset_position();
+
+            msg.move_position(Define.HEADER_SIZE);
+
+            msg.SetOwner(this);
+
             Program.game_main.enqueue_packet(msg, this);
+
         }
         void IPeer.on_removed()
         {
-            Console.WriteLine("The client disconnected");
+
             //
             CPacket msg = CPacket.create((short)PROTOCOL.INTERNAL_DISCONNECT);
             msg.SetOwner(this);
@@ -49,39 +67,55 @@ namespace Multi_player_Whack_a_Mole
         {
             this.token.socket.Disconnect(false);
         }
-        void IPeer.process_user_operation(CPacket msg, short protocolID = 0)
+        void IPeer.process_user_operation(CPacket msg)
         {
-            //Console.WriteLine("Enter_Game_Room_REQ");
-            PROTOCOL protocol = (PROTOCOL)protocolID;
-            //Console.WriteLine("protocol id " + protocol);
+            //Interlocked.Increment(ref count);
+            //Console.WriteLine($"{protocol}");
+            PakcetManager.Instance.OnRecvPacket(this, msg);
+            //PROTOCOL protocol = (PROTOCOL)protocolID;
+            //switch (protocol)
+            //{
+            //    case PROTOCOL.ENTER_GAME_ROOM_REQ:
+            //        this.UserID = Interlocked.Increment(ref _globalPlayerIdCounter);
 
-            switch (protocol)
-            {
-                case PROTOCOL.ENTER_GAME_ROOM_REQ:
-                    this.UserID = $"User_{Guid.NewGuid().ToString().Substring(0, 4)}";
-                    Console.WriteLine($"[Server] Client Connected. Assigned ID: {this.UserID}");
-                    SendLoginOk();
-                    Program.game_main.matching_req(this);
+            //        SendLoginOk();
+            //        Program.game_main.matching_req(this);
 
-                    break;
-                case PROTOCOL.LOADING_COMPLETED:
-                    this.battle_room.loading_complete(this.player);
-                    break;
-                case PROTOCOL.HIT_MOLE_REQ:
-                    int HitIndex = msg.pop_int32();
-                    string ID = msg.pop_string();
-                    Console.WriteLine($" User ID : {ID}");
-                    if(this.battle_room != null)
-                    {
-                        this.battle_room.HandleHit(this, HitIndex, ID);
-                    }
+            //        break;
 
-                    break;
-            }
+            //    // 2. 로딩 완료 (방에 들어간 후)
+            //    case PROTOCOL.LOADING_COMPLETED:
+            //        if (this.battle_room != null)
+            //        {
+            //            this.battle_room.loading_complete(this.player);
+            //        }
+
+            //        break;
+
+            //    // 3. 두더지 타격 (게임 진행 중)
+            //    case PROTOCOL.HIT_MOLE_REQ:
+            //        // [주의] 패킷 구조에 맞춰서 데이터를 순서대로 꺼내야 합니다.
+            //        // 예: { int HitIndex, string UserID } 라고 가정
+            //        int hitIndex = msg.pop_int32();
+            //        int userId = msg.pop_int32();
+            //        //Console.WriteLine($"{count}");
+            //        if (this.battle_room != null)
+            //        {
+            //            // 방으로 로직 위임 (GameRoom은 싱글 스레드 안전지대)
+            //            this.battle_room.HandleHit(this, hitIndex, userId);
+            //        }
+
+
+            //        break;
+
+            //    default:
+            //        Console.WriteLine($"Unknown Protocol: {protocol}");
+            //        break;
+            //}
+
         }
-        public void send(CPacket msg) 
+        public void send(CPacket msg)
         {
-            Console.WriteLine($"3 - Null ref Test");
             this.token.send(msg);
         }
         public void enter_room(Player player, CGameRoom_Whack_a_Mole room)
@@ -89,6 +123,6 @@ namespace Multi_player_Whack_a_Mole
             this.player = player;
             this.battle_room = room;
         }
-        
+
     }
 }
