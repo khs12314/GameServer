@@ -174,6 +174,9 @@ namespace Multi_player_Whack_a_Mole
             {
                 Array.Clear(players);
             }
+            user1.enter_room(player1, this);
+            user2.enter_room(player2, this);
+
             players[0] = player1;
             players[1] = player2;
             
@@ -183,19 +186,17 @@ namespace Multi_player_Whack_a_Mole
             change_player_state(player1, PLAYER_STATE.ENTER_ROOM);
             change_player_state(player2, PLAYER_STATE.ENTER_ROOM);
             //로딩 시작
-            Task.Run(async () =>
-            {
-                await Task.Delay(1000);
+            //Task.Run(async () =>
+            //{
+            //    await Task.Delay(1000);
 
-            });
+            //});
             foreach (var item in players)
             {
                 CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
                 msg.push(item.player_index);
                 item.send(msg);
             }
-            user1.enter_room(player1, this);
-            user2.enter_room(player2, this);
 
         }
 

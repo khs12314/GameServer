@@ -119,7 +119,7 @@ namespace Multi_player_Whack_a_Mole
             else
             {
                 //3 일반이면 하던대로
-                msg.owner.process_user_operation(msg, protocol_id);
+                msg.owner.process_user_operation(msg);
             }
         }
 

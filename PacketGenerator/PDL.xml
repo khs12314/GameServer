@@ -21,6 +21,7 @@
 	<Packet name="C_HitMole">
 		<int name="gameRoomId"/>
 		<int name="moleIndex"/>
+		<int name="UserID"/>
 	</Packet>
 
 	<Packet name="S_ScoreUpdate">

@@ -19,7 +19,7 @@ namespace Multi_player_Whack_a_Mole
         public int UserID { get; private set; }
         static int count;
         public CGameRoom_Whack_a_Mole battle_room { get; set; }
-        Player player;
+        public Player player;
         public GameUser(CUserToken token)
         {
 
@@ -71,7 +71,7 @@ namespace Multi_player_Whack_a_Mole
         {
             //Interlocked.Increment(ref count);
             //Console.WriteLine($"{protocol}");
-            PakcetManager.Instance.OnRecvPacket(this, msg);
+            PacketManager.Instance.OnRecvPacket(this, msg);
             //PROTOCOL protocol = (PROTOCOL)protocolID;
             //switch (protocol)
             //{

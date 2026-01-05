@@ -106,20 +106,20 @@ public class C_LoadingComplete : IPacket
 
 public class C_HitMole : IPacket
 {
-    public int gameRoomId;public int moleIndex;
+    public int gameRoomId;public int moleIndex;public int UserID;
 
     public short Protocol { get { return (short)PacketID.C_HitMole; } }
 
     public void Read(CPacket packet)
     {
-        this.gameRoomId = packet.pop_int32();this.moleIndex = packet.pop_int32();
+        this.gameRoomId = packet.pop_int32();this.moleIndex = packet.pop_int32();this.UserID = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_HitMole);
-        packet.push(this.gameRoomId);packet.push(this.moleIndex);
+        packet.push(this.gameRoomId);packet.push(this.moleIndex);packet.push(this.UserID);
         return packet;
     }
 }

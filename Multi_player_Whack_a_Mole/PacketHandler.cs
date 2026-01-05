@@ -28,7 +28,7 @@ namespace Multi_player_Whack_a_Mole
             if (session.battle_room != null)
             {
                 // 방으로 로직 위임
-                session.battle_room.loading_complete(session);
+                session.battle_room.loading_complete(session.player);
             }
         }
 
@@ -38,9 +38,9 @@ namespace Multi_player_Whack_a_Mole
             // [장점] 더 이상 pop_int32() 순서를 신경 쓸 필요가 없습니다!
             // GenPackets가 이미 다 파싱해서 'packet' 변수에 담아왔기 때문입니다.
 
-            int hitIndex = packet.hitIndex; // 변수명으로 바로 접근!
-            int userId = packet.userId;
-
+            int hitIndex = packet.moleIndex; // 변수명으로 바로 접근!
+            int roomInfo = packet.gameRoomId;
+            int userId = packet.UserID;
             if (session.battle_room != null)
             {
                 session.battle_room.HandleHit(session, hitIndex, userId);
