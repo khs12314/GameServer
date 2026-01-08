@@ -28,7 +28,7 @@ namespace Multi_player_Whack_a_Mole
             if (session.battle_room != null)
             {
                 // 방으로 로직 위임
-                session.battle_room.loading_complete(session.player);
+                session.battle_room.loading_complete(session.MyPlayer);
             }
         }
 

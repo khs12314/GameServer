@@ -19,7 +19,11 @@ namespace Multi_player_Whack_a_Mole
         public int UserID { get; private set; }
         static int count;
         public CGameRoom_Whack_a_Mole battle_room { get; set; }
-        public Player player;
+        Player player;
+        public Player MyPlayer
+        {
+            get { return player; }
+        }
         public GameUser(CUserToken token)
         {
 
