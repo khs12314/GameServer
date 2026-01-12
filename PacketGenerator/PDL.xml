@@ -10,21 +10,47 @@
 		<float name="posY"/>
 		<float name="posZ"/>
 	</Packet>
-
+	<Packet name="C_Login">
+		
+	</Packet>
 	<Packet name="C_EnterGame">
-		<int name="tempId"/>
+		<int name="userId"/>
 	</Packet>
 
 	<Packet name="C_LoadingComplete">
 	</Packet>
 
 	<Packet name="C_HitMole">
-		<int name="gameRoomId"/>
 		<int name="moleIndex"/>
 		<int name="UserID"/>
+	</Packet>
+
+	<Packet name="S_LoginOk">
+		<int name="ServerUserID"/>
 	</Packet>
 
 	<Packet name="S_ScoreUpdate">
 		<int name="score"/>
 	</Packet>
+
+	<Packet name="S_StartLoading">
+		<int name="PlayerIndex"/>
+	</Packet>
+
+	<Packet name="S_Spawn_Mole">
+		<int name="moleIndex"/>
+	</Packet>
+
+	<Packet name="S_GameStart">
+		<short name="duration" />
+	</Packet>
+
+	<Packet name="S_PlayerInfo">
+		<byte name="playerIndex"/>
+	</Packet>
+
+	<Packet name="S_RoomRemoved">
+	</Packet>
+	
+	
 </PDL>

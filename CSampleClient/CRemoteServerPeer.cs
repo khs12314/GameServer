@@ -9,83 +9,70 @@ using System.Threading.Tasks;
 namespace CSampleClient
 {
     using GameServer;
-    class CRemoteServerPeer : IPeer
+    using Multi_player_Whack_a_Mole;
+
+    public class CRemoteServerPeer : IPeer
     {
         public CUserToken token { get; private set; }
-        int myID;
-        static Random _rand = new Random();
+
+        // [중요] PacketHandler에서 데이터를 저장할 변수들
+        private int myID = 0;
+        public byte myIndex = 0;
+        public short duration = 0;
+
         public CRemoteServerPeer(CUserToken token)
         {
             this.token = token;
             this.token.set_peer(this);
-            myID = 0;
+            this.myID = 0;
+            this.duration = 0;
         }
-        void IPeer.on_message(Const<byte[]> buufer)
-        {
-            CPacket msg = new CPacket(buufer.Value, this);
-            PROTOCOL protocol_id = (PROTOCOL)msg.pop_protocol_id();
-            Console.WriteLine($"[Client] Received from server{protocol_id}");
-            switch (protocol_id) 
-            { 
-                case PROTOCOL.ENTER_GAME_ROOM_REQ:
-                    {
-                        
-                        myID = msg.pop_int32();
-                        
-                        Console.WriteLine(string.Format("Received from server: {0}", myID));
-                    }
-                    break;
-                case PROTOCOL.SPAWN_MOLE:
-                    Int16 index = msg.pop_int16();
-                    Console.WriteLine($"[Client] Mole appeared - SpawnIndex{index}");
-                    Task.Run(async () =>
-                    {
-                        // 50ms ~ 500ms 랜덤 지연 (사람 반응 속도 + 핑 시뮬레이션)
-                        int delay = _rand.Next(50, 250);
 
-                        Console.WriteLine($"[Client] Saw mole at {index}. Reacting in {delay}ms...");
-                        await Task.Delay(delay);
+        // [Setter/Getter] 캡슐화
+        public void SetMyId(int ID) { myID = ID; }
+        public int GetMyId() { return myID; }
 
-                        SendHitPacket(index);
-                    });
-                    Console.WriteLine($"[Client] Hit REQ{index}");
-                    break;
-                case PROTOCOL.LOGIN_OK:
-                    myID = msg.pop_int32();
-                    Console.WriteLine($"myid : {myID}");
-                    break;
-            }
-        }
-        void SetMyId(int ID)
+        // ---------------------------------------------------------
+        // [핵심 수정] 패킷 수신부 (Receive)
+        // ---------------------------------------------------------
+        void IPeer.on_message(Const<byte[]> buffer)
         {
-            myID = ID;
-            Console.WriteLine($"MyID : {myID}");
+            // 1. 버퍼를 CPacket으로 감싼다.
+            CPacket msg = new CPacket(buffer.Value, this);
+            Console.WriteLine("dasasdasd");
+            // 2. [중요] 내가 직접 뜯어보지(pop) 않고, 전문가(PacketManager)에게 넘긴다.
+            //    여기서 switch-case를 쓰면 하수입니다.
+            PacketManager.Instance.OnRecvPacket(this, msg);
         }
-        void SendHitPacket(int index)
-        {
-            CPacket hitMsg = CPacket.create((short)PROTOCOL.HIT_MOLE_REQ);
-            hitMsg.push(index);
-            hitMsg.push(myID);
-            Console.WriteLine($"push ID{myID}");
-            this.token.send(hitMsg);
-        }
+
+        // ---------------------------------------------------------
+        // [삭제됨] SendHitPacket 등 잡다한 로직은 PacketHandler로 이동했음.
+        // ---------------------------------------------------------
+
         void IPeer.on_removed()
         {
-            Console.WriteLine("Server removed");
+            Console.WriteLine("[Client] Server Disconnected");
+            // 연결 끊김 처리 (PacketHandler.S_RoomRemovedHandler 등에서 처리 가능)
         }
-        void IPeer.send(CPacket msg)
+
+        public void send(CPacket msg)
         {
             this.token.send(msg);
         }
+
         void IPeer.disconnect()
         {
-            this.token.socket.Disconnect(false);    
+            this.token.socket.Disconnect(false);
         }
-        void IPeer.process_user_operation(CPacket msg, short protocolID = 0)
+
+        void IPeer.process_user_operation(CPacket msg)
         {
-
+            // 더미 클라이언트는 보통 on_message에서 즉시 처리하므로 
+            // 여기는 비워두거나, 스레드 모델에 따라 사용함.
+            // 현재 구조에서는 on_message에서 PacketManager를 호출했으므로 비워둠.
         }
-
-
     }
+
+
 }
+

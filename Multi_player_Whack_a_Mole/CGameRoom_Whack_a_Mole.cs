@@ -65,8 +65,9 @@ namespace Multi_player_Whack_a_Mole
 
         public void destroy()
         {
-            CPacket msg = CPacket.create((short)PROTOCOL.ROOM_REMOVED);
-            broadcast(msg);
+            S_RoomRemoved msg = new S_RoomRemoved();
+            
+            broadcast(msg.Write());
             Array.Clear(players);
         }
         void SpawnMole(object state)
@@ -77,9 +78,11 @@ namespace Multi_player_Whack_a_Mole
             //1. 랜덤 위치 결정(0~9)
             Interlocked.Increment(ref _isMoleAlive);
             //2 패킷 생성 브로드 캐스트 구현
-            CPacket msg = CPacket.create((short)PROTOCOL.SPAWN_MOLE);
-            msg.push(_currentMoleIndex);
-            broadcast(msg);
+            //CPacket msg = CPacket.create((short)PROTOCOL.SPAWN_MOLE);
+            //msg.push(_currentMoleIndex);
+            S_Spawn_Mole msgPacket = new S_Spawn_Mole();
+            msgPacket.moleIndex = _currentMoleIndex;
+            broadcast(msgPacket.Write());
         }
         //메시지 전송
         /// <summary>
@@ -154,7 +157,7 @@ namespace Multi_player_Whack_a_Mole
         //}
         public void HandleHit(GameUser user, int hitIndex, int ID)
         {
-
+            Console.WriteLine($"두더지 타격");
             if (_isMoleAlive == 0) return;
             if (hitIndex != _currentMoleIndex) return;
             //Console.WriteLine($"Hit index :{hitIndex}, User Id : {ID} ");
@@ -167,6 +170,7 @@ namespace Multi_player_Whack_a_Mole
         }
         public void Enter_Game_Room(GameUser user1, GameUser user2)
         {
+            
             //인덱스 부여
             Player player1 = new Player(user1, 0);
             Player player2 = new Player(user2, 1);
@@ -193,9 +197,12 @@ namespace Multi_player_Whack_a_Mole
             //});
             foreach (var item in players)
             {
-                CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
-                msg.push(item.player_index);
-                item.send(msg);
+                S_StartLoading msg = new S_StartLoading();
+                msg.PlayerIndex = item.player_index;
+                item.send(msg.Write());
+                //CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
+                //msg.push(item.player_index);
+                //item.send(msg);
             }
 
         }
@@ -218,17 +225,26 @@ namespace Multi_player_Whack_a_Mole
             //게임 시작시 초기화
             reset_gamedata();
             //시작 메시지 전송
-            CPacket msg = CPacket.create((short)PROTOCOL.GAME_START);
+            //CPacket msg = CPacket.create((short)PROTOCOL.GAME_START);
             //타이머 시작
             //두더지 생성 이벤트 시작
-            msg.push((byte)this.players.Length);
+            //msg.push((byte)this.players.Length);
+
+
+            S_GameStart StartPacket = new S_GameStart();
+            StartPacket.duration = duration;
+            broadcast(StartPacket.Write());
+
             //duration을 전체에게 send
             foreach (var item in players)
             {
-                msg.push(item.player_index);
-                msg.push(duration);
+                S_PlayerInfo s_PlayerInfo = new S_PlayerInfo();
+                s_PlayerInfo.playerIndex = item.player_index;
+                broadcast(s_PlayerInfo.Write());
+                //msg.push(item.player_index);
+                //msg.push(duration);
             }
-            broadcast(msg);
+            //broadcast(msg);
         }
         void reset_gamedata()
         {

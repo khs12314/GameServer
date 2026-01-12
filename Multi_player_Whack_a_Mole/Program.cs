@@ -8,7 +8,7 @@ namespace Multi_player_Whack_a_Mole
         public static GameServer game_main = new GameServer();
         static void Main(string[] args)
         {
-            CPacketBufferManger.initialize(10000);
+            CPacketBufferManger.initialize(10);
             userlist = new List<GameUser>();
 
             CNetworkService service = new CNetworkService();
@@ -41,8 +41,9 @@ namespace Multi_player_Whack_a_Mole
         }
         public static void remove_user(GameUser user)
         {
-            CPacket msg = CPacket.create((short)PROTOCOL.INTERNAL_DISCONNECT);
-            game_main.enqueue_packet(msg, user);
+            Internal_Disconnect packet = new Internal_Disconnect();
+            
+            game_main.enqueue_packet(packet.Write(), user);
         }
     }
 }

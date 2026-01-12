@@ -1,0 +1,124 @@
+﻿using CSampleClient;
+using NetWorkModule;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Multi_player_Whack_a_Mole
+{
+    public class PacketHandler
+    {
+        static Random _rand = new Random();
+        static int count;
+        // -----------------------------------------------------------
+        // 1. 로그인 성공 (S_LoginOk)
+        // -----------------------------------------------------------
+        public static void S_LoginOkHandler(IPeer peer, S_LoginOk packet)
+        {
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
+
+            // 내 ID 저장 (추후 타격 패킷 보낼 때 내 ID가 필요함)
+            // session에 SetMyId 메소드나 public 필드가 있어야 함
+            session.SetMyId(packet.ServerUserID);
+
+            Console.WriteLine($"[Client] Login Success! Assigned ID: {packet.ServerUserID}");
+            Interlocked.Increment(ref count);
+            Console.WriteLine(count);
+            // [Action] 로그인 성공했으니 바로 게임 입장 요청 (C_EnterGame)
+            C_EnterGame enterPacket = new C_EnterGame();
+            enterPacket.userId = packet.ServerUserID;
+            session.token.send(enterPacket.Write());
+        }
+
+        // -----------------------------------------------------------
+        // 2. 두더지 스폰 (S_Spawn_Mole) -> 자동 타격 로직
+        // -----------------------------------------------------------
+        public static void S_Spawn_MoleHandler(IPeer peer, S_Spawn_Mole packet)
+        {
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
+
+            int moleIndex = packet.moleIndex;
+            int myId = session.GetMyId(); // 저장해둔 내 ID 가져오기
+
+            // 비동기로 반응 속도 시뮬레이션 후 타격 패킷 전송
+            Task.Run(async () =>
+            {
+                // 50ms ~ 250ms 랜덤 지연 (사람 반응 속도 흉내)
+                int delay = _rand.Next(50, 250);
+                await Task.Delay(delay);
+
+                // 타격 패킷 생성 및 전송
+                C_HitMole hitPacket = new C_HitMole();
+                hitPacket.moleIndex = moleIndex;
+                hitPacket.UserID = myId;
+
+                session.token.send(hitPacket.Write());
+
+                // 로그가 너무 많으면 주석 처리
+                // Console.WriteLine($"[Client] Auto-Hit Mole[{moleIndex}] (Delay: {delay}ms)");
+            });
+        }
+
+        // -----------------------------------------------------------
+        // 3. 점수 업데이트 (S_ScoreUpdate)
+        // -----------------------------------------------------------
+        public static void S_ScoreUpdateHandler(IPeer peer, S_ScoreUpdate packet)
+        {
+            // 단순히 점수 로그 출력 추가예정
+            Console.WriteLine($"[Client] Current Score: {packet.score}");
+        }
+
+        // -----------------------------------------------------------
+        // 4. 게임 시작 (S_GameStart)
+        // -----------------------------------------------------------
+        public static void S_GameStartHandler(IPeer peer, S_GameStart packet)
+        {
+            Console.WriteLine($"[Client] Game Started! Duration: {packet.duration}s");
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
+            session.duration = packet.duration;
+        }
+
+        // -----------------------------------------------------------
+        // 5. 로딩 시작 (S_StartLoading) -> 로딩 완료 응답 필수
+        // -----------------------------------------------------------
+        public static void S_StartLoadingHandler(IPeer peer, S_StartLoading packet)
+        {
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
+
+            Console.WriteLine($"[Client] Loading Start... (PlayerIndex: {packet.PlayerIndex})");
+
+            // [중요] 서버가 로딩하라고 했으니, 바로 "로딩 끝났습니다"라고 답장을 보내야 게임이 시작됨
+            // 실제 게임이라면 리소스 로드 후 보내겠지만, 더미는 바로 보냄
+            C_LoadingComplete loadEndPacket = new C_LoadingComplete();
+            session.token.send(loadEndPacket.Write());
+        }
+
+        // -----------------------------------------------------------
+        // 6. 플레이어 정보 (S_PlayerInfo)
+        // -----------------------------------------------------------
+        public static void S_PlayerInfoHandler(IPeer peer, S_PlayerInfo packet)
+        {
+            Console.WriteLine($"[Client] Player Info Received: Index {packet.playerIndex}");
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
+            session.myIndex = packet.playerIndex;
+        }
+
+        // -----------------------------------------------------------
+        // 7. 방 제거 알림 (S_RoomRemoved)
+        // -----------------------------------------------------------
+        public static void S_RoomRemovedHandler(IPeer peer, S_RoomRemoved packet)
+        {
+            Console.WriteLine("[Client] Room Removed (Game Over or Disconnected).");
+            // 필요 시 클라이언트 종료 혹은 재접속 로직 추가 예정
+        }
+    }
+}
+

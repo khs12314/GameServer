@@ -34,6 +34,7 @@ namespace NetWorkModule
 
             this.peer = null;
             this.sending_queue = new Queue<CPacket>();
+            
             this._onMessageCallback = new CMessage_resolver.CompltedMessageCallback(on_message);
         }
         public void set_peer(IPeer peer)
@@ -61,7 +62,7 @@ namespace NetWorkModule
         void on_message(Const<byte[]> buffer)
         {
 
-            
+            Console.WriteLine("asdasdasdsdaasfgaasgdsdgegfadegfefdg");
             if (this.peer != null)
             {
                 this.peer.on_message(buffer);

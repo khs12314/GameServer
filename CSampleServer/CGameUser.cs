@@ -64,7 +64,7 @@ namespace CSampleServer
         {
             this.token.socket.Disconnect(false);    
         }
-        void IPeer.process_user_operation(CPacket msg, short protocolID)
+        void IPeer.process_user_operation(CPacket msg)
         {
 
         }

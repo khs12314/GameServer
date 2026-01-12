@@ -12,13 +12,13 @@ namespace CSampleClient
         static List<CUserToken> _dummies = new List<CUserToken>();
 
         // 목표 접속 수
-        const int DUMMY_COUNT = 5000;
+        const int DUMMY_COUNT = 2;
 
         static void Main(string[] args)
         {
             // 1. 패킷 풀 초기화
             // 500명이 동시에 쏘려면 2000개로는 부족할 수 있습니다. 넉넉하게 잡습니다.
-            CPacketBufferManger.initialize(100000);
+            CPacketBufferManger.initialize(10);
 
             // 2. 네트워크 서비스 생성 (하나의 서비스로 모든 연결 처리)
             CNetworkService service = new CNetworkService();
@@ -51,6 +51,7 @@ namespace CSampleClient
             // 4. 패킷 난사 루프 (Firing Loop)
             while (true)
             {
+                
                 try
                 {
                     // 리스트를 순회하며 패킷 전송
@@ -61,12 +62,16 @@ namespace CSampleClient
                         {
                             // [Zero-Alloc Packet 생성]
                             // 여기서 create를 쓰면 내부적으로 Pool에서 가져옴
-                            CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
+                            //CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
+                            C_Login c_Login = new C_Login();
+                            
                             //Console.WriteLine("Send Pakcet ENTER_GAME_ROOM_REQ");
                             // 필요하다면 더미 데이터 푸시
                             // msg.push(100); 
 
-                            token.send(msg);
+                            token.send(c_Login.Write());
+                            Console.WriteLine("패킷 전송");
+                            
                         }
                     }
                     break;
@@ -88,6 +93,7 @@ namespace CSampleClient
         // 접속 성공 시 호출되는 콜백
         static void on_connected_gameserver(CUserToken token)
         {
+            Console.WriteLine("dasasdasd");
             lock (_dummies)
             {
                 IPeer server = new CRemoteServerPeer(token);
@@ -96,20 +102,20 @@ namespace CSampleClient
         }
         private static void TestClientMethod()
         {
-            CPacketBufferManger.initialize(2000);   //1
-            //CNetworkService객체는 메시지의 비동기 송,수신 처리를 수행한다.
-            //메시지 송, 수신은 서버, 클라이언트 모두 동일한 로직으로 처리될 수 있으므로
-            //CNetworkService 객체를 생성해 connector 겍체에 넘겨준다.
-            CNetworkService service = new CNetworkService();
-            //endpoint 정보를 갖고 있는 Connector 생성. 만들어둔 NetworkService 객체를 넣어준다.
-            CConnector connector = new CConnector(service);//2
-            // 접속 성공 시 호출될 콜백 메소드 지정.
-            connector.connected_callback += on_connected_gameserver;
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8000);
-            connector.connect(endpoint);
-            Console.ReadLine();
-            CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
-            game_servers[0].send(msg);
+            //CPacketBufferManger.initialize(2000);   //1
+            ////CNetworkService객체는 메시지의 비동기 송,수신 처리를 수행한다.
+            ////메시지 송, 수신은 서버, 클라이언트 모두 동일한 로직으로 처리될 수 있으므로
+            ////CNetworkService 객체를 생성해 connector 겍체에 넘겨준다.
+            //CNetworkService service = new CNetworkService();
+            ////endpoint 정보를 갖고 있는 Connector 생성. 만들어둔 NetworkService 객체를 넣어준다.
+            //CConnector connector = new CConnector(service);//2
+            //// 접속 성공 시 호출될 콜백 메소드 지정.
+            //connector.connected_callback += on_connected_gameserver;
+            //IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8000);
+            //connector.connect(endpoint);
+            //Console.ReadLine();
+            //CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
+            //game_servers[0].send(msg);
             //Thread.Sleep(1000);
             //msg = CPacket.create((short)PROTOCOL.LOADING_COMPLETED);
             //game_servers[0].send(msg);

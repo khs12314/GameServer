@@ -195,22 +195,29 @@ namespace NetWorkModule
         void process_receive(SocketAsyncEventArgs e)
         {
             // check if the remote host closed the connection
-            CUserToken token = e.UserToken as CUserToken;
+            CUserToken token = (CUserToken)e.UserToken;
+
+            // [수정] 반드시 "0보다 클 때"만 처리해야 함.
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
+                // 정상 데이터 수신
                 token.on_receive(e.Buffer, e.Offset, e.BytesTransferred);
 
+                // 다음 수신 대기
                 bool pending = token.socket.ReceiveAsync(e);
                 if (!pending)
                 {
-                    // Oh! stack overflow?? 
-                    process_receive(e);
+                    receive_completed(null, e);
                 }
             }
             else
             {
-                
-                close_clientsocket(token);
+                // [중요] 0바이트가 오면 "연결 끊김"으로 간주하고 루프를 멈춰야 함!
+                Console.WriteLine($"[Server] Client Disconnected : {token.socket.RemoteEndPoint}");
+
+                // 소켓 닫고, 리졸버 초기화 등등
+                token.disconnect();
+                token.on_removed();
             }
         }
         public void close_clientsocket(CUserToken token)

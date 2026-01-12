@@ -10,7 +10,7 @@ namespace NetWorkModule
         public IPeer owner { get; private set; }
         public byte[] buffer { get; private set; }
         public int position { get; private set; }
-        public Int16 protocol_id { get; private set; }
+        public Int16 protocol_id { get;  set; }
         public bool is_using = true;
         public static CPacket create(Int16 protocol_id)
         {
@@ -39,6 +39,7 @@ namespace NetWorkModule
             //헤더는 읽을 필요 없으니 그 이후부터 시작한다.
             this.position = Define.HEADER_SIZE;
             this.owner = owner;
+            this.protocol_id = BitConverter.ToInt16(buffer, 2);
         }
         public CPacket()
         {
