@@ -8,7 +8,7 @@ namespace Multi_player_Whack_a_Mole
         public static GameServer game_main = new GameServer();
         static void Main(string[] args)
         {
-            CPacketBufferManger.initialize(10);
+            CPacketBufferManger.initialize(100000);
             userlist = new List<GameUser>();
 
             CNetworkService service = new CNetworkService();

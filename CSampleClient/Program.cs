@@ -12,13 +12,13 @@ namespace CSampleClient
         static List<CUserToken> _dummies = new List<CUserToken>();
 
         // 목표 접속 수
-        const int DUMMY_COUNT = 2;
+        const int DUMMY_COUNT = 500;
 
         static void Main(string[] args)
         {
             // 1. 패킷 풀 초기화
             // 500명이 동시에 쏘려면 2000개로는 부족할 수 있습니다. 넉넉하게 잡습니다.
-            CPacketBufferManger.initialize(10);
+            CPacketBufferManger.initialize(100000);
 
             // 2. 네트워크 서비스 생성 (하나의 서비스로 모든 연결 처리)
             CNetworkService service = new CNetworkService();
