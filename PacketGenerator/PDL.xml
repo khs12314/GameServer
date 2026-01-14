@@ -57,5 +57,6 @@
 	</Packet>
 	<Packet name="S_Login_DB">
 		<bool name="Sucess"/>
+		<int name="UserID"/>
 	</Packet>
 </PDL>

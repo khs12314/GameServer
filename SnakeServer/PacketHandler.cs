@@ -8,24 +8,29 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
-    
+
     public class PacketHandler
     {
         public static void C_LoginDBHandler(IPeer peer, C_Login_DB packet)
         {
-            GameUser_Session session = peer as GameUser_Session;
-            
-            
-            long userid = DBMananger.LoginAccount(packet.ID, packet.PassWord);
-            if(userid == -1)
-            {
+            User_Session? session = peer as User_Session;
+            S_Login_DB login = new S_Login_DB();
 
+
+            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord);
+            if (userid != -1)
+            {
+                login.Sucess = true;
+                login.UserID = userid;
+                peer.send(login.Write());
             }
             else
             {
-
+                login.Sucess = false;
+                login.UserID = 0;
+                peer.send(login.Write());
             }
-
+            Program.game_server.Set_User_Session(session, userid);
 
         }
     }

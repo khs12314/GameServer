@@ -7,8 +7,12 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
+    class Define
+    {
+        public static readonly short HEADER_SIZE = 2;
+    }
     //접속한 유저의 세션(인 게임은 다루지 않음)
-    public class User_Session
+    public class User_Session : IPeer
     {
         static int _UserIDGenerator = 0;
         CUserToken CUserToken;
@@ -16,7 +20,39 @@ namespace SnakeServer
        public User_Session(CUserToken token)
         {
             this.CUserToken = token;
+            this.CUserToken.set_peer(this);
             this.Uid = Interlocked.Increment(ref _UserIDGenerator);
+        }
+
+        void IPeer.on_message(Const<byte[]> buffer)
+        {
+            Console.WriteLine("메시지 받음");
+            short protocolid = BitConverter.ToInt16(buffer.Value, 2);
+            CPacket msg = CPacket.create(protocolid);
+            msg.overwrite(buffer.Value, buffer.Value.Length);
+            msg.SetOwner(this);
+
+            Program.game_server.Enqueue_Job(msg);
+        }
+
+        void IPeer.on_removed()
+        {
+            throw new NotImplementedException();
+        }
+
+        void IPeer.send(CPacket msg)
+        {
+            this.CUserToken.send(msg);
+        }
+
+        void IPeer.disconnect()
+        {
+            throw new NotImplementedException();
+        }
+
+        void IPeer.process_user_operation(CPacket msg)
+        {
+            PacketManager.Instance.OnRecvPakcet(this, msg);
         }
     }
 }

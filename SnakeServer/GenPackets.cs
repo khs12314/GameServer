@@ -315,20 +315,20 @@ public class C_Login_DB : IPacket
 
 public class S_Login_DB : IPacket
 {
-    public bool Sucess;
+    public bool Sucess;public int UserID;
 
     public short Protocol { get { return (short)PacketID.S_Login_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.Sucess = packet.pop_bool();
+        this.Sucess = packet.pop_bool();this.UserID = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Login_DB);
-        packet.push(this.Sucess);
+        packet.push(this.Sucess);packet.push(this.UserID);
         return packet;
     }
 }

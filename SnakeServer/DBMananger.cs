@@ -55,7 +55,7 @@ namespace SnakeServer
         }
 
         // [예제 2] 로그인 (SELECT) - 결과(ID)를 가져와야 하는 쿼리
-        public static long LoginAccount(string name, string pw)
+        public static int LoginAccount(string name, string pw)
         {
             using (MySqlConnection conn = GetConnection())
             {
@@ -75,7 +75,7 @@ namespace SnakeServer
                     if (result != null)
                     {
                         Console.WriteLine($"[DB] 로그인 성공! AccountID: {result}");
-                        return Convert.ToInt64(result);
+                        return Convert.ToInt32(result);
                     }
                     else
                     {

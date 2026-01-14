@@ -11,8 +11,8 @@ namespace SnakeServer
     //패킷 매니저
     public class PacketManager
     {
-        PacketManager instance = new PacketManager();
-        public static PacketManager Instance { get { return Instance; } }
+        static PacketManager instance = new PacketManager();
+        public static PacketManager Instance { get { return instance; } }
 
         public PacketManager()
         {
@@ -22,6 +22,7 @@ namespace SnakeServer
         public void OnRecvPakcet(IPeer session, CPacket packet)
         {
             short protocol_id = packet.pop_protocol_id();
+            Console.WriteLine("C_LoginDB");
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
