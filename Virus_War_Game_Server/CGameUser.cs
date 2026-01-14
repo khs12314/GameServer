@@ -40,32 +40,32 @@ namespace Virus_War_Game_Server
             this.token.socket.Disconnect(false);
         }
 
-        void IPeer.process_user_operation(CPacket msg, short protocolID = 0)
+        void IPeer.process_user_operation(CPacket msg)
         {
-            Console.WriteLine("Enter_Game_Room_REQ");
-            PROTOCOL protocol = (PROTOCOL)protocolID;
-            Console.WriteLine("protocol id " + protocol);
+            //Console.WriteLine("Enter_Game_Room_REQ");
+            //PROTOCOL protocol = (PROTOCOL)protocolID;
+            //Console.WriteLine("protocol id " + protocol);
 
-            switch (protocol)
-            {
-                case PROTOCOL.ENTER_GAME_ROOM_REQ:
-                    Program.game_main.matching_req(this);
-                    break;
-                case PROTOCOL.LOADING_COMPLETED:
-                    this.battle_room.loading_complete(player);
-                    break;
-                case PROTOCOL.MOVING_REQ:
-                    {
-                        short begin_pos = msg.pop_int16();
-                        short target_pos = msg.pop_int16();
-                        this.battle_room.moving_req(this.player, begin_pos, target_pos);
-                    }
-                    break;
-                case PROTOCOL.TURN_FINISHED_REQ:
-                    this.battle_room.turn_finished(this.player);
-                    break;
+            //switch (protocol)
+            //{
+            //    case PROTOCOL.ENTER_GAME_ROOM_REQ:
+            //        Program.game_main.matching_req(this);
+            //        break;
+            //    case PROTOCOL.LOADING_COMPLETED:
+            //        this.battle_room.loading_complete(player);
+            //        break;
+            //    case PROTOCOL.MOVING_REQ:
+            //        {
+            //            short begin_pos = msg.pop_int16();
+            //            short target_pos = msg.pop_int16();
+            //            this.battle_room.moving_req(this.player, begin_pos, target_pos);
+            //        }
+            //        break;
+            //    case PROTOCOL.TURN_FINISHED_REQ:
+            //        this.battle_room.turn_finished(this.player);
+            //        break;
 
-            }
+            //}
         }
         public void enter_room(CPlayer player, CGameRoom room)
         {

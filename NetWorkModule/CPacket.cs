@@ -16,10 +16,21 @@ namespace NetWorkModule
         {
             CPacket packet = CPacketBufferManger.pop();
             packet.is_using = true;
+            
             packet.set_protocol(protocol_id);
+            Console.WriteLine($"생성한 프로토콜 아이디 패킷 {protocol_id}");
             return packet;
         }
-
+        public static CPacket create(byte[] buffer, IPeer owner)
+        {
+            CPacket packet = CPacketBufferManger.pop();
+            packet.is_using = true;
+            packet.owner = owner;
+            packet.overwrite(buffer, buffer.Length);
+            packet.protocol_id = BitConverter.ToInt16(buffer, 2);
+            Console.WriteLine($"생성한 프로토콜 아이디 패킷 {packet.protocol_id}");
+            return packet;
+        }
         public static void destroy(CPacket packet)
         {
             if (packet.is_using == false)
@@ -56,10 +67,23 @@ namespace NetWorkModule
             target.overwrite(this.buffer, this.position);
 
         }
-        public void overwrite(byte[] source, int position)
+        public void overwrite(byte[] source, int length)
         {
-            Array.Copy(source, 0, this.buffer, 0, position);
-            this.position = position;
+            // 1. 버퍼 크기 확보 (안전장치)
+            // 내 버퍼가 없거나 작으면 새로 만듬. (풀링 중이라면 이미 충분히 클 것임)
+            if (this.buffer == null || this.buffer.Length < length)
+            {
+                this.buffer = new byte[length > 1024 ? length : 1024];
+            }
+
+            // 2. [Deep Copy] 데이터 복사
+            // "외부 소스(source)의 0번지부터 length만큼" -> "내 안방(buffer)의 0번지"로 복사
+            Array.Copy(source, 0, this.buffer, 0, length);
+
+            // 3. [Cursor Reset] 읽기 준비
+            // 데이터를 새로 썼으니, 읽는 위치는 다시 맨 앞(헤더 뒤)으로 돌아가야 함.
+            // 이걸 안 하면 position이 엉뚱한 곳에 가 있어서 에러 남.
+            this.position = Define.HEADER_SIZE;
         }
         public void reset_position()
         {
@@ -80,6 +104,12 @@ namespace NetWorkModule
             this.position += sizeof(byte);
             return data;
         }
+        public bool pop_bool()
+        {
+            byte data = this.buffer[this.position];
+            this.position += sizeof(byte);
+            return (data != 0);
+        }
         public Int16 pop_int16()
         {
             
@@ -96,6 +126,7 @@ namespace NetWorkModule
             this.position += sizeof(Int32);
             return data;
         }
+       
         public string pop_string()
         {
             //문자열 최대 2바이트까지 0~32767
@@ -136,16 +167,21 @@ namespace NetWorkModule
         public void set_protocol(Int16 protocol_id)
         {
             this.protocol_id = protocol_id;
+            
             //헤더는 나중에 넣을것이므로 데이터부터 넣을  수있도록 위치 점프
             this.position = Define.HEADER_SIZE;
             push_int16(protocol_id);
+            
+            
         }
         public void record_size()
         {
             Int16 body_size = (Int16)(this.position - Define.HEADER_SIZE);
             Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));   
             BitConverter.TryWriteBytes(SpanSpace, body_size);
+            Console.WriteLine($"바디 사이즈{body_size}");
         }
+       
         public void push_int16(Int16 data)
         {
             Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));
@@ -161,7 +197,12 @@ namespace NetWorkModule
                 
             }
         }
+        public void push(bool data)
+        {
+            this.buffer[this.position] = (byte)(data ? 1 : 0);
+            this.position += sizeof(byte);
 
+        }
         public void push(byte data)
         {
             this.buffer[this.position] = data;
@@ -184,7 +225,7 @@ namespace NetWorkModule
         {
             Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int32));
             bool success = BitConverter.TryWriteBytes(SpanSpace, data);
-
+            
             if (success)
             {
                 this.position += sizeof(Int32);

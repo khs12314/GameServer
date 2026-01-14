@@ -27,6 +27,7 @@ namespace Multi_player_Whack_a_Mole
         public void OnRecvPacket(IPeer peer, CPacket packet)
         {
             // 1. 프로토콜 ID 추출 (short)
+            packet.pop_protocol_id();
             short protocolId = packet.protocol_id;
             CRemoteServerPeer session = peer as CRemoteServerPeer;
             Console.WriteLine($"{protocolId}");
@@ -38,6 +39,7 @@ namespace Multi_player_Whack_a_Mole
                 case PacketID.S_LoginOk:
                     S_LoginOk loginPacket = new S_LoginOk();
                     loginPacket.Read(packet);
+                    Console.WriteLine($"로그인 유저 아이디 to 서버 {loginPacket.ServerUserID}");
                     PacketHandler.S_LoginOkHandler(peer, loginPacket);
                     //로그인 확인
                     break;
@@ -50,6 +52,7 @@ namespace Multi_player_Whack_a_Mole
                 case PacketID.S_ScoreUpdate:
                     S_ScoreUpdate scorePacket = new S_ScoreUpdate();
                     scorePacket.Read(packet);
+
                     //점수 업데이트
                     PacketHandler.S_ScoreUpdateHandler(peer, scorePacket);
                     break;

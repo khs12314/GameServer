@@ -51,6 +51,11 @@
 
 	<Packet name="S_RoomRemoved">
 	</Packet>
-	
-	
+	<Packet name="C_Login_DB">
+		<string name="ID"/>
+		<string name="PassWord"/>
+	</Packet>
+	<Packet name="S_Login_DB">
+		<bool name="Sucess"/>
+	</Packet>
 </PDL>

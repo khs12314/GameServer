@@ -82,6 +82,7 @@ namespace Multi_player_Whack_a_Mole
             //msg.push(_currentMoleIndex);
             S_Spawn_Mole msgPacket = new S_Spawn_Mole();
             msgPacket.moleIndex = _currentMoleIndex;
+            Console.WriteLine($"스폰된 두더지 인덱스@@@@@@@@@@@@@@@{_currentMoleIndex}");
             broadcast(msgPacket.Write());
         }
         //메시지 전송
@@ -178,6 +179,11 @@ namespace Multi_player_Whack_a_Mole
             {
                 Array.Clear(players);
             }
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+
+            });
             user1.enter_room(player1, this);
             user2.enter_room(player2, this);
 
@@ -190,11 +196,6 @@ namespace Multi_player_Whack_a_Mole
             change_player_state(player1, PLAYER_STATE.ENTER_ROOM);
             change_player_state(player2, PLAYER_STATE.ENTER_ROOM);
             //로딩 시작
-            //Task.Run(async () =>
-            //{
-            //    await Task.Delay(1000);
-
-            //});
             foreach (var item in players)
             {
                 S_StartLoading msg = new S_StartLoading();

@@ -62,7 +62,6 @@ namespace NetWorkModule
         void on_message(Const<byte[]> buffer)
         {
 
-            Console.WriteLine("asdasdasdsdaasfgaasgdsdgegfadegfefdg");
             if (this.peer != null)
             {
                 this.peer.on_message(buffer);
@@ -107,15 +106,14 @@ namespace NetWorkModule
         public void send(CPacket msg)
         {
             //이 코드는 불필요함
-            CPacket clone = CPacket.create(0);
-            msg.copy_to(clone);
+            
 
             lock (this.cs_sending_queue)
             {
                 //큐가 비어있다면 큐에 추가, 바로 비동기 전송 메소드 호출
                 if (this.sending_queue.Count <= 0)
                 {
-                    this.sending_queue.Enqueue(clone);
+                    this.sending_queue.Enqueue(msg);
                    
                     start_send();
                     return;
@@ -124,7 +122,7 @@ namespace NetWorkModule
                 //큐에 무언가가 들어 있다면 아직 이전 전송이 완료 되지않은 상태이므로
                 //큐에 추가만 하고 리턴
                 //현재 수행중인 sendasync가 완료된 이후 큐를 검사해 데이터가 있으면 sendasync를 호출해 전송해 줄 것이다.
-                this.sending_queue.Enqueue(clone);          
+                this.sending_queue.Enqueue(msg);          
             }
         }
         /// <summary>
@@ -147,7 +145,7 @@ namespace NetWorkModule
 
                 //헤더에 패킷 사이즈를 기록
                 msg.record_size();
-
+                
                 //이번에 보낼 패킷 사이즈만큼 버퍼 크기를 설정하고
                 
                 this.send_event_args.SetBuffer(this.send_event_args.Offset, msg.position);

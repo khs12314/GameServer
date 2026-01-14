@@ -12,7 +12,7 @@ namespace CSampleClient
         static List<CUserToken> _dummies = new List<CUserToken>();
 
         // 목표 접속 수
-        const int DUMMY_COUNT = 500;
+        const int DUMMY_COUNT = 2;
 
         static void Main(string[] args)
         {

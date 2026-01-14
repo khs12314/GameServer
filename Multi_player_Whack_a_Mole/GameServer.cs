@@ -1,6 +1,7 @@
 ﻿using NetWorkModule;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,7 +50,11 @@ namespace Multi_player_Whack_a_Mole
                     if (this.user_operations.Count > 0)
                     {
                         packet = this.user_operations.Dequeue();
-                        Console.WriteLine($"게임 루프 디큐{packet.protocol_id}");
+                        Console.WriteLine($"디큐 버퍼 지워졌나 테스트");
+                    }
+                    else
+                    {
+
                     }
                 }
 
@@ -58,6 +63,8 @@ namespace Multi_player_Whack_a_Mole
                 {
                     try
                     {
+                        
+                        
                         process_receive(packet);
                     }
                     catch (Exception e)
@@ -72,6 +79,7 @@ namespace Multi_player_Whack_a_Mole
                 }
                 else
                 {
+                    
                     // 일감이 없으면 잠듬 (CPU 절약)
                     this.loop_event.WaitOne();
                 }
@@ -80,9 +88,13 @@ namespace Multi_player_Whack_a_Mole
 
         public void enqueue_packet(CPacket packet, GameUser user)
         {
+            
             lock (this.operation_lock)
             {
+
+                Console.WriteLine($"인큐 버퍼 지워졌나 테스트");
                 this.user_operations.Enqueue(packet);
+               
                 this.loop_event.Set(); // "일어납시오!"
             }
         }

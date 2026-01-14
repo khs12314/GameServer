@@ -12,7 +12,7 @@ namespace Multi_player_Whack_a_Mole
     public class PacketHandler
     {
         static Random _rand = new Random();
-        static int count;
+        
         // -----------------------------------------------------------
         // 1. 로그인 성공 (S_LoginOk)
         // -----------------------------------------------------------
@@ -26,11 +26,11 @@ namespace Multi_player_Whack_a_Mole
             session.SetMyId(packet.ServerUserID);
 
             Console.WriteLine($"[Client] Login Success! Assigned ID: {packet.ServerUserID}");
-            Interlocked.Increment(ref count);
-            Console.WriteLine(count);
+            
             // [Action] 로그인 성공했으니 바로 게임 입장 요청 (C_EnterGame)
             C_EnterGame enterPacket = new C_EnterGame();
             enterPacket.userId = packet.ServerUserID;
+            Console.WriteLine($"엔터 패킷 유저 아이디{enterPacket.userId}");
             session.token.send(enterPacket.Write());
         }
 
@@ -41,10 +41,9 @@ namespace Multi_player_Whack_a_Mole
         {
             CRemoteServerPeer session = peer as CRemoteServerPeer;
             if (session == null) return;
-
+            Console.WriteLine($"받은 스폰 인덱스{packet.moleIndex}");
             int moleIndex = packet.moleIndex;
             int myId = session.GetMyId(); // 저장해둔 내 ID 가져오기
-
             // 비동기로 반응 속도 시뮬레이션 후 타격 패킷 전송
             Task.Run(async () =>
             {
@@ -56,9 +55,8 @@ namespace Multi_player_Whack_a_Mole
                 C_HitMole hitPacket = new C_HitMole();
                 hitPacket.moleIndex = moleIndex;
                 hitPacket.UserID = myId;
-
+                Console.WriteLine($"푸시 아이디{myId}");
                 session.token.send(hitPacket.Write());
-
                 // 로그가 너무 많으면 주석 처리
                 // Console.WriteLine($"[Client] Auto-Hit Mole[{moleIndex}] (Delay: {delay}ms)");
             });

@@ -104,7 +104,7 @@ namespace PacketGenerator
                         break;
                     case "bool":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "byte"); // bool은 byte로 처리
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "bool"); // bool은 byte로 처리
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
                         break;
                     case "short":

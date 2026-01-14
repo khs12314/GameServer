@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,6 +46,7 @@ namespace Multi_player_Whack_a_Mole
 
             // Write()가 반환하는 CPacket을 전송 (Zero-Allocation)
             send(packet.Write());
+            Console.WriteLine($"샌드 로그인 유저 아이디{UserID}");
         }
 
         public int GetID()
@@ -57,16 +59,22 @@ namespace Multi_player_Whack_a_Mole
         // ----------------------------------------------------------------
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            // [Bad] 기존 코드: msg.overwrite(...) -> 메모리 복사 발생! 성능 저하 원인.
-
-            // [Good] 버퍼를 감싸기만 함 (Wrapping)
-            // CPacket 생성자 중 (byte[], IPeer)를 받는 버전을 사용하십시오.
-            // *주의: 이 생성자는 내부적으로 '참조'만 복사하므로 성능 비용이 거의 0입니다.
-            CPacket msg = new CPacket(buffer.Value, this);
-            Console.WriteLine($"온 메시지{msg.position}");
-            //msg.protocol_id = (short)PacketID.C_Login;
-            Console.WriteLine($"온 메시지 프로토콜 아이디 {msg.protocol_id}");
-            // 큐에 넣어서 처리 (GameServer 로직 스레드가 가져감)
+            short protocolId = BitConverter.ToInt16(buffer.Value, 2);
+            
+            
+            // 2. 패킷 생성 (풀링)
+            CPacket msg = CPacket.create(protocolId);
+            
+            // 3. [★생명줄★] 데이터 복사 (Overwrite)
+            // 잡큐에 넣으면 나중에 처리되니까, 그 전에 내 버퍼로 데이터를 피신시켜야 함.
+            // 이걸 안 하면 Dequeue 했을 때 데이터가 0으로 나옴.
+            msg.overwrite(buffer.Value, buffer.Value.Length);
+            msg.SetOwner(this);
+            
+            // 4. 잡큐에 투입 (Enqueue)
+            // 이제 msg는 안전한 데이터(Deep Copy됨)를 가지고 있으니, 
+            // 1초 뒤에 꺼내든 10초 뒤에 꺼내든 데이터가 살아있음.
+            
             Program.game_main.enqueue_packet(msg, this);
         }
 
@@ -97,8 +105,7 @@ namespace Multi_player_Whack_a_Mole
             // [청소 완료] 
             // 더럽게 남아있던 PROTOCOL switch문을 전부 지웠습니다.
             // 이제 모든 처리는 PacketManager가 담당합니다.
-            Console.WriteLine($"패킷 포지션{msg.position}");
-            Console.WriteLine($"패킷 아이디 오퍼레이션{msg.protocol_id}");
+            
             PacketManager.Instance.OnRecvPacket(this, msg);
         }
 

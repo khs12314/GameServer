@@ -39,7 +39,7 @@ namespace CSampleClient
         {
             // 1. 버퍼를 CPacket으로 감싼다.
             CPacket msg = new CPacket(buffer.Value, this);
-            Console.WriteLine("dasasdasd");
+            
             // 2. [중요] 내가 직접 뜯어보지(pop) 않고, 전문가(PacketManager)에게 넘긴다.
             //    여기서 switch-case를 쓰면 하수입니다.
             PacketManager.Instance.OnRecvPacket(this, msg);

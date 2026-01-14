@@ -146,7 +146,9 @@ public class C_HitMole : IPacket
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_HitMole);
+        Console.WriteLine($"푸시 전 인덱스{moleIndex}");
         packet.push(this.moleIndex);packet.push(this.UserID);
+        Console.WriteLine($"푸시 후 인덱스{moleIndex}");
         return packet;
     }
 }

@@ -139,7 +139,9 @@ public class C_HitMole : IPacket
 
     public void Read(CPacket packet)
     {
+        Console.WriteLine($"전읽은 인덱스와 포지션{moleIndex}, {packet.position}");
         this.moleIndex = packet.pop_int32();this.UserID = packet.pop_int32();
+        Console.WriteLine($"후읽은 인덱스와 포지션{moleIndex}, {packet.position}");
     }
 
     public CPacket Write()

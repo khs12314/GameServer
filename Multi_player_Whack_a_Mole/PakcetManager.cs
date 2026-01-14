@@ -26,10 +26,14 @@ namespace Multi_player_Whack_a_Mole
         public void OnRecvPacket(IPeer session, CPacket packet)
         {
             // 1. 프로토콜 ID 추출 (short)
+            Console.WriteLine($"팝 프로토콜 전{packet.position}");
             
-            short protocolId = packet.protocol_id;
+            
+            short protocolId = packet.pop_protocol_id();
             Console.WriteLine("패킷 매니저 실행");
-            Console.WriteLine($"{protocolId}");
+            Console.WriteLine($"팝 프로토콜 후{packet.position}");
+            Console.WriteLine($"{(PacketID)protocolId}");
+            
             // 2. ID에 따라 알맞은 패킷 생성 및 핸들러 호출
             switch ((PacketID)protocolId)
             {
@@ -57,6 +61,7 @@ namespace Multi_player_Whack_a_Mole
                         Console.WriteLine("엔터게임");
                         C_EnterGame p = new C_EnterGame();
                         p.Read(packet);
+                        Console.WriteLine($"엔터 게임 유저 아이디{p.userId}");
                         PacketHandler.C_EnterGameHandler(session, p);
                     }
                     break;
@@ -74,7 +79,9 @@ namespace Multi_player_Whack_a_Mole
                     {
                         Console.WriteLine("힛몰");
                         C_HitMole p = new C_HitMole();
+                        Console.WriteLine($"전{packet.position}");
                         p.Read(packet);
+                        Console.WriteLine($"후{packet.position}");
                         PacketHandler.C_HitMoleHandler(session, p);
                     }
                     break;
