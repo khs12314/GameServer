@@ -18,7 +18,7 @@ namespace SnakeServer
 
 
             int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord);
-            if (userid != -1)
+            if (userid != 0)
             {
                 login.Sucess = true;
                 login.UserID = userid;
@@ -31,6 +31,27 @@ namespace SnakeServer
                 peer.send(login.Write());
             }
             Program.game_server.Set_User_Session(session, userid);
+
+        }
+        public static void C_SignUpDBHandler(IPeer peer, C_SignUp_DB packet)
+        {
+            User_Session? session = peer as User_Session;
+            S_SignUp_DB signUp = new S_SignUp_DB();
+
+            bool success = DBMananger.CreateAccount(packet.ID, packet.PassWord, packet.nickname);
+            if (success)
+            {
+                signUp.Sucess = true;
+                signUp.nickname = packet.nickname;
+                peer.send(signUp.Write());
+            }
+            else
+            {
+                signUp.Sucess = false;
+                signUp.nickname = "";
+                peer.send(signUp.Write());
+            }
+
 
         }
     }

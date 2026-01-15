@@ -52,7 +52,7 @@ namespace SnakeServer
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"게임서버 루프에서 예외 발생: {ex.Message}");
+                        Console.WriteLine($"게임서버 루프에서 예외 발생: {ex}");
                     }
                     finally
                     {
@@ -108,6 +108,7 @@ namespace SnakeServer
             {
                 if(!matching_waiting_users.ContainsKey(Userid))
                 {
+                    Console.WriteLine($"매칭에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
                     matching_waiting_users.Add(Userid, user);
                 }
             }

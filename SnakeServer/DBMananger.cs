@@ -31,56 +31,88 @@ namespace SnakeServer
         }
 
         // [예제 1] 회원가입 (INSERT) - 결과가 필요 없는 쿼리
-        public static void CreateAccount(string name, string pw)
+        public static bool CreateAccount(string name, string pw, string NicName)
         {
             // using 문법: 블록 벗어나면 자동으로 conn.Close() 호출 -> 커넥션 풀 반납
             using (MySqlConnection conn = GetConnection())
             {
-                if (conn == null) return;
+                if (conn == null) return false;
 
-                string sql = "INSERT INTO accounts (account_name, password) VALUES (@name, @pw)";
-
+                string sql = "INSERT INTO accounts (account_name, password, salt, nickname) VALUES (@name, @pw, @salt, @nickname)";
+                string salt = Security.GetSalt();
+                pw = Security.MakeHash(pw, salt);
                 using (MySqlCommand cmd = new MySqlCommand(sql, conn))
                 {
                     // SQL Injection 방지를 위해 파라미터 바인딩 사용 (@변수)
                     cmd.Parameters.AddWithValue("@name", name);
                     cmd.Parameters.AddWithValue("@pw", pw);
-
+                    cmd.Parameters.AddWithValue("@salt", salt);
+                    cmd.Parameters.AddWithValue("@nickname", NicName);
                     // 실행! (영향 받은 행의 수 리턴)
                     int rows = cmd.ExecuteNonQuery();
 
-                    if (rows > 0) Console.WriteLine($"[DB] 회원가입 성공: {name}");
+                    if (rows > 0)
+                    {
+                        Console.WriteLine($"[DB] 회원가입 성공: {name}");
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DB] 회원가입 실패: {name}");
+                        return false;
+
+                    }
                 }
             }
         }
 
-        // [예제 2] 로그인 (SELECT) - 결과(ID)를 가져와야 하는 쿼리
-        public static int LoginAccount(string name, string pw)
+
+        public static int LoginAccount(string id, string inputPw)
         {
             using (MySqlConnection conn = GetConnection())
             {
-                if (conn == null) return -1;
+                if (conn == null) return 0;
 
-                // 아이디와 비번이 일치하는 녀석의 'account_id'를 가져와라
-                string sql = "SELECT account_id FROM accounts WHERE account_name = @name AND password = @pw";
+
+                string sql = "SELECT account_id, password, salt, nickname FROM accounts WHERE account_name = @id";
 
                 using (MySqlCommand cmd = new MySqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@name", name);
-                    cmd.Parameters.AddWithValue("@pw", pw);
+                    cmd.Parameters.AddWithValue("@id", id);
 
-                    // 결과가 1개(단일 값)일 때 사용하는 함수
-                    object result = cmd.ExecuteScalar();
+                    // 조회 결과 읽기 도구 (Reader)
+                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read()) // 데이터가 존재하면 true
+                        {
+                            int account_id = reader.GetInt32("account_id");
+                            Console.WriteLine($"{account_id}");
+                            // 2. DB에서 꺼내오기
+                            string dbHash = reader.GetString("password");
 
-                    if (result != null)
-                    {
-                        Console.WriteLine($"[DB] 로그인 성공! AccountID: {result}");
-                        return Convert.ToInt32(result);
-                    }
-                    else
-                    {
-                        Console.WriteLine("[DB] 로그인 실패 (아이디 없음 or 비번 틀림)");
-                        return -1;
+                            string dbSalt = reader.GetString("salt");
+
+                            string nickname = reader.GetString("nickname");
+
+                            // 3. 검증 (여기서 아까 만든 Utils 사용!)
+                            string inputHash = Security.MakeHash(inputPw, dbSalt);
+
+                            if (dbHash == inputHash)
+                            {
+                                Console.WriteLine($"[Login] 성공! 환영합니다 {nickname}님.리턴되는 값{account_id}");
+                                return account_id;
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[Login] 비번 틀림.");
+                                return 0;
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[Login] 아이디가 존재하지 않음.");
+                            return 0;
+                        }
                     }
                 }
             }

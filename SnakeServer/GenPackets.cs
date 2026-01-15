@@ -21,6 +21,8 @@ public enum PacketID
 	S_RoomRemoved = 12,
 	C_Login_DB = 13,
 	S_Login_DB = 14,
+	C_SignUp_DB = 15,
+	S_SignUp_DB = 16,
 	
 }
 
@@ -315,20 +317,60 @@ public class C_Login_DB : IPacket
 
 public class S_Login_DB : IPacket
 {
-    public bool Sucess;public int UserID;
+    public bool Sucess;public int UserID;public string Nickname;
 
     public short Protocol { get { return (short)PacketID.S_Login_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.Sucess = packet.pop_bool();this.UserID = packet.pop_int32();
+        this.Sucess = packet.pop_bool();this.UserID = packet.pop_int32();this.Nickname = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Login_DB);
-        packet.push(this.Sucess);packet.push(this.UserID);
+        packet.push(this.Sucess);packet.push(this.UserID);packet.push(this.Nickname);
+        return packet;
+    }
+}
+
+public class C_SignUp_DB : IPacket
+{
+    public string ID;public string PassWord;public string nickname;
+
+    public short Protocol { get { return (short)PacketID.C_SignUp_DB; } }
+
+    public void Read(CPacket packet)
+    {
+        this.ID = packet.pop_string();this.PassWord = packet.pop_string();this.nickname = packet.pop_string();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_SignUp_DB);
+        packet.push(this.ID);packet.push(this.PassWord);packet.push(this.nickname);
+        return packet;
+    }
+}
+
+public class S_SignUp_DB : IPacket
+{
+    public bool Sucess;public string nickname;
+
+    public short Protocol { get { return (short)PacketID.S_SignUp_DB; } }
+
+    public void Read(CPacket packet)
+    {
+        this.Sucess = packet.pop_bool();this.nickname = packet.pop_string();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_SignUp_DB);
+        packet.push(this.Sucess);packet.push(this.nickname);
         return packet;
     }
 }
