@@ -67,10 +67,11 @@ namespace SnakeServer
         }
 
 
-        public static int LoginAccount(string id, string inputPw)
+        public static int LoginAccount(string id, string inputPw, out string nickname)
         {
             using (MySqlConnection conn = GetConnection())
             {
+                nickname = "";
                 if (conn == null) return 0;
 
 
@@ -86,19 +87,20 @@ namespace SnakeServer
                         if (reader.Read()) // 데이터가 존재하면 true
                         {
                             int account_id = reader.GetInt32("account_id");
-                            Console.WriteLine($"{account_id}");
+                            
                             // 2. DB에서 꺼내오기
                             string dbHash = reader.GetString("password");
 
                             string dbSalt = reader.GetString("salt");
 
-                            string nickname = reader.GetString("nickname");
+                            string dnnickname = reader.GetString("nickname");
 
                             // 3. 검증 (여기서 아까 만든 Utils 사용!)
                             string inputHash = Security.MakeHash(inputPw, dbSalt);
 
                             if (dbHash == inputHash)
                             {
+                                nickname = dnnickname;
                                 Console.WriteLine($"[Login] 성공! 환영합니다 {nickname}님.리턴되는 값{account_id}");
                                 return account_id;
                             }

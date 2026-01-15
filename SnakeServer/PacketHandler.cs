@@ -15,19 +15,21 @@ namespace SnakeServer
         {
             User_Session? session = peer as User_Session;
             S_Login_DB login = new S_Login_DB();
+            string nickname = "";
 
-
-            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord);
+            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord,out nickname);
             if (userid != 0)
             {
                 login.Sucess = true;
                 login.UserID = userid;
+                login.Nickname = nickname;
                 peer.send(login.Write());
             }
             else
             {
                 login.Sucess = false;
                 login.UserID = 0;
+                login.Nickname = "";
                 peer.send(login.Write());
             }
             Program.game_server.Set_User_Session(session, userid);

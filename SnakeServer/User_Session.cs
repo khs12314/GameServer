@@ -32,12 +32,17 @@ namespace SnakeServer
             msg.overwrite(buffer.Value, buffer.Value.Length);
             msg.SetOwner(this);
 
-            Program.game_server.Enqueue_Job(msg);
+            Program.game_server.Enqueue_Job(msg, this);
         }
 
         void IPeer.on_removed()
         {
-            throw new NotImplementedException();
+            Internal_Disconnect packet = new Internal_Disconnect();
+
+            CPacket msg = packet.Write();
+            msg.SetOwner(this);
+
+            Program.game_server.Enqueue_Job(msg, this);
         }
 
         void IPeer.send(CPacket msg)
