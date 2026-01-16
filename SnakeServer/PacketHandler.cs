@@ -17,7 +17,7 @@ namespace SnakeServer
             S_Login_DB login = new S_Login_DB();
             string nickname = "";
 
-            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord,out nickname);
+            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord, out nickname);
             if (userid != 0)
             {
                 login.Sucess = true;
@@ -54,6 +54,18 @@ namespace SnakeServer
                 peer.send(signUp.Write());
             }
 
+
+        }
+        public static void C_EnterGame_SnakeHandler(IPeer peer, C_EnterGame_Snake packet)
+        {
+            User_Session? session = peer as User_Session;
+            S_EnterGame_Snake enterGame = new S_EnterGame_Snake();
+            Program.game_server.Enter_Game_Request(session, session.Uid);
+            
+                enterGame.posX = 0.0f;
+                enterGame.posY = 0.0f;
+                peer.send(enterGame.Write());
+            
 
         }
     }

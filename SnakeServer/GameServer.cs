@@ -15,17 +15,18 @@ namespace SnakeServer
         Queue<CPacket> JobQueue;
         //로직 스레드
         Thread locgic_thread;
+
         AutoResetEvent loop;
         public RoomManager room_manager { get; private set; }
         //여기는 로비에서 다뤄지는 매칭 대기 유저들 로그인하면 db에 저장된 값 기반으로 키를 설정해줌
-        Dictionary<int ,User_Session> matching_waiting_users;
-        
+        Dictionary<int, User_Session> matching_waiting_users;
+
         public GameServer()
         {
             this._lock = new object();
             this.loop = new AutoResetEvent(false);
             this.JobQueue = new Queue<CPacket>();
-            this.room_manager = new RoomManager();
+            this.room_manager = new RoomManager(100);
             this.matching_waiting_users = new Dictionary<int, User_Session>();
             this.locgic_thread = new Thread(GameLoop);
             this.locgic_thread.Start();
@@ -33,7 +34,8 @@ namespace SnakeServer
         void GameLoop()
         {
             Console.WriteLine("게임 루프 시작");
-            while (true) {
+            while (true)
+            {
                 Console.WriteLine("게임 루프 도는 중");
                 CPacket packet = null;
                 lock (_lock)
@@ -68,11 +70,16 @@ namespace SnakeServer
 
             }
         }
+        public bool Enter_Game_Request(User_Session user, int userid)
+        {
+
+            return room_manager.Create_Room(user, userid);
+        }
         void Matching_Request(User_Session user)
         {
 
         }
-        public void Enqueue_Job(CPacket packet, User_Session user_Session)
+        public void Enqueue_Job(CPacket packet, CUserToken user_Session)
         {
             lock (_lock)
             {
@@ -87,7 +94,7 @@ namespace SnakeServer
             Console.WriteLine("패킷 들어옴");
 
             short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
-            if(protocol_id == (short)SystemPacketID.InternalDisconnect)
+            if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
                 GameUser_Session user = (GameUser_Session)packet.owner;
@@ -104,9 +111,9 @@ namespace SnakeServer
         }
         public void Set_User_Session(User_Session user, int Userid)
         {
-            lock(_lock)
+            lock (_lock)
             {
-                if(!matching_waiting_users.ContainsKey(Userid))
+                if (!matching_waiting_users.ContainsKey(Userid))
                 {
                     Console.WriteLine($"매칭에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
                     matching_waiting_users.Add(Userid, user);

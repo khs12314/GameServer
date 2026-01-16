@@ -164,6 +164,7 @@ namespace NetWorkModule
             token.set_event_args(receive_args, send_args);
             //생성된 클라이언트 소켓을 보관해 놓고 통신할 때 사용한다.
             token.socket = socket;
+            Console.WriteLine("비긴 리시브 시작");
 
             bool pending = socket.ReceiveAsync(receive_args);
             if (!pending)
@@ -196,17 +197,18 @@ namespace NetWorkModule
         {
             // check if the remote host closed the connection
             CUserToken token = (CUserToken)e.UserToken;
-
+            Console.WriteLine("프로세스 리시브 네트워크 서비스");
             // [수정] 반드시 "0보다 클 때"만 처리해야 함.
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
                 // 정상 데이터 수신
                 token.on_receive(e.Buffer, e.Offset, e.BytesTransferred);
-
+                Console.WriteLine("프로세스 리시브 네트워크 서비스 정상수신");
                 // 다음 수신 대기
                 bool pending = token.socket.ReceiveAsync(e);
                 if (!pending)
                 {
+                    Console.WriteLine("프로세스 리시브 네트워크 서비스 재귀 호출");
                     receive_completed(null, e);
                 }
             }

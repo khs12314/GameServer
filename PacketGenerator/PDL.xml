@@ -69,5 +69,14 @@
 	<Packet name="S_SignUp_DB">
 		<bool name="Sucess"/>
 		<string name="nickname"/>
-	</Packet>	
+	</Packet>
+	<Packet name="S_EnterGame_Snake">
+		<float name="posX"/>
+		<float name="posY"/>
+	</Packet>
+	<Packet name="C_EnterGame_Snake">
+		<int name="userId"/>
+	</Packet>
+		
+	
 </PDL>

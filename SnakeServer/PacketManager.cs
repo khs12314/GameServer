@@ -24,7 +24,7 @@ namespace SnakeServer
         public void OnRecvPakcet(IPeer session, CPacket packet)
         {
             short protocol_id = packet.pop_protocol_id();
-            Console.WriteLine("C_LoginDB");
+            Console.WriteLine($"{(PacketID)protocol_id}");
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
@@ -37,6 +37,11 @@ namespace SnakeServer
                     C_SignUp_DB c_SignUp_DB = new C_SignUp_DB();
                     c_SignUp_DB.Read(packet);
                     PacketHandler.C_SignUpDBHandler(session, c_SignUp_DB);
+                    break;
+                    case PacketID.C_EnterGame_Snake:
+                        C_EnterGame_Snake c_EnterGame_Snake = new C_EnterGame_Snake();
+                        c_EnterGame_Snake.Read(packet);
+                        PacketHandler.C_EnterGame_SnakeHandler(session, c_EnterGame_Snake);
                     break;
                 default:
                     Console.WriteLine("das");

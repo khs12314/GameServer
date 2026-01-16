@@ -15,9 +15,9 @@ namespace SnakeServer
     public class User_Session : IPeer
     {
         static int _UserIDGenerator = 0;
-        CUserToken CUserToken;
+        public CUserToken CUserToken;
         public int Uid { get; private set; }
-       public User_Session(CUserToken token)
+        public User_Session(CUserToken token)
         {
             this.CUserToken = token;
             this.CUserToken.set_peer(this);
@@ -32,7 +32,7 @@ namespace SnakeServer
             msg.overwrite(buffer.Value, buffer.Value.Length);
             msg.SetOwner(this);
 
-            Program.game_server.Enqueue_Job(msg, this);
+            Program.game_server.Enqueue_Job(msg, this.CUserToken);
         }
 
         void IPeer.on_removed()
@@ -42,7 +42,7 @@ namespace SnakeServer
             CPacket msg = packet.Write();
             msg.SetOwner(this);
 
-            Program.game_server.Enqueue_Job(msg, this);
+            Program.game_server.Enqueue_Job(msg, this.CUserToken);
         }
 
         void IPeer.send(CPacket msg)

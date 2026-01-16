@@ -23,6 +23,8 @@ public enum PacketID
 	S_Login_DB = 14,
 	C_SignUp_DB = 15,
 	S_SignUp_DB = 16,
+	S_EnterGame_Snake = 17,
+	C_EnterGame_Snake = 18,
 	
 }
 
@@ -371,6 +373,46 @@ public class S_SignUp_DB : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SignUp_DB);
         packet.push(this.Sucess);packet.push(this.nickname);
+        return packet;
+    }
+}
+
+public class S_EnterGame_Snake : IPacket
+{
+    public float posX;public float posY;
+
+    public short Protocol { get { return (short)PacketID.S_EnterGame_Snake; } }
+
+    public void Read(CPacket packet)
+    {
+        this.posX = packet.pop_float();this.posY = packet.pop_float();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_EnterGame_Snake);
+        packet.push(this.posX);packet.push(this.posY);
+        return packet;
+    }
+}
+
+public class C_EnterGame_Snake : IPacket
+{
+    public int userId;
+
+    public short Protocol { get { return (short)PacketID.C_EnterGame_Snake; } }
+
+    public void Read(CPacket packet)
+    {
+        this.userId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_EnterGame_Snake);
+        packet.push(this.userId);
         return packet;
     }
 }

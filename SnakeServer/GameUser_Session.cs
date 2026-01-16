@@ -7,26 +7,28 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
-    struct GameUser_Session_Info
+    public struct GameUser_Session_Info
     {
         public int userIndex;
-        public string userID;
+        public int userID;
         public string userNickName;
         public int userScore;
         public float userPositionX;
         public float userPositionY;
-        
+
     }
     //인게임 유저 세션
     public class GameUser_Session : IPeer
     {
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
-        GameUser_Session_Info GameUser_Session_Info;
+        public GameUser_Session_Info GameUser_Session_Info;
         //통신을 위한 필수 토큰
         CUserToken UserToken;
-        public GameUser_Session(CUserToken token)
+        public GameUser_Session(CUserToken token, int id)
         {
             UserToken = token;
+            GameUser_Session_Info = new GameUser_Session_Info();
+            GameUser_Session_Info.userID = id;
             UserToken.set_peer(this);
         }
 
@@ -37,22 +39,33 @@ namespace SnakeServer
 
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("메시지 받음");
+            short protocolid = BitConverter.ToInt16(buffer.Value, 2);
+            CPacket msg = CPacket.create(protocolid);
+            msg.overwrite(buffer.Value, buffer.Value.Length);
+            msg.SetOwner(this);
+
+            Program.game_server.Enqueue_Job(msg, this.UserToken);
         }
 
         void IPeer.on_removed()
         {
-            throw new NotImplementedException();
+            Internal_Disconnect packet = new Internal_Disconnect();
+
+            CPacket msg = packet.Write();
+            msg.SetOwner(this);
+
+            Program.game_server.Enqueue_Job(msg, this.UserToken);
         }
 
         void IPeer.process_user_operation(CPacket msg)
         {
-            throw new NotImplementedException();
+            PacketManager.Instance.OnRecvPakcet(this, msg);
         }
 
         void IPeer.send(CPacket msg)
         {
-            throw new NotImplementedException();
+            this.UserToken.send(msg);
         }
     }
 }
