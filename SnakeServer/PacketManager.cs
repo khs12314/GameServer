@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
-    
+
     //패킷 매니저
     public class PacketManager
     {
@@ -28,7 +28,7 @@ namespace SnakeServer
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
-                    
+
                     C_Login_DB chatPacket = new C_Login_DB();
                     chatPacket.Read(packet);
                     PacketHandler.C_LoginDBHandler(session, chatPacket);
@@ -38,11 +38,16 @@ namespace SnakeServer
                     c_SignUp_DB.Read(packet);
                     PacketHandler.C_SignUpDBHandler(session, c_SignUp_DB);
                     break;
-                    case PacketID.C_EnterGame_Snake:
-                        C_EnterGame_Snake c_EnterGame_Snake = new C_EnterGame_Snake();
-                        c_EnterGame_Snake.Read(packet);
-                        PacketHandler.C_EnterGame_SnakeHandler(session, c_EnterGame_Snake);
+                case PacketID.C_EnterGame_Snake:
+                    C_EnterGame_Snake c_EnterGame_Snake = new C_EnterGame_Snake();
+                    c_EnterGame_Snake.Read(packet);
+                    PacketHandler.C_EnterGame_SnakeHandler(session, c_EnterGame_Snake);
                     break;
+                case PacketID.C_Move:
+                    C_Move c_Move = new C_Move();
+                    c_Move.Read(packet);
+                    PacketHandler.C_Move_SnakeHnadler(session, c_Move);
+                        break;
                 default:
                     Console.WriteLine("das");
                     break;

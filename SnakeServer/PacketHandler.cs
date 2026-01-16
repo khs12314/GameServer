@@ -61,12 +61,22 @@ namespace SnakeServer
             User_Session? session = peer as User_Session;
             S_EnterGame_Snake enterGame = new S_EnterGame_Snake();
             Program.game_server.Enter_Game_Request(session, session.Uid);
-            
-                enterGame.posX = 0.0f;
-                enterGame.posY = 0.0f;
-                peer.send(enterGame.Write());
-            
 
+            enterGame.posX = 0.0f;
+            enterGame.posY = 0.0f;
+            enterGame.userid = session.Uid;
+            peer.send(enterGame.Write());
+
+
+        }
+        public static void C_Move_SnakeHnadler(IPeer peer, C_Move pakcet)
+        {
+            GameUser_Session session = peer as GameUser_Session;
+
+            SnakeGame_Logic room = session.room;
+            
+            room.HandleMove(session,pakcet);
+            
         }
     }
 }

@@ -25,6 +25,8 @@ public enum PacketID
 	S_SignUp_DB = 16,
 	S_EnterGame_Snake = 17,
 	C_EnterGame_Snake = 18,
+	C_Move = 19,
+	S_Move = 20,
 	
 }
 
@@ -379,20 +381,20 @@ public class S_SignUp_DB : IPacket
 
 public class S_EnterGame_Snake : IPacket
 {
-    public float posX;public float posY;
+    public float posX;public float posY;public int userid;
 
     public short Protocol { get { return (short)PacketID.S_EnterGame_Snake; } }
 
     public void Read(CPacket packet)
     {
-        this.posX = packet.pop_float();this.posY = packet.pop_float();
+        this.posX = packet.pop_float();this.posY = packet.pop_float();this.userid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_EnterGame_Snake);
-        packet.push(this.posX);packet.push(this.posY);
+        packet.push(this.posX);packet.push(this.posY);packet.push(this.userid);
         return packet;
     }
 }
@@ -413,6 +415,46 @@ public class C_EnterGame_Snake : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_EnterGame_Snake);
         packet.push(this.userId);
+        return packet;
+    }
+}
+
+public class C_Move : IPacket
+{
+    public int playerId;public int direction;
+
+    public short Protocol { get { return (short)PacketID.C_Move; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerId = packet.pop_int32();this.direction = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_Move);
+        packet.push(this.playerId);packet.push(this.direction);
+        return packet;
+    }
+}
+
+public class S_Move : IPacket
+{
+    public int playerId;public float posX;public float posY;
+
+    public short Protocol { get { return (short)PacketID.S_Move; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerId = packet.pop_int32();this.posX = packet.pop_float();this.posY = packet.pop_float();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_Move);
+        packet.push(this.playerId);packet.push(this.posX);packet.push(this.posY);
         return packet;
     }
 }

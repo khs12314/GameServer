@@ -23,7 +23,8 @@ namespace SnakeServer
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
         //통신을 위한 필수 토큰
-        CUserToken UserToken;
+        public CUserToken UserToken;
+        public SnakeGame_Logic room {  get; set; }
         public GameUser_Session(CUserToken token, int id)
         {
             UserToken = token;
@@ -66,6 +67,10 @@ namespace SnakeServer
         void IPeer.send(CPacket msg)
         {
             this.UserToken.send(msg);
+        }
+        public void Enter_Room(SnakeGame_Logic room)
+        {
+            this.room = room;
         }
     }
 }

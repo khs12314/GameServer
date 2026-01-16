@@ -73,10 +73,19 @@
 	<Packet name="S_EnterGame_Snake">
 		<float name="posX"/>
 		<float name="posY"/>
+		<int name="userid"/>
 	</Packet>
 	<Packet name="C_EnterGame_Snake">
 		<int name="userId"/>
 	</Packet>
-		
+	<Packet name="C_Move">
+		<int name="playerId"/>
+		<int name="direction"/>
+	</Packet>
+	<Packet name="S_Move">
+		<int name="playerId"/>
+		<float name="posX"/>
+		<float name="posY"/>
+	</Packet>
 	
 </PDL>
