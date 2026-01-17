@@ -27,15 +27,26 @@ namespace SnakeServer
             {
                 RoomPool.Push(new SnakeGame_Logic());
             }
+            while (RoomPool.Count > 0)
+            {
+                SnakeGame_Logic room_PoP = RoomPool.Pop();
+                room.Add(room_PoP.Room_ID, room_PoP);
+                
+            }
+            
+
         }
-        public bool Create_Room(User_Session user1, int userid)
+        public bool Enter_Room(User_Session user1, int userid, int Room_id)
         {
-            if (RoomPool.Count == 0)
+            if (!room.ContainsKey(Room_id))
+            {
+                Console.WriteLine($"룸 아이디 검색 실패{Room_id}");
                 return false;
-            SnakeGame_Logic newRoom = RoomPool.Pop();
-            newRoom.Enter_Game(user1, userid);
-            room.Add(newRoom.Room_ID, newRoom);
+            }
+            Console.WriteLine($"룸 아이디 검색 성공{Room_id}");
+            room[Room_id].Enter_Game(user1, userid);
             return true;
         }
+        
     }
 }

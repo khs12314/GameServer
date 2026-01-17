@@ -1,9 +1,11 @@
-﻿using NetWorkModule;
+﻿using Microsoft.VisualBasic;
+using NetWorkModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
 
 namespace SnakeServer
 {
@@ -19,30 +21,52 @@ namespace SnakeServer
         {
             game_users = new Dictionary<int, GameUser_Session>();
             Room_ID = System.Threading.Interlocked.Increment(ref Room_ID_Generator);
+            Console.WriteLine($"게임 룸 생성{Room_ID}, {Room_ID_Generator}");
             _lock = new object();
         }
         public void Enter_Game(User_Session user, int userid)
         {
             GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid);
-
+            gameuser.GameUser_Session_Info.userPositionX = 0.0f;
+            gameuser.GameUser_Session_Info.userPositionY = 0.0f;
+            Console.WriteLine($"@@@@@@@@@@@@@@@@@엔터 게임 로직 부분 실행");
             lock (game_users)
             {
                 if (!game_users.ContainsKey(user.Uid))
                 {
                     game_users.Add(gameuser.GameUser_Session_Info.userID, gameuser);
                     gameuser.Enter_Room(this);
+
                 }
             }
-            Console.WriteLine($"게임 룸 생성 및 게임 접속 완료, 룸 아이디{Room_ID}");
+            S_EnterGame_Snake packet = new S_EnterGame_Snake();
+            {
+                packet.userid = gameuser.GameUser_Session_Info.userID;
+                packet.posX = gameuser.GameUser_Session_Info.userPositionX;
+                packet.posY = gameuser.GameUser_Session_Info.userPositionY;
+                Broadcast(packet.Write());
+
+            }
+            
+            S_EnterGame_Snake s_EnterGame_Snake = new S_EnterGame_Snake();
+            foreach (var item in game_users.Values)
+            {
+                if (item.GameUser_Session_Info.userID == gameuser.GameUser_Session_Info.userID)
+                    continue;
+                s_EnterGame_Snake.posX = item.GameUser_Session_Info.userPositionX;
+                s_EnterGame_Snake.posY = item.GameUser_Session_Info.userPositionY;
+                s_EnterGame_Snake.userid = item.GameUser_Session_Info.userID;
+                gameuser.UserToken.send(s_EnterGame_Snake.Write());
+            }
         }
-        public void HandleMove(GameUser_Session session,C_Move packet)
+        public void HandleMove(GameUser_Session session, C_Move packet)
         {
             Console.WriteLine($"{session.GameUser_Session_Info.userID}");
             switch (packet.direction)
             {
                 case 0:
                     game_users[session.GameUser_Session_Info.userID].GameUser_Session_Info.userPositionY += 1.0f;
-                    
+
                     break;
                 case 1:
                     game_users[session.GameUser_Session_Info.userID].GameUser_Session_Info.userPositionY -= 1.0f;
@@ -60,15 +84,18 @@ namespace SnakeServer
             move.posY = game_users[session.GameUser_Session_Info.userID].GameUser_Session_Info.userPositionY;
             Broadcast(move.Write());
         }
-        public void Broadcast(CPacket msg) {
+        public void Broadcast(CPacket msg)
+        {
+            CPacket DeepCopy = CPacket.create(msg.buffer, msg.owner);
+            
             lock (_lock)
             {
                 foreach (var packet in game_users)
                 {
-                    packet.Value.UserToken.send(msg);
+                    packet.Value.UserToken.send(DeepCopy);
                 }
             }
-        
+
         }
     }
 }

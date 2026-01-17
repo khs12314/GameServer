@@ -41,6 +41,7 @@ namespace SnakeServer
                 case PacketID.C_EnterGame_Snake:
                     C_EnterGame_Snake c_EnterGame_Snake = new C_EnterGame_Snake();
                     c_EnterGame_Snake.Read(packet);
+                    Console.WriteLine("엔터 게임 실행");
                     PacketHandler.C_EnterGame_SnakeHandler(session, c_EnterGame_Snake);
                     break;
                 case PacketID.C_Move:

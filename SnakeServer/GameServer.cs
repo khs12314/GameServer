@@ -54,6 +54,7 @@ namespace SnakeServer
                     }
                     catch (Exception ex)
                     {
+                        
                         Console.WriteLine($"게임서버 루프에서 예외 발생: {ex}");
                     }
                     finally
@@ -70,10 +71,10 @@ namespace SnakeServer
 
             }
         }
-        public bool Enter_Game_Request(User_Session user, int userid)
+        public bool Enter_Game_Request(User_Session user, int userid, int Room_id)
         {
-
-            return room_manager.Create_Room(user, userid);
+            Console.WriteLine("엔터 리퀘스트 실행");
+            return room_manager.Enter_Room(user, userid, Room_id);
         }
         void Matching_Request(User_Session user)
         {
