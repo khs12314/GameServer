@@ -43,7 +43,7 @@ namespace SnakeServer
                 Console.WriteLine($"룸 아이디 검색 실패{Room_id}");
                 return false;
             }
-            Console.WriteLine($"룸 아이디 검색 성공{Room_id}");
+            Console.WriteLine($"룸 아이디 검색 성공{Room_id}, 유저아이디 {userid}");
             room[Room_id].Enter_Game(user1, userid);
             return true;
         }

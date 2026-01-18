@@ -62,7 +62,7 @@ namespace SnakeServer
             S_EnterGame_Snake enterGame = new S_EnterGame_Snake();
             int room_id = packet.Room_id;
             Console.WriteLine($"패킷 핸들러 실행");
-            Program.game_server.Enter_Game_Request(session, session.Uid, room_id);
+            Program.game_server.Enter_Game_Request(session, packet.userId, room_id);
 
             //enterGame.posX = 0.0f;
             //enterGame.posY = 0.0f;

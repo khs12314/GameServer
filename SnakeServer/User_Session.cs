@@ -31,7 +31,8 @@ namespace SnakeServer
             CPacket msg = CPacket.create(protocolid);
             msg.overwrite(buffer.Value, buffer.Value.Length);
             msg.SetOwner(this);
-
+            
+            Console.WriteLine($"받은 메시지 포지션 : {msg.position}");
             Program.game_server.Enqueue_Job(msg, this.CUserToken);
         }
 

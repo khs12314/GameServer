@@ -18,7 +18,7 @@ namespace NetWorkModule
             packet.is_using = true;
             
             packet.set_protocol(protocol_id);
-            Console.WriteLine($"생성한 프로토콜 아이디 패킷 {protocol_id}");
+            
             return packet;
         }
         public static CPacket create(byte[] buffer, IPeer owner)
@@ -28,7 +28,7 @@ namespace NetWorkModule
             packet.owner = owner;
             packet.overwrite(buffer, buffer.Length);
             packet.protocol_id = BitConverter.ToInt16(buffer, 2);
-            Console.WriteLine($"생성한 프로토콜 아이디 패킷 {packet.protocol_id}");
+            
             return packet;
         }
         public static void destroy(CPacket packet)
@@ -177,9 +177,10 @@ namespace NetWorkModule
         public void record_size()
         {
             Int16 body_size = (Int16)(this.position - Define.HEADER_SIZE);
+            Console.WriteLine($"바디 사이즈{body_size}, 포지션원본 {this.position}");
             Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));   
             BitConverter.TryWriteBytes(SpanSpace, body_size);
-            Console.WriteLine($"바디 사이즈{body_size}");
+            Console.WriteLine($"바디 사이즈{body_size}, 포지션바디사이즈 후 {this.position}");
         }
        
         public void push_int16(Int16 data)

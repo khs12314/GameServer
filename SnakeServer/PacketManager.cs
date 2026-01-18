@@ -24,7 +24,6 @@ namespace SnakeServer
         public void OnRecvPakcet(IPeer session, CPacket packet)
         {
             short protocol_id = packet.pop_protocol_id();
-            Console.WriteLine($"{(PacketID)protocol_id}");
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
@@ -50,7 +49,7 @@ namespace SnakeServer
                     PacketHandler.C_Move_SnakeHnadler(session, c_Move);
                         break;
                 default:
-                    Console.WriteLine("das");
+                    Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
                     break;
             }
         }

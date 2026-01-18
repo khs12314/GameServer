@@ -95,6 +95,9 @@ namespace SnakeServer
             Console.WriteLine("패킷 들어옴");
 
             short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
+            CPacket msg = CPacket.create(protocol_id);
+            msg.overwrite(packet.buffer, packet.buffer.Length);
+            msg.SetOwner(packet.owner);
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
