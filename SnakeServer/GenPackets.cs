@@ -442,20 +442,20 @@ public class C_EnterGame_Snake : IPacket
 
 public class C_Move : IPacket
 {
-    public int playerId;public int direction;
+    public int direction;
 
     public short Protocol { get { return (short)PacketID.C_Move; } }
 
     public void Read(CPacket packet)
     {
-        this.playerId = packet.pop_int32();this.direction = packet.pop_int32();
+        this.direction = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Move);
-        packet.push(this.playerId);packet.push(this.direction);
+        packet.push(this.direction);
         return packet;
     }
 }

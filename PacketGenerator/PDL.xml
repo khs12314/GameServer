@@ -83,7 +83,7 @@
 		<int name ="Room_id"/>
 	</Packet>
 	<Packet name="C_Move">
-		<int name="playerId"/>
+		
 		<int name="direction"/>
 	</Packet>
 	<Packet name="S_Move">

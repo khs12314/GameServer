@@ -76,7 +76,7 @@ namespace SnakeServer
             GameUser_Session session = peer as GameUser_Session;
             
             SnakeGame_Logic room = session.room;
-            
+            Console.WriteLine("!!!!!!!!!!!!여기가 두번인지 확인");
             room.HandleMove(session,pakcet);
             
         }
