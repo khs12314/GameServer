@@ -16,7 +16,7 @@ namespace SnakeServer
             User_Session? session = peer as User_Session;
             S_Login_DB login = new S_Login_DB();
             string nickname = "";
-
+            
             int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord, out nickname);
             if (userid != 0)
             {
@@ -77,7 +77,7 @@ namespace SnakeServer
             
             SnakeGame_Logic room = session.room;
             Console.WriteLine("!!!!!!!!!!!!여기가 두번인지 확인");
-            room.HandleMove(session,pakcet);
+            room.ChangeDir(session,pakcet);
             
         }
     }

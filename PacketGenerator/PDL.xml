@@ -1,5 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
+	
+	
 	<Packet name="PlayerInfoReq">
 		<long name="playerId"/>
 		<string name="name"/>
@@ -71,8 +73,13 @@
 		<string name="nickname"/>
 	</Packet>
 	<Packet name="S_EnterGame_Snake">
-		<float name="posX"/>
-		<float name="posY"/>
+		<float name="mapSizeX"/>
+		<float name="mapSizeY"/>
+		<int name="userid"/>
+	</Packet>
+	<Packet name="S_Spawn">
+		<float name="SpawnX"/>
+		<float name="SpawnY"/>
 		<int name="userid"/>
 	</Packet>
 	<Packet name="Search_Room_id">
@@ -90,6 +97,14 @@
 		<int name="playerId"/>
 		<float name="posX"/>
 		<float name="posY"/>
+		<bool name="IsEat"/>
 	</Packet>
-	
+	<Packet name="S_SpawnItem">
+		<int name="ItemID"/>
+		<int name="posX"/>
+		<int name="posY"/>
+	</Packet>
+	<Packet name="ssss">
+		<int name="ssscc"/>	
+	</Packet>
 </PDL>

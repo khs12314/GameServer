@@ -15,6 +15,9 @@ namespace SnakeServer
         public int userScore;
         public float userPositionX;
         public float userPositionY;
+        public float BodyPosX;
+        public float BodyPosY;
+        public int dir;
 
     }
     //인게임 유저 세션
@@ -22,6 +25,8 @@ namespace SnakeServer
     {
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
+        public struct Pos { public int x, y; }
+        public List<Pos> BodyList;  
         //통신을 위한 필수 토큰
         public CUserToken UserToken;
         public SnakeGame_Logic room {  get; set; }
@@ -31,11 +36,12 @@ namespace SnakeServer
             GameUser_Session_Info = new GameUser_Session_Info();
             GameUser_Session_Info.userID = id;
             UserToken.set_peer(this);
+            BodyList = new List<Pos>();
         }
 
         void IPeer.disconnect()
         {
-            throw new NotImplementedException();
+           
         }
 
         void IPeer.on_message(Const<byte[]> buffer)
