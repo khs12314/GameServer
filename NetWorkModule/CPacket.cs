@@ -12,11 +12,12 @@ namespace NetWorkModule
         public int position { get; private set; }
         public Int16 protocol_id { get;  set; }
         public bool is_using = true;
+        private int _refCount = 0;
         public static CPacket create(Int16 protocol_id)
         {
             CPacket packet = CPacketBufferManger.pop();
             packet.is_using = true;
-            
+            packet._refCount = 1;
             packet.set_protocol(protocol_id);
             
             return packet;
@@ -24,6 +25,7 @@ namespace NetWorkModule
         public static CPacket create(byte[] buffer, IPeer owner)
         {
             CPacket packet = CPacketBufferManger.pop();
+            packet._refCount = 1;
             packet.is_using = true;
             packet.owner = owner;
             packet.overwrite(buffer, buffer.Length);
@@ -31,6 +33,20 @@ namespace NetWorkModule
             
             return packet;
         }
+        public void Retain()
+        {
+            Interlocked.Increment(ref _refCount);
+        }
+        public void Release()
+        {
+            if(Interlocked.Decrement(ref _refCount) == 0)
+            {
+                this.is_using = false;
+                this.position = 0;
+                CPacketBufferManger.push(this);
+            }
+        }
+
         public static void destroy(CPacket packet)
         {
             if (packet.is_using == false)

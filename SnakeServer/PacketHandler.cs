@@ -71,13 +71,15 @@ namespace SnakeServer
 
 
         }
-        public static void C_Move_SnakeHnadler(IPeer peer, C_Move pakcet)
+        public static void C_Move_SnakeHandler(IPeer peer, C_Move pakcet)
         {
             GameUser_Session session = peer as GameUser_Session;
             
             SnakeGame_Logic room = session.room;
-            Console.WriteLine("!!!!!!!!!!!!여기가 두번인지 확인");
-            room.ChangeDir(session,pakcet);
+            room.Push(() => {
+                session.room.ChangeDir(session, pakcet);
+            });
+            
             
         }
     }

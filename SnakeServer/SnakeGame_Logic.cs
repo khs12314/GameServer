@@ -6,11 +6,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Collections.Specialized.BitVector32;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SnakeServer
 {
     //인게임 로직 처리
-    public class SnakeGame_Logic
+    public class SnakeGame_Logic : IJobqueue
     {
         private readonly ThreadLocal<List<GameUser_Session>> _threadLocalTargets
     = new ThreadLocal<List<GameUser_Session>>(() => new List<GameUser_Session>(200));
@@ -27,36 +28,188 @@ namespace SnakeServer
         int appleX = -1;
         int appleY = -1;
         Random rnd = new Random();
+        JobQueue jobqueue;
+        List<int> deadUser;
         public SnakeGame_Logic()
         {
+            jobqueue = new JobQueue();
             game_users = new Dictionary<int, GameUser_Session>();
             Room_ID = System.Threading.Interlocked.Increment(ref Room_ID_Generator);
             Console.WriteLine($"게임 룸 생성{Room_ID}, {Room_ID_Generator}");
             _lock = new object();
-            map = new int[MapSizeY+1, MapSizeX+1];
+            deadUser = new List<int>();
+            map = new int[MapSizeY + 1, MapSizeX + 1];
             Is_Running = false;
             UserCount = 0;
         }
-        void GameStart_Loop()
+        public void Push(Action job)
+        {
+            jobqueue.Push(job);
+        }
+        public void Start()
         {
             GenerateApple();
-            while (Is_Running)
-            {
-                // A. 자물쇠 걸기 (업데이트 중에 누가 들어오거나 나가면 안 됨)
-                lock (_lock)
-                {
-                    // B. 모든 유저 순회 (이게 님이 걱정하던 그 부분)
-                    // 그냥 foreach 돌리면 끝입니다. 아주 빠릅니다.
-                    foreach (var session in game_users.Values)
-                    {
-                        HandleMove(session);
-                    }
-                }
-
-                // C. 0.2초 휴식 (이게 틱 레이트가 됨)
-                Thread.Sleep(200);
-            }
+            ScheduleUpdate();
         }
+        void ScheduleUpdate()
+        {
+            Task.Delay(200).ContinueWith(t =>
+            {
+                Push(Update);
+            });
+        }
+        void Update()
+        {
+            foreach (var p in game_users.Values)
+            {
+                if (!p.Is_Alive) continue;
+                ProcessUserTurn(p);
+            }
+
+            foreach (var p in game_users.Keys)
+            {
+                if (!game_users[p].Is_Alive)
+                {
+                    Console.WriteLine($"죽은 유저 아이디 : {p}");
+                    deadUser.Add(p);
+                }
+            }
+            if (deadUser.Count > 0)
+            {
+                foreach (var p in deadUser)
+                {
+                    Console.WriteLine($"삭제 유저 아이디 : {p}");
+                    game_users.Remove(p);
+                }
+            }
+
+            ScheduleUpdate();
+
+        }
+        void ProcessUserTurn(GameUser_Session session)
+        {
+            // 1. [계산] 다음 좌표 구하기
+            var nextPos = GetNextPosition(session);
+            Console.WriteLine("계속 진행되는지 확인");
+            // 2. [판정] 갈 수 있는 곳인가? (벽, 충돌)
+            if (CanGo(nextPos, session) == false)
+            {
+                ProcessDeath(session);
+                return;
+            }
+
+            // 3. [판정] 사과가 있는가?
+            bool isEat = TryEatApple(nextPos);
+
+            // 4. [행동] 실제 몸통 이동 (여기서 Insert/Remove 수행)
+            MoveBody(session, nextPos, isEat);
+
+            // 5. [전송] 브로드캐스팅
+            BroadcastMove(session, nextPos, isEat);
+        }
+
+        private void ProcessDeath(GameUser_Session session)
+        {
+
+            if (!session.Is_Alive)
+            {
+                return;
+            }
+            session.Is_Alive = false;
+            S_Move deathPacket = new S_Move();
+            deathPacket.playerId = session.GameUser_Session_Info.userID;
+            deathPacket.posX = -1000;
+            deathPacket.posY = -1000;
+            deathPacket.IsEat = false;
+            Broadcast(deathPacket.Write());
+
+        }
+
+        // --- 아래는 각 기능을 담당하는 '일꾼(Worker)' 메서드들 ---
+
+        // 기능 1: 좌표 계산만 함 (상태 변경 X)
+        GameUser_Session.Pos GetNextPosition(GameUser_Session session)
+        {
+            var info = session.GameUser_Session_Info;
+            int x = (int)info.userPositionX;
+            int y = (int)info.userPositionY;
+
+            switch (info.dir)
+            {
+                case 0: y += 1; break;
+                case 1: y -= 1; break;
+                case 2: x -= 1; break;
+                case 3: x += 1; break;
+            }
+            return new GameUser_Session.Pos { x = x, y = y };
+        }
+
+        // 기능 2: 충돌 검사만 함 (상태 변경 X)
+        bool CanGo(GameUser_Session.Pos pos, GameUser_Session session)
+        {
+            // 맵 범위 체크
+            if (pos.x < 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY) return false;
+
+            // 몸통 충돌 체크 로직...
+            foreach (var bodyPart in session.BodyList)
+            {
+                if (bodyPart.x == pos.x && bodyPart.y == pos.y)
+                    return false; // 내 몸에 박음
+            }
+            foreach (var otherUser in game_users.Values)
+            {
+                if (otherUser.GameUser_Session_Info.userID == session.GameUser_Session_Info.userID)
+                    continue; // 나는 위에서 검사했으니 패스
+
+                foreach (var bodyPart in otherUser.BodyList)
+                {
+                    if (bodyPart.x == pos.x && bodyPart.y == pos.y)
+                        return false; // 남의 몸 밟음 (사망)
+                }
+            }
+            return true;
+        }
+
+        // 기능 3: 사과 먹었는지 확인 및 사과 재생성 (사과 관련 상태만 변경)
+        bool TryEatApple(GameUser_Session.Pos pos)
+        {
+            if (pos.x == appleX && pos.y == appleY)
+            {
+                GenerateApple();
+                return true;
+            }
+            return false;
+        }
+
+        // 기능 4: 뱀의 몸통 리스트 관리 (이동 관련 상태만 변경)
+        void MoveBody(GameUser_Session session, GameUser_Session.Pos nextPos, bool isEat)
+        {
+            // 머리 추가
+            session.BodyList.Insert(0, nextPos);
+
+            // 사과 안 먹었으면 꼬리 자르기
+            if (isEat == false)
+            {
+                if (session.BodyList.Count > 0)
+                    session.BodyList.RemoveAt(session.BodyList.Count - 1);
+            }
+
+            // 좌표 정보 갱신
+            session.GameUser_Session_Info.userPositionX = nextPos.x;
+            session.GameUser_Session_Info.userPositionY = nextPos.y;
+        }
+
+        // 기능 5: 패킷 전송만 담당
+        void BroadcastMove(GameUser_Session session, GameUser_Session.Pos pos, bool isEat)
+        {
+            S_Move move = new S_Move();
+            move.playerId = session.GameUser_Session_Info.userID;
+            move.posX = pos.x;
+            move.posY = pos.y;
+            move.IsEat = isEat;
+            Broadcast(move.Write());
+        }
+        //여기 아래는 주기적으로 행동하는게 아닌 세팅 혹은 받은 값 기반으로 바로 처리해야하는 부분
         void GenerateApple()
         {
             while (true)
@@ -107,7 +260,7 @@ namespace SnakeServer
             GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid);
             gameuser.GameUser_Session_Info.userPositionX = 1.0f;
             gameuser.GameUser_Session_Info.userPositionY = 1.0f;
-           
+
             lock (game_users)
             {
                 if (!game_users.ContainsKey(user.Uid))
@@ -144,75 +297,35 @@ namespace SnakeServer
                 gameuser.UserToken.send(s_EnterGame_Snake.Write());
             }
             UserCount = Interlocked.Increment(ref UserCount);
-            if(UserCount == 2)
+            if (UserCount == 1)
             {
-                Is_Running = true;  
+                Is_Running = true;
             }
             if (Is_Running)
             {
-                Task.Run(() => GameStart_Loop());
+                Task.Run(() => Start());
             }
         }
-       public void ChangeDir(GameUser_Session session, C_Move packet)
+        public void ChangeDir(GameUser_Session session, C_Move packet)
         {
             lock (_lock)
             {
                 session.GameUser_Session_Info.dir = packet.direction;
             }
         }
-        public void HandleMove(GameUser_Session session)
+        public void LeavGame(GameUser_Session session, int playerID)
         {
-            float nextX = game_users[session.GameUser_Session_Info.userID].GameUser_Session_Info.userPositionX;
-            float nextY = game_users[session.GameUser_Session_Info.userID].GameUser_Session_Info.userPositionY;
-            
-            switch (session.GameUser_Session_Info.dir)
+            lock (this)
             {
-                case 0: nextY += 1.0f; break;
-                case 1: nextY -= 1.0f; break;
-                case 2: nextX -= 1.0f; break;
-                case 3: nextX += 1.0f; break;
-            }
-
-            // 2. [검사] 맵 밖인가? (예: 0~50 범위)
-            // (나중에는 여기에 map[,] 배열 체크를 넣으면 됨)
-            if (nextX < 0 || nextX > MapSizeX || nextY < 0 || nextY > MapSizeY || map[(int)nextY, (int)nextX] == 1)
-            {
-                // 벽이다! 움직이지 마. (그냥 리턴)
-                return;
-            }
-            foreach(var b in session.BodyList)
-            {
-                if(b.x == (int)nextX && b.y == (int)nextY)
+                if (game_users.ContainsKey(playerID) == false)
                 {
-                    Console.WriteLine("자기 자신과 충돌");
                     return;
                 }
+                S_PlayerLeave leave = new S_PlayerLeave();
+                leave.userid = session.GameUser_Session_Info.userID;
+                Broadcast(leave.Write());
             }
 
-            bool AteApple = false;
-            if((int)nextX == appleX && (int)nextY == appleY)
-            {
-                Console.WriteLine("사과 섭취");
-                AteApple = true;
-                GenerateApple();
-            }
-            // 3. 통과했으면 실제 좌표에 적용
-            session.BodyList.Insert(0, new GameUser_Session.Pos { x = (int)nextX, y = (int)nextY });
-            if (!AteApple)
-            {
-                if (session.BodyList.Count > 0)
-                {
-                    session.BodyList.RemoveAt(session.BodyList.Count - 1);
-                }
-            }
-            S_Move move = new S_Move();
-            move.playerId = session.GameUser_Session_Info.userID;
-            move.posX = nextX;
-            move.posY = nextY;
-            move.IsEat = AteApple;
-            Broadcast(move.Write());
-            session.GameUser_Session_Info.userPositionX = nextX;
-            session.GameUser_Session_Info.userPositionY = nextY;
         }
         public void Broadcast(CPacket msg)
         {
@@ -250,7 +363,7 @@ namespace SnakeServer
                 GameUser_Session session = targets[i];
                 try
                 {
-                    
+
 
                     // -----------------------------------------------------------
                     // [수동 Deep Copy 로직]

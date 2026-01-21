@@ -104,7 +104,7 @@
 		<int name="posX"/>
 		<int name="posY"/>
 	</Packet>
-	<Packet name="ssss">
-		<int name="ssscc"/>	
+	<Packet name="S_PlayerLeave">
+		<int name="userid"/>	
 	</Packet>
 </PDL>

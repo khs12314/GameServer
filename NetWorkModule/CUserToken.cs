@@ -248,6 +248,7 @@ namespace NetWorkModule
             //close the socket associated with th client
             try
             {
+                peer.disconnect();
                 this.socket.Shutdown(SocketShutdown.Send);
             }
             //throws if client process has already closed

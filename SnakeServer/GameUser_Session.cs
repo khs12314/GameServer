@@ -26,7 +26,8 @@ namespace SnakeServer
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
         public struct Pos { public int x, y; }
-        public List<Pos> BodyList;  
+        public List<Pos> BodyList;
+        public bool Is_Alive;
         //통신을 위한 필수 토큰
         public CUserToken UserToken;
         public SnakeGame_Logic room {  get; set; }
@@ -37,10 +38,13 @@ namespace SnakeServer
             GameUser_Session_Info.userID = id;
             UserToken.set_peer(this);
             BodyList = new List<Pos>();
+            Is_Alive = true;
         }
 
         void IPeer.disconnect()
         {
+            Console.WriteLine("유저 연결 끊김");
+            room.LeavGame(this, this.GameUser_Session_Info.userID);
            
         }
 

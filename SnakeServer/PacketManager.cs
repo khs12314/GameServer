@@ -46,7 +46,7 @@ namespace SnakeServer
                 case PacketID.C_Move:
                     C_Move c_Move = new C_Move();
                     c_Move.Read(packet);
-                    PacketHandler.C_Move_SnakeHnadler(session, c_Move);
+                    PacketHandler.C_Move_SnakeHandler(session, c_Move);
                         break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");

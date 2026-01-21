@@ -38,13 +38,20 @@ namespace SnakeServer
         }
         public bool Enter_Room(User_Session user1, int userid, int Room_id)
         {
-            if (!room.ContainsKey(Room_id))
+            if (room.TryGetValue(Room_id, out SnakeGame_Logic targetRoom) == false)
             {
-                Console.WriteLine($"룸 아이디 검색 실패{Room_id}");
+                Console.WriteLine($"룸 아이디 검색 실패 {Room_id}");
                 return false;
             }
-            Console.WriteLine($"룸 아이디 검색 성공{Room_id}, 유저아이디 {userid}");
-            room[Room_id].Enter_Game(user1, userid);
+
+            Console.WriteLine($"룸 아이디 검색 성공 {Room_id}, 유저아이디 {userid}");
+
+            // [핵심] 찾은 방(targetRoom)에 큐를 넣음
+            targetRoom.Push(() =>
+            {
+                // 여기는 나중에 Room 스레드가 실행함
+                targetRoom.Enter_Game(user1, userid);
+            });
             return true;
         }
         

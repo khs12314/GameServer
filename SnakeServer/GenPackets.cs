@@ -30,6 +30,7 @@ public enum PacketID
     C_Move = 21,
     S_Move = 22,
     S_SpawnItem = 23,
+    S_PlayerLeave = 24,
 
 }
 
@@ -493,7 +494,7 @@ public class S_Move : IPacket
         this.playerId = packet.pop_int32(); this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.IsEat = packet.pop_bool();
     }
 
-    public CPacket Write()  
+    public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Move);
@@ -518,6 +519,26 @@ public class S_SpawnItem : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SpawnItem);
         packet.push(this.ItemID); packet.push(this.posX); packet.push(this.posY);
+        return packet;
+    }
+}
+
+public class S_PlayerLeave : IPacket
+{
+    public int userid;
+
+    public short Protocol { get { return (short)PacketID.S_PlayerLeave; } }
+
+    public void Read(CPacket packet)
+    {
+        this.userid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_PlayerLeave);
+        packet.push(this.userid);
         return packet;
     }
 }
