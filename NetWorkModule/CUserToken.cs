@@ -105,7 +105,7 @@ namespace NetWorkModule
         //5) 데이터가 없을 경우 더 이상 아무런 작업을 하지 않고 리턴
         public void send(CPacket msg)
         {
-            //이 코드는 불필요함
+         
             
 
             lock (this.cs_sending_queue)
@@ -182,7 +182,7 @@ namespace NetWorkModule
                     if (this.sending_queue.Count > 0)
                     {
                         CPacket packet = this.sending_queue.Dequeue();
-                        CPacket.destroy(packet);
+                        packet.Release();
                     }
                 }
                 return;
@@ -217,11 +217,11 @@ namespace NetWorkModule
 
                 // [전송 완료] 다 보냈을 때만 이리로 내려옴
 
-                lock (cs_count) { ++sent_count; }
+                //lock (cs_count) { ++sent_count; }
 
                 // 큐에서 꺼내고 반납
                 CPacket packet = this.sending_queue.Dequeue();
-                CPacket.destroy(packet); // <-- 여기서 정상 반납됨
+                packet.Release();
 
                 // 다음 패킷 전송
                 if (this.sending_queue.Count > 0)

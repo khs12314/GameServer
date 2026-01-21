@@ -297,7 +297,7 @@ namespace SnakeServer
                 gameuser.UserToken.send(s_EnterGame_Snake.Write());
             }
             UserCount = Interlocked.Increment(ref UserCount);
-            if (UserCount == 1)
+            if (UserCount == 2)
             {
                 Is_Running = true;
             }
@@ -329,67 +329,54 @@ namespace SnakeServer
         }
         public void Broadcast(CPacket msg)
         {
-            // 원본 데이터 정보 미리 확보
-            byte[] sourceBuffer = msg.buffer;
-            int copySize = msg.position;
-
-            // [2] 현재 스레드의 전용 리스트 확보 & 초기화 (할당 없음)
+            // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
+            // ---------------------------------------------------------
             List<GameUser_Session> targets = _threadLocalTargets.Value;
             targets.Clear();
 
-            // =========================================================
-            // Phase 1. 명단 확보 (여기만 Lock! 순식간에 끝남)
-            // =========================================================
             lock (_lock)
             {
                 foreach (var item in game_users)
                 {
                     GameUser_Session session = item.Value;
-                    // 소켓이 살아있는 유저만 명단에 추가 (참조 복사라 매우 빠름)
                     if (session.UserToken.socket != null && session.UserToken.socket.Connected)
                     {
                         targets.Add(session);
                     }
                 }
             }
-            // Lock 해제! 이제 다른 스레드가 입장하든 퇴장하든 상관없음
+            // ---------------------------------------------------------
 
-            // =========================================================
-            // Phase 2. 복사 및 전송 (Lock 없이 자유롭게 수행)
-            // =========================================================
-            // Foreach 대신 For문 사용 (GC 완전 방지)
+            // [2] 전송 (Deep Copy 삭제 -> 참조 전달)
+            // ---------------------------------------------------------
             for (int i = 0; i < targets.Count; i++)
             {
                 GameUser_Session session = targets[i];
                 try
                 {
+                    // [삭제된 것들]
+                    // - CPacketBufferManger.pop() (할당 X)
+                    // - SetOwner (공유 객체라 주인 설정 의미 없음)
+                    // - Buffer.BlockCopy (복사 X)
+                    // - move_position (커서 이동 X)
 
-
-                    // -----------------------------------------------------------
-                    // [수동 Deep Copy 로직]
-                    // -----------------------------------------------------------
-                    // 1. 풀에서 빈 패킷 꺼내기
-                    CPacket newPacket = CPacketBufferManger.pop();
-
-                    // 2. 주인 설정
-                    newPacket.SetOwner(session);
-
-                    // 3. [핵심] 데이터 복사 (원본 -> 새 패킷)
-                    // Lock 밖에서 수행하므로 서버 전체 멈춤 현상 없음
-                    Buffer.BlockCopy(sourceBuffer, 0, newPacket.buffer, 0, copySize);
-
-                    // 4. 커서 동기화
-                    newPacket.move_position(copySize);
-
-                    // 5. 전송
-                    session.UserToken.send(newPacket);
+                    // [변경된 것]
+                    // 그냥 원본(msg)을 던짐.
+                    // 전제조건: session.Send 안에서 msg.Retain()을 하고 있어야 함!
+                    session.send(msg);
                 }
                 catch (Exception)
                 {
-                    // 로그 제외 (필요시 에러 카운트만 증가)
+                    // 에러 처리
                 }
             }
 
+            // [3] 뒷정리 (매우 중요)
+            // ---------------------------------------------------------
+            // 나는(Broadcast 함수) 100명한테 뿌리는 임무를 완수했음.
+            // 내 손을 떠났으니 Release.
+            // (아직 전송 중인 세션들이 Retain을 잡고 있어서 Ref Count > 0 상태임. 안 죽음)
+            msg.Release();
         }
     }
 }

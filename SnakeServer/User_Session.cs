@@ -59,6 +59,7 @@ namespace SnakeServer
         void IPeer.process_user_operation(CPacket msg)
         {
             PacketManager.Instance.OnRecvPakcet(this, msg);
+            msg.Release();
         }
     }
 }

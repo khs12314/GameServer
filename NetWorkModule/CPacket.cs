@@ -39,7 +39,8 @@ namespace NetWorkModule
         }
         public void Release()
         {
-            if(Interlocked.Decrement(ref _refCount) == 0)
+            CPacketBufferManger.get_pool_count();
+            if (Interlocked.Decrement(ref _refCount) == 0)
             {
                 this.is_using = false;
                 this.position = 0;

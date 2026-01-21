@@ -55,8 +55,7 @@ namespace SnakeServer
             CPacket msg = CPacket.create(protocolid);
             msg.overwrite(buffer.Value, buffer.Value.Length);
             msg.SetOwner(this);
-            Console.WriteLine("asdadsasdsddasads");
-            Console.WriteLine($"받은 메시지 포지션 : {msg.position}");
+
             Program.game_server.Enqueue_Job(msg, this.UserToken);
         }
 
@@ -72,11 +71,15 @@ namespace SnakeServer
 
         void IPeer.process_user_operation(CPacket msg)
         {
+            
             PacketManager.Instance.OnRecvPakcet(this, msg);
+            msg.Release();
+            
         }
 
-        void IPeer.send(CPacket msg)
+       public void send(CPacket msg)
         {
+            msg.Retain();
             this.UserToken.send(msg);
             
         }
