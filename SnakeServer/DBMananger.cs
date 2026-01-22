@@ -1,6 +1,7 @@
 ﻿using MySqlConnector;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -65,7 +66,53 @@ namespace SnakeServer
                 }
             }
         }
+        public static async Task<(int dbResult, string nickname)> LoginAsync(string id, string inputPw)
+        {
 
+            using (var conn = new MySqlConnection(connString))
+            {
+
+                await conn.OpenAsync();
+                string sql = "SELECT account_id, password, salt, nickname FROM accounts WHERE account_name = @id";
+                using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    using(var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if(await reader.ReadAsync())
+                        {
+                            int account_id = reader.GetInt32("account_id");
+
+                            // 2. DB에서 꺼내오기
+                            string dbHash = reader.GetString("password");
+
+                            string dbSalt = reader.GetString("salt");
+
+                            string dbnickname = reader.GetString("nickname");
+                            string inputHash = Security.MakeHash(inputPw, dbSalt);
+
+                            if (dbHash == inputHash)
+                            {
+                               
+                                return (account_id, dbnickname);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[Login] 비번 틀림.");
+                                return (0, string.Empty);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("아이디가 존재하지않음");
+                            return(0, string.Empty);
+                        }
+                    }
+                }
+
+
+            }
+        }
 
         public static int LoginAccount(string id, string inputPw, out string nickname)
         {
@@ -87,7 +134,7 @@ namespace SnakeServer
                         if (reader.Read()) // 데이터가 존재하면 true
                         {
                             int account_id = reader.GetInt32("account_id");
-                            
+
                             // 2. DB에서 꺼내오기
                             string dbHash = reader.GetString("password");
 

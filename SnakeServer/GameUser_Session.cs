@@ -26,7 +26,7 @@ namespace SnakeServer
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
         public struct Pos { public int x, y; }
-        public List<Pos> BodyList;
+        public LinkedList<Pos> BodyList;
         public bool Is_Alive;
         //통신을 위한 필수 토큰
         public CUserToken UserToken;
@@ -37,7 +37,7 @@ namespace SnakeServer
             GameUser_Session_Info = new GameUser_Session_Info();
             GameUser_Session_Info.userID = id;
             UserToken.set_peer(this);
-            BodyList = new List<Pos>();
+            BodyList = new LinkedList<Pos>();
             Is_Alive = true;
         }
 

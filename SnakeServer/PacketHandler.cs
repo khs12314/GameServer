@@ -11,28 +11,38 @@ namespace SnakeServer
 
     public class PacketHandler
     {
-        public static void C_LoginDBHandler(IPeer peer, C_Login_DB packet)
+        public static async void C_LoginDBHandler(IPeer peer, C_Login_DB packet)
         {
-            User_Session? session = peer as User_Session;
-            S_Login_DB login = new S_Login_DB();
-            string nickname = "";
-            
-            int userid = DBMananger.LoginAccount(packet.ID, packet.PassWord, out nickname);
-            if (userid != 0)
+            try
             {
-                login.Sucess = true;
-                login.UserID = userid;
-                login.Nickname = nickname;
-                peer.send(login.Write());
+                User_Session? session = peer as User_Session;
+                S_Login_DB login = new S_Login_DB();
+
+
+                var (resultCode, nickname) = await DBMananger.LoginAsync(packet.ID, packet.PassWord);
+                if (resultCode != 0)
+                {
+                    login.Sucess = true;
+                    login.UserID = resultCode;
+                    login.Nickname = nickname;
+                    peer.send(login.Write());
+                    Program.game_server.Set_User_Session(session, resultCode);
+                    return;
+                }
+                else
+                {
+                    login.Sucess = false;
+                    login.UserID = 0;
+                    login.Nickname = "";
+                    peer.send(login.Write());
+                    return;
+                }
+
             }
-            else
+            catch (Exception ex) 
             {
-                login.Sucess = false;
-                login.UserID = 0;
-                login.Nickname = "";
-                peer.send(login.Write());
+                Console.WriteLine($"{ex}");
             }
-            Program.game_server.Set_User_Session(session, userid);
 
         }
         public static void C_SignUpDBHandler(IPeer peer, C_SignUp_DB packet)

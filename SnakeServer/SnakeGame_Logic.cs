@@ -185,13 +185,13 @@ namespace SnakeServer
         void MoveBody(GameUser_Session session, GameUser_Session.Pos nextPos, bool isEat)
         {
             // 머리 추가
-            session.BodyList.Insert(0, nextPos);
+            session.BodyList.AddFirst(nextPos);
 
             // 사과 안 먹었으면 꼬리 자르기
             if (isEat == false)
             {
                 if (session.BodyList.Count > 0)
-                    session.BodyList.RemoveAt(session.BodyList.Count - 1);
+                    session.BodyList.RemoveLast();
             }
 
             // 좌표 정보 갱신
