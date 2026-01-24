@@ -16,7 +16,7 @@ namespace SnakeServer
         static string connString = "Server=127.0.0.1;Port=3306;Database=game_db;Uid=root;Pwd=1234;Pooling=true;MinPoolSize=10;MaxPoolSize=100;";
 
         // 1. 커넥션 풀에서 연결 객체 하나 꺼내오기
-        public static MySqlConnection GetConnection()
+        public static MySqlConnection? GetConnection()
         {
             try
             {
@@ -35,7 +35,7 @@ namespace SnakeServer
         public static bool CreateAccount(string name, string pw, string NicName)
         {
             // using 문법: 블록 벗어나면 자동으로 conn.Close() 호출 -> 커넥션 풀 반납
-            using (MySqlConnection conn = GetConnection())
+            using (MySqlConnection? conn = GetConnection())
             {
                 if (conn == null) return false;
 
@@ -116,7 +116,7 @@ namespace SnakeServer
 
         public static int LoginAccount(string id, string inputPw, out string nickname)
         {
-            using (MySqlConnection conn = GetConnection())
+            using (MySqlConnection? conn = GetConnection())
             {
                 nickname = "";
                 if (conn == null) return 0;

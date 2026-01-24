@@ -28,23 +28,30 @@ namespace SnakeServer
         public struct Pos { public int x, y; }
         public LinkedList<Pos> BodyList;
         public bool Is_Alive;
+        //구조변경
         //통신을 위한 필수 토큰
         public CUserToken UserToken;
+        public User_Session User_session;
         public SnakeGame_Logic room {  get; set; }
-        public GameUser_Session(CUserToken token, int id)
+        public GameUser_Session(CUserToken token, int id, User_Session user_session)
         {
             UserToken = token;
             GameUser_Session_Info = new GameUser_Session_Info();
             GameUser_Session_Info.userID = id;
+            
             UserToken.set_peer(this);
             BodyList = new LinkedList<Pos>();
             Is_Alive = true;
+            User_session = user_session;
         }
-
+        int IPeer.Get_MyID()
+        {
+            return this.GameUser_Session_Info.userID;
+        }
         void IPeer.disconnect()
         {
             Console.WriteLine("유저 연결 끊김");
-            room.LeavGame(this, this.GameUser_Session_Info.userID);
+            room?.LeavGame(this, this.GameUser_Session_Info.userID);
            
         }
 
@@ -61,12 +68,7 @@ namespace SnakeServer
 
         void IPeer.on_removed()
         {
-            Internal_Disconnect packet = new Internal_Disconnect();
-
-            CPacket msg = packet.Write();
-            msg.SetOwner(this);
-
-            Program.game_server.Enqueue_Job(msg, this.UserToken);
+            Program.remove_user(this);
         }
 
         void IPeer.process_user_operation(CPacket msg)
@@ -86,6 +88,11 @@ namespace SnakeServer
         public void Enter_Room(SnakeGame_Logic room)
         {
             this.room = room;
+        }
+        public void Change_Peer()
+        {
+            Console.WriteLine("피어 교체");
+            User_session.CUserToken.set_peer(User_session);
         }
     }
 }

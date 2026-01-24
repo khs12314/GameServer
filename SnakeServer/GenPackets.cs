@@ -31,6 +31,8 @@ public enum PacketID
     S_Move = 22,
     S_SpawnItem = 23,
     S_PlayerLeave = 24,
+    S_Die = 25,
+    C_PlayerLeave = 26,
 
 }
 
@@ -45,7 +47,7 @@ public interface IPacket
 
 public class PlayerInfoReq : IPacket
 {
-    public long playerId; public string name;
+    public long playerId; public string? name;
 
     public short Protocol { get { return (short)PacketID.PlayerInfoReq; } }
 
@@ -538,6 +540,46 @@ public class S_PlayerLeave : IPacket
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_PlayerLeave);
+        packet.push(this.userid);
+        return packet;
+    }
+}
+
+public class S_Die : IPacket
+{
+    public int userid;
+
+    public short Protocol { get { return (short)PacketID.S_Die; } }
+
+    public void Read(CPacket packet)
+    {
+        this.userid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_Die);
+        packet.push(this.userid);
+        return packet;
+    }
+}
+
+public class C_PlayerLeave : IPacket
+{
+    public int userid;
+
+    public short Protocol { get { return (short)PacketID.C_PlayerLeave; } }
+
+    public void Read(CPacket packet)
+    {
+        this.userid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_PlayerLeave);
         packet.push(this.userid);
         return packet;
     }

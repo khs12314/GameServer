@@ -39,7 +39,7 @@ namespace NetWorkModule
         /// 원격 연결이 끊겼을 때 호출된다
         /// 이 메소드가 호출된 이후부터는 데이터 전송이 불가능하다.
         /// </summary>
-
+        int Get_MyID();
         void on_removed();
         void send(CPacket msg);
         void disconnect();

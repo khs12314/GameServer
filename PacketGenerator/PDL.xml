@@ -107,4 +107,10 @@
 	<Packet name="S_PlayerLeave">
 		<int name="userid"/>	
 	</Packet>
+	<Packet name="S_Die">
+		<int name="userid"/>
+	</Packet>
+	<Packet name="C_PlayerLeave">
+		<int name="userid"/>
+	</Packet>
 </PDL>

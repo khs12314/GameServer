@@ -19,7 +19,7 @@ namespace SnakeServer
         AutoResetEvent loop;
         public RoomManager room_manager { get; private set; }
         //여기는 로비에서 다뤄지는 매칭 대기 유저들 로그인하면 db에 저장된 값 기반으로 키를 설정해줌
-        Dictionary<int, User_Session> matching_waiting_users;
+        Dictionary<int, IPeer> matching_waiting_users;
 
         public GameServer()
         {
@@ -27,7 +27,7 @@ namespace SnakeServer
             this.loop = new AutoResetEvent(false);
             this.JobQueue = new Queue<CPacket>();
             this.room_manager = new RoomManager(100);
-            this.matching_waiting_users = new Dictionary<int, User_Session>();
+            this.matching_waiting_users = new Dictionary<int, IPeer>();
             this.locgic_thread = new Thread(GameLoop);
             this.locgic_thread.Start();
         }
@@ -37,7 +37,7 @@ namespace SnakeServer
             while (true)
             {
                 Console.WriteLine("게임 루프 도는 중");
-                CPacket packet = null;
+                CPacket? packet = null;
                 lock (_lock)
                 {
                     if (JobQueue.Count > 0)
@@ -99,17 +99,21 @@ namespace SnakeServer
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
-                GameUser_Session user = (GameUser_Session)packet.owner;
-                this.User_Disconnect();
+                IPeer session = packet.owner;
+                this.User_Disconnect(session);
             }
             else
             {
                 packet.owner.process_user_operation(packet);
             }
         }
-        void User_Disconnect()
+        public void User_Disconnect(IPeer session)
         {
-
+            lock (_lock)
+            {
+                matching_waiting_users.Remove(session.Get_MyID());
+                
+            }
         }
         public void Set_User_Session(User_Session user, int Userid)
         {
@@ -117,7 +121,7 @@ namespace SnakeServer
             {
                 if (!matching_waiting_users.ContainsKey(Userid))
                 {
-                    Console.WriteLine($"매칭에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
+                    Console.WriteLine($"로비에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
                     matching_waiting_users.Add(Userid, user);
                 }
             }

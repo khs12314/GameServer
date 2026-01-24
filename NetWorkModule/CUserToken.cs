@@ -75,7 +75,7 @@ namespace NetWorkModule
                 while (this.sending_queue.Count > 0)
                 {
                     CPacket packet = this.sending_queue.Dequeue();
-                    CPacket.destroy(packet); // "집으로 돌아가라"
+                    packet.Release(); // "집으로 돌아가라"
                 }
             }
 

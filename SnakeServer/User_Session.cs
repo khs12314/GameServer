@@ -14,16 +14,25 @@ namespace SnakeServer
     //접속한 유저의 세션(인 게임은 다루지 않음)
     public class User_Session : IPeer
     {
-        static int _UserIDGenerator = 0;
+        //static int _UserIDGenerator = 0;
         public CUserToken CUserToken;
+        public GameServer Loby { get; set; }
         public int Uid { get; private set; }
         public User_Session(CUserToken token)
         {
             this.CUserToken = token;
             this.CUserToken.set_peer(this);
-            this.Uid = Interlocked.Increment(ref _UserIDGenerator);
+            this.Uid = 0;
+            
         }
-
+        public void SetUserID(int userid)
+        {
+            Uid = userid;
+        }
+        public void Enter_Loby(GameServer gameServer)
+        {
+            Loby = gameServer;
+        }
         void IPeer.on_message(Const<byte[]> buffer)
         {
             Console.WriteLine("메시지 받음");
@@ -38,22 +47,21 @@ namespace SnakeServer
 
         void IPeer.on_removed()
         {
-            Internal_Disconnect packet = new Internal_Disconnect();
-
-            CPacket msg = packet.Write();
-            msg.SetOwner(this);
-
-            Program.game_server.Enqueue_Job(msg, this.CUserToken);
+            Program.remove_user(this);
         }
-
+        int IPeer.Get_MyID()
+        {
+            return this.Uid;
+        }
         void IPeer.send(CPacket msg)
         {
+            msg.Retain();
             this.CUserToken.send(msg);
         }
 
         void IPeer.disconnect()
         {
-            throw new NotImplementedException();
+            Loby.User_Disconnect(this);
         }
 
         void IPeer.process_user_operation(CPacket msg)

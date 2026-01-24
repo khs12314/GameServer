@@ -19,12 +19,13 @@ namespace NetWorkModule
             lock (_lock)
             {
                 jobqueue.Enqueue(job);
-                if(_flush == false)
+                if (_flush == false)
                 {
                     flush = _flush = true;
                 }
             }
-            if (flush) {
+            if (flush)
+            {
                 Flush();
             }
         }
@@ -44,18 +45,19 @@ namespace NetWorkModule
 
                 }
             }
-            Action Pop()
+        }
+        Action Pop()
+        {
+            lock (_lock)
             {
-                lock (_lock)
+                if (jobqueue.Count == 0)
                 {
-                    if (jobqueue.Count == 0)
-                    {
-                        _flush = false;
-                        return null;
-                    }
-                    return jobqueue.Dequeue();
+                    _flush = false;
+                    return null;
                 }
+                return jobqueue.Dequeue();
             }
         }
     }
 }
+

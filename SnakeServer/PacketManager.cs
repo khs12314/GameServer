@@ -48,6 +48,11 @@ namespace SnakeServer
                     c_Move.Read(packet);
                     PacketHandler.C_Move_SnakeHandler(session, c_Move);
                         break;
+                case PacketID.C_PlayerLeave:
+                    C_PlayerLeave c_PlayerLeave = new C_PlayerLeave();
+                    c_PlayerLeave.Read(packet);
+                    PacketHandler.C_Player_Leave_Handler(session, c_PlayerLeave);
+                    break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
                     break;

@@ -38,7 +38,7 @@ namespace SnakeServer
         }
         public bool Enter_Room(User_Session user1, int userid, int Room_id)
         {
-            if (room.TryGetValue(Room_id, out SnakeGame_Logic targetRoom) == false)
+            if (room.TryGetValue(Room_id, out SnakeGame_Logic? targetRoom) == false)
             {
                 Console.WriteLine($"룸 아이디 검색 실패 {Room_id}");
                 return false;

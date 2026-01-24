@@ -8,12 +8,12 @@ namespace SnakeServer
 
     internal class Program
     {
-        static Dictionary<int, User_Session> userlist = new Dictionary<int, User_Session>();
+        public static Dictionary<int, IPeer> userlist = new Dictionary<int, IPeer>();
         public static GameServer game_server = new GameServer();
         static void Main(string[] args)
         {
-            CPacketBufferManger.initialize(1000000);//임시
-            userlist = new Dictionary<int, User_Session>();
+            CPacketBufferManger.initialize(1000);//임시
+            userlist = new Dictionary<int, IPeer>();
             CNetworkService service = new CNetworkService();
             service.session_created_callback += on_session_created;
 
@@ -32,13 +32,24 @@ namespace SnakeServer
             User_Session user = new User_Session(token);
             lock (userlist)
             {
-                userlist.Add(user.Uid, user);
+                if (!userlist.ContainsKey(user.Uid))
+                {
+                    userlist.Add(user.Uid, user);
+                }
             }
         }
-        //public static void remove_user(User_Session user)
-        //{
-        //    Internal_Disconnect packet = new Internal_Disconnect();
-        //    game_server.enqueue_packet(packet.Write(), user);
-        //}
+        public static void remove_user(IPeer user)
+        {
+            lock (userlist)
+            {
+                userlist.Remove(user.Get_MyID());
+                game_server.User_Disconnect(user);
+                if (user is GameUser_Session gameUser_Session)
+                {
+                    gameUser_Session.room.LeavGame(gameUser_Session, gameUser_Session.GameUser_Session_Info.userID);
+                }
+
+            }
+        }
     }
 }

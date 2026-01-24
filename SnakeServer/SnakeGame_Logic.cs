@@ -27,6 +27,7 @@ namespace SnakeServer
         int UserCount;
         int appleX = -1;
         int appleY = -1;
+
         Random rnd = new Random();
         JobQueue jobqueue;
         List<int> deadUser;
@@ -48,47 +49,56 @@ namespace SnakeServer
         }
         public void Start()
         {
+
             GenerateApple();
             ScheduleUpdate();
         }
         void ScheduleUpdate()
         {
-            Task.Delay(200).ContinueWith(t =>
-            {
-                Push(Update);
-            });
+            
+                Task.Delay(200).ContinueWith(t =>
+                {
+                    Push(Update);
+                });
+            
+
         }
         void Update()
         {
-            foreach (var p in game_users.Values)
+            if (Is_Running)
             {
-                if (!p.Is_Alive) continue;
-                ProcessUserTurn(p);
-            }
-
-            foreach (var p in game_users.Keys)
-            {
-                if (!game_users[p].Is_Alive)
+                foreach (var p in game_users.Values)
                 {
-                    Console.WriteLine($"죽은 유저 아이디 : {p}");
-                    deadUser.Add(p);
+                    if (!p.Is_Alive) continue;
+                    ProcessUserTurn(p);
                 }
-            }
-            if (deadUser.Count > 0)
-            {
-                foreach (var p in deadUser)
+
+                foreach (var p in game_users.Keys)
                 {
-                    Console.WriteLine($"삭제 유저 아이디 : {p}");
-                    game_users.Remove(p);
+                    if (!game_users[p].Is_Alive)
+                    {
+                        //Console.WriteLine($"죽은 유저 아이디 : {p}");
+                        deadUser.Add(p);
+                    }
                 }
+                if (deadUser.Count > 0)
+                {
+                    foreach (var p in deadUser)
+                    {
+                        //Console.WriteLine($"삭제 유저 아이디 : {p}");
+                    }
+                }
+                lock (_lock)
+                {
+                    deadUser.Clear();
+                }
+                ScheduleUpdate();
             }
-
-            ScheduleUpdate();
-
         }
         void ProcessUserTurn(GameUser_Session session)
         {
             // 1. [계산] 다음 좌표 구하기
+            if (!session.Is_Alive) return;
             var nextPos = GetNextPosition(session);
             Console.WriteLine("계속 진행되는지 확인");
             // 2. [판정] 갈 수 있는 곳인가? (벽, 충돌)
@@ -116,12 +126,15 @@ namespace SnakeServer
                 return;
             }
             session.Is_Alive = false;
-            S_Move deathPacket = new S_Move();
-            deathPacket.playerId = session.GameUser_Session_Info.userID;
-            deathPacket.posX = -1000;
-            deathPacket.posY = -1000;
-            deathPacket.IsEat = false;
-            Broadcast(deathPacket.Write());
+            S_Die s_Die = new S_Die();
+            s_Die.userid = session.GameUser_Session_Info.userID;
+            Broadcast(s_Die.Write());
+            //S_Move deathPacket = new S_Move();
+            //deathPacket.playerId = session.GameUser_Session_Info.userID;
+            //deathPacket.posX = -1000;
+            //deathPacket.posY = -1000;
+            //deathPacket.IsEat = false;
+            //Broadcast(deathPacket.Write());
 
         }
 
@@ -148,13 +161,20 @@ namespace SnakeServer
         bool CanGo(GameUser_Session.Pos pos, GameUser_Session session)
         {
             // 맵 범위 체크
-            if (pos.x < 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY) return false;
+            if (pos.x < 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY)
+            {
+                Interlocked.Decrement(ref UserCount);
+                return false; 
+            }
 
             // 몸통 충돌 체크 로직...
             foreach (var bodyPart in session.BodyList)
             {
                 if (bodyPart.x == pos.x && bodyPart.y == pos.y)
-                    return false; // 내 몸에 박음
+                {
+                    Interlocked.Decrement(ref UserCount);
+                    return false;
+                }
             }
             foreach (var otherUser in game_users.Values)
             {
@@ -164,7 +184,10 @@ namespace SnakeServer
                 foreach (var bodyPart in otherUser.BodyList)
                 {
                     if (bodyPart.x == pos.x && bodyPart.y == pos.y)
-                        return false; // 남의 몸 밟음 (사망)
+                    {
+                        Interlocked.Decrement(ref UserCount);
+                        return false;
+                    }
                 }
             }
             return true;
@@ -197,6 +220,7 @@ namespace SnakeServer
             // 좌표 정보 갱신
             session.GameUser_Session_Info.userPositionX = nextPos.x;
             session.GameUser_Session_Info.userPositionY = nextPos.y;
+            Console.WriteLine($"x: {session.GameUser_Session_Info.userPositionX}, y:{session.GameUser_Session_Info.userPositionY}");
         }
 
         // 기능 5: 패킷 전송만 담당
@@ -214,8 +238,8 @@ namespace SnakeServer
         {
             while (true)
             {
-                int x = rnd.Next(0, MapSizeX); // 맵 크기(50)
-                int y = rnd.Next(0, MapSizeY);
+                int x = rnd.Next(1, MapSizeX); // 맵 크기(50)
+                int y = rnd.Next(1, MapSizeY);
 
                 // 유저랑 겹치는지 체크
                 bool overlapped = false;
@@ -256,10 +280,26 @@ namespace SnakeServer
         }
         public void Enter_Game(User_Session user, int userid)
         {
+            if (user == null)
+            {
+                Console.WriteLine("[BUG] User is NULL inside Enter_Game!");
+                return;
+            }
+
+
             MapLoad(MapSizeY, MapSizeX);
-            GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid);
-            gameuser.GameUser_Session_Info.userPositionX = 1.0f;
-            gameuser.GameUser_Session_Info.userPositionY = 1.0f;
+            GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
+            Interlocked.Increment(ref UserCount);
+            if (UserCount == 1)
+            {
+                gameuser.GameUser_Session_Info.userPositionX = 1.0f;
+                gameuser.GameUser_Session_Info.userPositionY = 1.0f;
+            }
+            else
+            {
+                gameuser.GameUser_Session_Info.userPositionX = 24.0f;
+                gameuser.GameUser_Session_Info.userPositionY = 1.0f;
+            }
 
             lock (game_users)
             {
@@ -270,7 +310,7 @@ namespace SnakeServer
 
                 }
             }
-
+            Console.WriteLine($"유저 카운트{UserCount}");
             S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();
             s_EnterGame.userid = userid;
             s_EnterGame.mapSizeX = MapSizeX;
@@ -296,13 +336,19 @@ namespace SnakeServer
                 s_EnterGame_Snake.userid = item.GameUser_Session_Info.userID;
                 gameuser.UserToken.send(s_EnterGame_Snake.Write());
             }
-            UserCount = Interlocked.Increment(ref UserCount);
-            if (UserCount == 2)
+
+            if (UserCount == 1)
             {
                 Is_Running = true;
             }
+            else
+            {
+                Is_Running = false;
+                Console.WriteLine($"{UserCount}, {Is_Running}");
+            }
             if (Is_Running)
             {
+                Console.WriteLine($"{UserCount}, {Is_Running}");
                 Task.Run(() => Start());
             }
         }
@@ -315,12 +361,26 @@ namespace SnakeServer
         }
         public void LeavGame(GameUser_Session session, int playerID)
         {
+            Console.WriteLine("리브 게임");
             lock (this)
             {
                 if (game_users.ContainsKey(playerID) == false)
                 {
+                    Console.WriteLine("검색 안됨");
                     return;
                 }
+                else if (game_users.Count == 1)
+                {
+                    game_users.Clear();
+                    Is_Running = false;
+
+                }
+                else
+                {
+                    game_users.Remove(playerID);
+                }
+                Console.WriteLine("체인지 피어");
+                session.Change_Peer();
                 S_PlayerLeave leave = new S_PlayerLeave();
                 leave.userid = session.GameUser_Session_Info.userID;
                 Broadcast(leave.Write());
@@ -332,6 +392,10 @@ namespace SnakeServer
             // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
             // ---------------------------------------------------------
             List<GameUser_Session> targets = _threadLocalTargets.Value;
+            if (targets == null)
+            {
+                return;
+            }
             targets.Clear();
 
             lock (_lock)
