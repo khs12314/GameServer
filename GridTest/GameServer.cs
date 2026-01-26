@@ -36,7 +36,7 @@ namespace SnakeServer
             Console.WriteLine("게임 루프 시작");
             while (true)
             {
-                Console.WriteLine("게임 루프 도는 중");
+                //Console.WriteLine("게임 루프 도는 중");
                 CPacket? packet = null;
                 lock (_lock)
                 {
@@ -47,7 +47,7 @@ namespace SnakeServer
                 }
                 if (packet != null)
                 {
-                    Console.WriteLine("잡 수행을 위한 메소드 실행");
+                    //Console.WriteLine("잡 수행을 위한 메소드 실행");
                     try
                     {
                         Process_Receive(packet);
@@ -73,7 +73,7 @@ namespace SnakeServer
         }
         public bool Enter_Game_Request(User_Session user, int userid, int Room_id)
         {
-            Console.WriteLine("엔터 리퀘스트 실행");
+            //Console.WriteLine("엔터 리퀘스트 실행");
             return room_manager.Enter_Room(user, userid, Room_id);
         }
         void Matching_Request(User_Session user)
@@ -92,7 +92,7 @@ namespace SnakeServer
         void Process_Receive(CPacket packet)
         {
             if (packet.owner == null) return;
-            Console.WriteLine("패킷 들어옴");
+            //Console.WriteLine("패킷 들어옴");
 
             short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
         

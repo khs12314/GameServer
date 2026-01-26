@@ -12,7 +12,7 @@ namespace SnakeServer
         public static GameServer game_server = new GameServer();
         static void Main(string[] args)
         {
-            CPacketBufferManger.initialize(1000);//임시
+            CPacketBufferManger.initialize(100000);//임시
             userlist = new Dictionary<int, IPeer>();
             CNetworkService service = new CNetworkService();
             service.session_created_callback += on_session_created;

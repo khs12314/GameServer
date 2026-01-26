@@ -170,7 +170,7 @@ namespace NetWorkModule
         }
         void clear_buffer()
         {
-            Console.WriteLine($"기존 버퍼 지우기 클리어 버퍼");
+            //Console.WriteLine($"기존 버퍼 지우기 클리어 버퍼");
             Array.Clear(this.message_buffer, 0, this.message_buffer.Length);
 
             this.current_position = 0;

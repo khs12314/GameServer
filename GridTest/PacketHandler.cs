@@ -18,31 +18,80 @@ namespace SnakeServer
             {
                 User_Session? session = peer as User_Session;
                 S_Login_DB login = new S_Login_DB();
+                Console.WriteLine($"로그인받음{packet.ID}");
                 if (session == null) 
                 {
                     return;
                 }
-                
-                var (resultCode, nickname) = await DBMananger.LoginAsync(packet.ID, packet.PassWord);
-                if (resultCode != 0)
+                if (packet.ID.StartsWith("Dummy_"))
                 {
-                    session.SetUserID(resultCode);
+                    // 2. 고유 ID 생성 (Dummy_1 -> 1, Dummy_500 -> 500)
+                    // 문자열 파싱해서 숫자로 변환. (실제 DB Unique ID 대신 사용)
+                    string numberPart = packet.ID.Replace("Dummy_", "");
+                    int dummyIndex = 0;
+
+                    // 파싱 실패 방지 (혹시 Dummy_Asdf 이렇게 보낼까봐)
+                    if (!int.TryParse(numberPart, out dummyIndex))
+                    {
+                        dummyIndex = packet.ID.GetHashCode(); // 실패하면 해시값 사용
+                    }
+
+                    // 3. 가짜 UserID 부여 (실제 유저와 겹치지 않게 100,000번대부터 시작)
+                    int fakeUserId = 100000 + dummyIndex;
+                    string fakeNickname = packet.ID;
+
+                    // 4. 로그인 성공 처리 (DB 안 가고 바로 세팅)
+                    session.SetUserID(fakeUserId);
+
                     login.Sucess = true;
-                    login.UserID = resultCode;
-                    login.Nickname = nickname;
+                    login.UserID = fakeUserId;
+                    login.Nickname = fakeNickname;
+
+                    // 5. 응답 전송 및 입장
+                    peer.send(login.Write());
+
+                    // 로비 입장 및 서버 메모리에 유저 등록
+                    session.Enter_Loby(Program.game_server);
+                    Program.game_server.Set_User_Session(session, fakeUserId);
+
+                    // 로그 하나 찍어주면 간지남
+                    Console.WriteLine($"[Test] Dummy Login Success: {fakeNickname} (UID: {fakeUserId})");
+
+                    return; // 더미는 여기서 끝. 아래 로직 실행 안 함.
+                }
+
+                {
+                    // 일반 유저도 테스트 중엔 그냥 로그인 시키기 (임시)
+                    int tempId = packet.ID.GetHashCode();
+                    session.SetUserID(tempId);
+                    login.Sucess = true;
+                    login.UserID = tempId;
+                    login.Nickname = packet.ID;
+
                     peer.send(login.Write());
                     session.Enter_Loby(Program.game_server);
-                    Program.game_server.Set_User_Session(session, resultCode);
-                    return;
+                    Program.game_server.Set_User_Session(session, tempId);
                 }
-                else
-                {
-                    login.Sucess = false;
-                    login.UserID = 0;
-                    login.Nickname = "";
-                    peer.send(login.Write());
-                    return;
-                }
+                //var (resultCode, nickname) = await DBMananger.LoginAsync(packet.ID, packet.PassWord);
+                //if (resultCode != 0)
+                //{
+                //    session.SetUserID(resultCode);
+                //    login.Sucess = true;
+                //    login.UserID = resultCode;
+                //    login.Nickname = nickname;
+                //    peer.send(login.Write());
+                //    session.Enter_Loby(Program.game_server);
+                //    Program.game_server.Set_User_Session(session, resultCode);
+                //    return;
+                //}
+                //else
+                //{
+                //    login.Sucess = false;
+                //    login.UserID = 0;
+                //    login.Nickname = "";
+                //    peer.send(login.Write());
+                //    return;
+                //}
 
             }
             catch (Exception ex) 
@@ -55,20 +104,6 @@ namespace SnakeServer
         {
             User_Session? session = peer as User_Session;
             S_SignUp_DB signUp = new S_SignUp_DB();
-
-            bool success = DBMananger.CreateAccount(packet.ID, packet.PassWord, packet.nickname);
-            if (success)
-            {
-                signUp.Sucess = true;
-                signUp.nickname = packet.nickname;
-                peer.send(signUp.Write());
-            }
-            else
-            {
-                signUp.Sucess = false;
-                signUp.nickname = "";
-                peer.send(signUp.Write());
-            }
 
 
         }
@@ -88,10 +123,7 @@ namespace SnakeServer
             Console.WriteLine($"패킷 핸들러 실행");
             Program.game_server.Enter_Game_Request(session, packet.userId, room_id);
 
-            //enterGame.posX = 0.0f;
-            //enterGame.posY = 0.0f;
-            //enterGame.userid = session.Uid;
-            //peer.send(enterGame.Write());
+
 
 
         }
@@ -118,7 +150,7 @@ namespace SnakeServer
                 {
                     session.room.LeavGame(session, c_PlayerLeave.userid);
                 });
-                Console.WriteLine("무브에서 널 발견");
+                
                 return;
 
             }

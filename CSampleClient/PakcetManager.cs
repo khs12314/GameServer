@@ -30,7 +30,7 @@ namespace Multi_player_Whack_a_Mole
             packet.pop_protocol_id();
             short protocolId = packet.protocol_id;
             CRemoteServerPeer session = peer as CRemoteServerPeer;
-            Console.WriteLine($"{protocolId}");
+            
             // 2. ID에 따라 알맞은 패킷 생성 및 핸들러 호출
             switch ((PacketID)protocolId)
             {
@@ -79,6 +79,17 @@ namespace Multi_player_Whack_a_Mole
                     removePacket.Read(packet);
                     //방 제거
                     PacketHandler.S_RoomRemovedHandler(peer, removePacket);
+                    break;
+                case PacketID.S_Login_DB:
+                    S_Login_DB s_logindb = new S_Login_DB();
+                    s_logindb.Read(packet);
+                    PacketHandler.S_Login_DBHandler(peer, s_logindb);
+                    break;
+                case PacketID.S_Move:
+                    S_Move movePacket = new S_Move();
+                    movePacket.Read(packet);
+                    
+                    PacketHandler.S_Move_Handler(peer, movePacket);
                     break;
 
                 // 정의되지 않은 패킷

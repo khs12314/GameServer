@@ -39,7 +39,7 @@ namespace NetWorkModule
         }
         public void Release()
         {
-            CPacketBufferManger.get_pool_count();
+            //CPacketBufferManger.get_pool_count();
             if (Interlocked.Decrement(ref _refCount) == 0)
             {
                 this.is_using = false;
@@ -194,10 +194,10 @@ namespace NetWorkModule
         public void record_size()
         {
             Int16 body_size = (Int16)(this.position - Define.HEADER_SIZE);
-            Console.WriteLine($"바디 사이즈{body_size}, 포지션원본 {this.position}");
+            //Console.WriteLine($"바디 사이즈{body_size}, 포지션원본 {this.position}");
             Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));   
             BitConverter.TryWriteBytes(SpanSpace, body_size);
-            Console.WriteLine($"바디 사이즈{body_size}, 포지션바디사이즈 후 {this.position}");
+            //Console.WriteLine($"바디 사이즈{body_size}, 포지션바디사이즈 후 {this.position}");
         }
        
         public void push_int16(Int16 data)

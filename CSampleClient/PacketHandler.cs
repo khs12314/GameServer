@@ -33,7 +33,61 @@ namespace Multi_player_Whack_a_Mole
             Console.WriteLine($"엔터 패킷 유저 아이디{enterPacket.userId}");
             session.token.send(enterPacket.Write());
         }
+        public static void S_Move_Handler(IPeer peer, S_Move packet)
+        {
+            CRemoteServerPeer session = peer as CRemoteServerPeer;
+            if (session == null) return;
 
+            // [중요] "내가 움직인 결과"가 맞는지 확인!
+            // 남이 움직인 패킷(S_Move)을 받고 내가 또 움직이면
+            // 1명이 움직일 때 50명이 동시에 반응하는 '핵폭탄'이 터짐.
+            if (packet.playerId != session.MyServerID)
+                return;
+            
+
+            // -----------------------------------------------------------
+            // [무한 동력 로직] 0 -> 1 -> 2 -> 3 -> 0 ...
+            // -----------------------------------------------------------
+
+            // 1. 다음 방향 계산 (모듈러 연산 활용)
+            session.CurrentDirection = (session.CurrentDirection + 1) % 4;
+
+            // 2. 패킷 생성
+            //Thread.Sleep(200);
+            C_Move movePacket = new C_Move();
+            movePacket.direction = session.CurrentDirection;
+            
+            // 3. 약간의 딜레이 (선택 사항)
+            // 너무 빠르면(0초 딜레이) 서버가 '핵'으로 간주하거나 처리가 밀릴 수 있음.
+            // 테스트 목적이면 0.1초~0.5초 정도 쉬고 보내는 게 현실적임.
+
+            // 4. 전송
+            session.send(movePacket.Write());
+        }
+        public static void S_Login_DBHandler(IPeer session, IPacket packet)
+        {
+            S_Login_DB pkt = packet as S_Login_DB;
+            CRemoteServerPeer dummy = session as CRemoteServerPeer;
+
+            if (pkt.Sucess)
+            {
+                // 중요: 서버가 발급해준 ID를 저장한다.
+                // (서버 로직상 EnterGame 할 때 이 ID를 다시 보내줘야 하니까)
+                // dummy.SetServerID(pkt.UserID); <- 이런 식으로 세터 만들어도 됨
+                Console.WriteLine($"[Dummy_{dummy.DummyIndex}] Login OK (UID: {pkt.UserID})");
+                dummy.MyServerID = pkt.UserID;
+                // [Step 3] 로그인 성공했으니 바로 100번 방 입장 요청
+                C_EnterGame_Snake enterGame = new C_EnterGame_Snake();
+                enterGame.userId = pkt.UserID; // 받은 ID 그대로 토스
+                enterGame.Room_id = 100;       // 목표: 100번 방
+
+                dummy.send(enterGame.Write());
+            }
+            else
+            {
+                Console.WriteLine($"[Dummy_{dummy.DummyIndex}] Login Failed");
+            }
+        }
         // -----------------------------------------------------------
         // 2. 두더지 스폰 (S_Spawn_Mole) -> 자동 타격 로직
         // -----------------------------------------------------------

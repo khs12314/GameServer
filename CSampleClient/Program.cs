@@ -4,15 +4,16 @@ using System.Net;
 namespace CSampleClient
 {
     using GameServer;
+    using System.Diagnostics;
     using System.Net.WebSockets;
 
     internal class Program
     {
         static List<IPeer> game_servers = new List<IPeer>();
         static List<CUserToken> _dummies = new List<CUserToken>();
-
+        public static int count = 0;
         // 목표 접속 수
-        const int DUMMY_COUNT = 2;
+        const int DUMMY_COUNT = 100;
 
         static void Main(string[] args)
         {
@@ -45,45 +46,16 @@ namespace CSampleClient
 
 
             }
-
-            Console.WriteLine("[Client] All Connected. Start Firing Packets...");
             Console.ReadLine();
-            // 4. 패킷 난사 루프 (Firing Loop)
-            while (true)
+            foreach(var session in game_servers)
             {
-                
-                try
-                {
-                    // 리스트를 순회하며 패킷 전송
-                    // 접속이나 끊김이 비동기로 일어나므로 리스트 접근 시 lock 필수
-                    lock (_dummies)
-                    {
-                        foreach (var token in game_servers)
-                        {
-                            // [Zero-Alloc Packet 생성]
-                            // 여기서 create를 쓰면 내부적으로 Pool에서 가져옴
-                            //CPacket msg = CPacket.create((short)PROTOCOL.ENTER_GAME_ROOM_REQ);
-                            C_Login c_Login = new C_Login();
-                            
-                            //Console.WriteLine("Send Pakcet ENTER_GAME_ROOM_REQ");
-                            // 필요하다면 더미 데이터 푸시
-                            // msg.push(100); 
-
-                            token.send(c_Login.Write());
-                            Console.WriteLine("패킷 전송");
-                            
-                        }
-                    }
-                    break;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Error: {e.Message}");
-                }
-
-                // 서버가 숨 쉴 틈은 줘야 함 (0.1초 대기)
-                // 너무 빠르면 네트워크 대역폭 문제로 끊길 수 있음.
+                C_Login_DB loginPacket = new C_Login_DB();
+                loginPacket.ID= $"Dummy_{session.Get_MyID()}"; // 약속된 형식
+                loginPacket.PassWord = "1234";
+                Console.WriteLine($"로그인{session.Get_MyID()}");
+                session.send(loginPacket.Write());
             }
+         
             while (true)
             {
                 Thread.Sleep(10);
@@ -96,7 +68,7 @@ namespace CSampleClient
             Console.WriteLine("dasasdasd");
             lock (_dummies)
             {
-                IPeer server = new CRemoteServerPeer(token);
+                IPeer server = new CRemoteServerPeer(token, ++count);
                 game_servers.Add(server);
             }
         }

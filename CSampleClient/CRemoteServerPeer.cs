@@ -14,18 +14,21 @@ namespace CSampleClient
     public class CRemoteServerPeer : IPeer
     {
         public CUserToken token { get; private set; }
-
+        public int DummyIndex { get; private set; } // 내가 몇 번째 더미인지
+        public int MyServerID { get;  set; } // 서버가 준 실제 ID
+        public int CurrentDirection { get; set; } = 0;
         // [중요] PacketHandler에서 데이터를 저장할 변수들
         private int myID = 0;
         public byte myIndex = 0;
         public short duration = 0;
 
-        public CRemoteServerPeer(CUserToken token)
+        public CRemoteServerPeer(CUserToken token, int dummyindex)
         {
             this.token = token;
             this.token.set_peer(this);
             this.myID = 0;
             this.duration = 0;
+            this.DummyIndex = dummyindex;
         }
 
         // [Setter/Getter] 캡슐화
@@ -40,8 +43,6 @@ namespace CSampleClient
             // 1. 버퍼를 CPacket으로 감싼다.
             CPacket msg = new CPacket(buffer.Value, this);
             
-            // 2. [중요] 내가 직접 뜯어보지(pop) 않고, 전문가(PacketManager)에게 넘긴다.
-            //    여기서 switch-case를 쓰면 하수입니다.
             PacketManager.Instance.OnRecvPacket(this, msg);
         }
 
@@ -70,6 +71,11 @@ namespace CSampleClient
             // 더미 클라이언트는 보통 on_message에서 즉시 처리하므로 
             // 여기는 비워두거나, 스레드 모델에 따라 사용함.
             // 현재 구조에서는 on_message에서 PacketManager를 호출했으므로 비워둠.
+        }
+
+        public int Get_MyID()
+        {
+            return DummyIndex;
         }
     }
 

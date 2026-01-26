@@ -10,98 +10,141 @@ namespace GridTest
 {
     public class GridManager
     {
-        List<GameUser_Session>[,] _cells;//각 리스트의 요소에 n만큼 탐색 속도가 점점 늘어나기 때문에 다른 자료 구조 고려. LinkedList는 잦은 위치 이동 시 메모리 릭 유발해 일단 배제
-
-        int _cellSize;
-        int _gridSizeX;
-        int _gridSizeY;
+        // _cells[row(y), column(x)]
+        List<GameUser_Session>[,] _cells;
+        int _cellSize;      // 한 셀의 월드 단위 길이
+        int _gridSizeX;     // 칸(열) 개수
+        int _gridSizeY;     // 칸(행) 개수
+        readonly object _lock = new object();
 
         public GridManager(int mapSize, int cellSize)
         {
+            if (cellSize <= 0) throw new ArgumentOutOfRangeException(nameof(cellSize));
             _cellSize = cellSize;
-            _gridSizeX = mapSize;
-            _gridSizeY = cellSize;
-            _cells = new List<GameUser_Session>[_gridSizeY,_gridSizeX];
+
+            // 전체 맵 길이를 셀 크기로 나눈 올림 -> 셀 개수
+            _gridSizeX = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
+            _gridSizeY = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
+
+            _cells = new List<GameUser_Session>[_gridSizeY, _gridSizeX];
+            for (int y = 0; y < _gridSizeY; y++)
+            {
+                for (int x = 0; x < _gridSizeX; x++)
+                {
+                    _cells[y, x] = new List<GameUser_Session>();
+                }
+            }
         }
+
         public void Add(GameUser_Session session)
         {
-            // 1. 현재 좌표를 기준으로 방 번호 계산
-            // (주의: 반드시 float 나눗셈 후 int 캐스팅 할 것)
-            int x = (int)(session.GameUser_Session_Info.userPositionX / _cellSize);
-            int y = (int)(session.GameUser_Session_Info.userPositionX / _cellSize);
+            if (session == null) throw new ArgumentNullException(nameof(session));
 
-            // [방어 코드] 배열 범위 벗어나면 서버 터짐. 꼭 막아라.
+            int x = (int)(session.GameUser_Session_Info.userPositionX / _cellSize);
+            int y = (int)(session.GameUser_Session_Info.userPositionY / _cellSize);
+
+            // 범위 검사
             if (x < 0 || x >= _gridSizeX || y < 0 || y >= _gridSizeY) return;
 
-            // 2. 세션에 "나 여기 살아요"라고 명찰 달아줌 (Caching)
             session.GameUser_Session_Info.CellX = x;
             session.GameUser_Session_Info.CellY = y;
 
-            // 3. 실제 방에 입주
-            _cells[y, x].Add(session);
+            lock (_lock)
+            {
+                var list = _cells[y, x];
+                if (list == null)
+                {
+                    list = new List<GameUser_Session>();
+                    _cells[y, x] = list;
+                }
+                list.Add(session);
+            }
         }
 
         public void Remove(GameUser_Session session)
         {
-            // 1. 저장해둔 명찰(인덱스)을 보고 바로 찾는다. (계산 X)
+            if (session == null) return;
+
             int x = session.GameUser_Session_Info.CellX;
             int y = session.GameUser_Session_Info.CellY;
 
-            // 방어: 혹시 초기화 안 된 상태면 무시
-            if (x < 0 || y < 0) return;
+            // 방어: 유효한 캐시 인덱스인지 확인
+            if (x < 0 || x >= _gridSizeX || y < 0 || y >= _gridSizeY) return;
 
-            // 2. 방에서 짐 뺌
-            _cells[y, x].Remove(session);
+            lock (_lock)
+            {
+                _cells[y, x]?.Remove(session);
+            }
         }
 
         public void Move(GameUser_Session session, GameUser_Session.Pos newPos)
         {
-            // 1. 새로운 목적지의 방 번호 계산
+            if (session == null) return;
+
             int newX = (int)(newPos.x / _cellSize);
             int newY = (int)(newPos.y / _cellSize);
 
-            // [방어 코드] 맵 밖으로 나가면? (로직에 따라 튕겨내거나 클램핑)
+            // 맵 밖이면 무시
             if (newX < 0 || newX >= _gridSizeX || newY < 0 || newY >= _gridSizeY) return;
 
-            // 2. [최적화 핵심] "방이 안 바뀌었으면 아무것도 하지 마라"
-            if (session.GameUser_Session_Info.CellX == newX && session.GameUser_Session_Info.CellY == newY)
+            int oldX = session.GameUser_Session_Info.CellX;
+            int oldY = session.GameUser_Session_Info.CellY;
+
+            // 같은 셀이면 아무것도 안 함
+            if (oldX == newX && oldY == newY) return;
+
+            lock (_lock)
             {
-                return;
+                // 기존 셀에서 제거 (방어적 검사)
+                if (oldX >= 0 && oldX < _gridSizeX && oldY >= 0 && oldY < _gridSizeY)
+                {
+                    _cells[oldY, oldX]?.Remove(session);
+                }
+
+                // 새 셀에 추가
+                var list = _cells[newY, newX];
+                if (list == null)
+                {
+                    list = new List<GameUser_Session>();
+                    _cells[newY, newX] = list;
+                }
+                list.Add(session);
+
+                // 캐시 갱신
+                session.GameUser_Session_Info.CellX = newX;
+                session.GameUser_Session_Info.CellY = newY;
             }
 
-            // 3. 방이 바뀌었다! (이사)
-            // 옛날 방에서 빼고 (Remove 로직 인라인 or 호출)
-            _cells[session.GameUser_Session_Info.CellY, session.GameUser_Session_Info.CellX].Remove(session);
-
-            // 새 방에 넣고
-            _cells[newY, newX].Add(session);
-
-            // 명찰 갱신
-            session.GameUser_Session_Info.CellX = newX;
-            session.GameUser_Session_Info.CellY = newY;
-
-            // 로그: "이사 완료: (1,1) -> (1,2)" 찍어보면 쾌감 쩐다.
             Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
         }
-        public List<GameUser_Session> GetNeighbors(GameUser_Session session) {
-            List<GameUser_Session> sessions = new List<GameUser_Session>();
-            int CenterX = session.GameUser_Session_Info.CellX;
-            int CenterY = session.GameUser_Session_Info.CellY;
 
-            for(int dy = -1; dy<=1; dy++)
+        public List<GameUser_Session> GetNeighbors(GameUser_Session session)
+        {
+            var sessions = new List<GameUser_Session>();
+            if (session == null) return sessions;
+
+            int centerX = session.GameUser_Session_Info.CellX;
+            int centerY = session.GameUser_Session_Info.CellY;
+
+            // 방어: 캐시가 유효한지 확인
+            if (centerX < 0 || centerX >= _gridSizeX || centerY < 0 || centerY >= _gridSizeY) return sessions;
+
+            for (int dy = -1; dy <= 1; dy++)
             {
-                for(int dx = -1; dx <= 1; dx++)
+                for (int dx = -1; dx <= 1; dx++)
                 {
-                    int nextX = CenterY+dx;
-                    int nextY = CenterX+dy;
-                    if(nextX < 0 || nextX >= _gridSizeX || nextY <0 || nextY >= _gridSizeY)
-                    {
-                        continue;
-                    }
-                    if(_cells[nextX, nextY] == null) { continue; }
-                    sessions.AddRange( _cells[nextX, nextY] );
+                    int nextX = centerX + dx;
+                    int nextY = centerY + dy;
+
+                    if (nextX < 0 || nextX >= _gridSizeX || nextY < 0 || nextY >= _gridSizeY) continue;
+
+                    var list = _cells[nextY, nextX];
+                    if (list == null) continue;
+
+                    sessions.AddRange(list);
                 }
             }
+
             return sessions;
         }
     }

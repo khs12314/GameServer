@@ -47,6 +47,7 @@ namespace SnakeServer
             User_session = user_session;
             GameUser_Session_Info.CellX = 0;
             GameUser_Session_Info.CellY = 0;
+            GameUser_Session_Info.dir = -1;
         }
         int IPeer.Get_MyID()
         {
@@ -61,7 +62,7 @@ namespace SnakeServer
 
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            Console.WriteLine("메시지 받음");
+            //Console.WriteLine("메시지 받음");
             short protocolid = BitConverter.ToInt16(buffer.Value, 2);
             CPacket msg = CPacket.create(protocolid);
             msg.overwrite(buffer.Value, buffer.Value.Length);
