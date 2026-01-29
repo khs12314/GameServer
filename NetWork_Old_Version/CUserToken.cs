@@ -17,7 +17,9 @@ namespace NetWorkModule
         public SocketAsyncEventArgs send_event_args { get; private set; }
         //바이트를 패킷 형식으로 해석해주는 해석기
         CMessage_resolver message_resolver;
-
+        List<ArraySegment<byte>> _pendingList;
+        List<ArraySegment<byte>> _sendingList;
+        List<CPacket> _sendList;
         //session객체, 어플리케이션 단에서 구현하여 사용
         IPeer peer;
         CMessage_resolver.CompltedMessageCallback _onMessageCallback;
@@ -34,7 +36,8 @@ namespace NetWorkModule
 
             this.peer = null;
             this.sending_queue = new Queue<CPacket>();
-            
+            _pendingList = new List<ArraySegment<byte>>();
+            _sendList = new List<CPacket>();
             this._onMessageCallback = new CMessage_resolver.CompltedMessageCallback(on_message);
         }
         public void set_peer(IPeer peer)
@@ -105,8 +108,8 @@ namespace NetWorkModule
         //5) 데이터가 없을 경우 더 이상 아무런 작업을 하지 않고 리턴
         public void send(CPacket msg)
         {
-         
-            
+
+
 
             lock (this.cs_sending_queue)
             {
@@ -114,7 +117,7 @@ namespace NetWorkModule
                 if (this.sending_queue.Count <= 0)
                 {
                     this.sending_queue.Enqueue(msg);
-                   
+
                     start_send();
                     return;
                 }
@@ -122,7 +125,7 @@ namespace NetWorkModule
                 //큐에 무언가가 들어 있다면 아직 이전 전송이 완료 되지않은 상태이므로
                 //큐에 추가만 하고 리턴
                 //현재 수행중인 sendasync가 완료된 이후 큐를 검사해 데이터가 있으면 sendasync를 호출해 전송해 줄 것이다.
-                this.sending_queue.Enqueue(msg);          
+                this.sending_queue.Enqueue(msg);
             }
         }
         /// <summary>
@@ -141,18 +144,25 @@ namespace NetWorkModule
             lock (this.cs_sending_queue)
             {
                 //전송이 아직 완료된 상태가 아니므로 데이터만 가져오고 큐에서 제거하진 않는다.
-                CPacket msg = this.sending_queue.Peek();
+                CPacket msg = null;
+                _sendList.Clear();
+                _pendingList.Clear();
+                while (this.sending_queue.Count > 0)
+                {
+                    msg = this.sending_queue.Dequeue();
+                    msg.record_size();
+                    _sendList.Add(msg);
+                    _pendingList.Add(msg.GetBuffer());
+                   
+                }
 
                 //헤더에 패킷 사이즈를 기록
-                msg.record_size();
-                
+
                 //이번에 보낼 패킷 사이즈만큼 버퍼 크기를 설정하고
+
+                send_event_args.BufferList = _pendingList;
+
                 
-                this.send_event_args.SetBuffer(this.send_event_args.Offset, msg.position);
-
-                //패킷 내용을 SocketAsyncEventArgs 버퍼에 복사한다.
-                Array.Copy(msg.buffer, 0, this.send_event_args.Buffer, this.send_event_args.Offset, msg.position);
-
                 //비동기 전송 시작 2
                 bool pending = this.socket.SendAsync(this.send_event_args);
                 if (!pending)
@@ -173,55 +183,41 @@ namespace NetWorkModule
 
         public void process_send(SocketAsyncEventArgs e)
         {
+            int expectedSize = 0;
+            foreach (var seg in _pendingList) // _pendingList는 아직 안 비웠으니 살아있음
+                expectedSize += seg.Count;
             // [수정 1] 에러 처리 시에도 Lock 필수!
-            if (e.BytesTransferred <= 0 || e.SocketError != SocketError.Success)
+            if (e.BytesTransferred != expectedSize)
             {
                 lock (this.cs_sending_queue)
                 {
+                    disconnect();
                     // 에러가 났어도 큐에 있는 건 빼서 반납해야 함
-                    if (this.sending_queue.Count > 0)
+                    foreach(var packet in _sendList)
                     {
-                        CPacket packet = this.sending_queue.Dequeue();
                         packet.Release();
                     }
+                    _pendingList.Clear();
+                    e.BufferList = null;
+                  
+
                 }
                 return;
             }
 
             lock (this.cs_sending_queue)
             {
-                if (this.sending_queue.Count <= 0)
+               
+                
+                foreach (var packet in _sendList)
                 {
-                    // 방어 코드
-                    return;
+                    packet.Release();
                 }
+                _pendingList.Clear();
+                e.BufferList = null;
+                
 
-                // [수정 2] 부분 전송(Partial Send) 처리
-                // BytesTransferred가 요청한 크기(Count)보다 작으면 재전송
-                if (e.BytesTransferred < e.Count)
-                {
-                    int sent = e.BytesTransferred;
-                    int remain = e.Count - sent;
-                    int new_offset = e.Offset + sent;
-
-                    // 남은 거 다시 보내! (재귀)
-                    e.SetBuffer(new_offset, remain);
-                    bool pending = this.socket.SendAsync(e);
-                    if (!pending)
-                    {
-                        process_send(e);
-                    }
-                    // 여기서 리턴해야 아래 destroy로 안 넘어감 (아직 다 안 보냈으니까)
-                    return;
-                }
-
-                // [전송 완료] 다 보냈을 때만 이리로 내려옴
-
-                //lock (cs_count) { ++sent_count; }
-
-                // 큐에서 꺼내고 반납
-                CPacket packet = this.sending_queue.Dequeue();
-                packet.Release();
+             
 
                 // 다음 패킷 전송
                 if (this.sending_queue.Count > 0)

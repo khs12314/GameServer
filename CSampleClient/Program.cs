@@ -9,11 +9,13 @@ namespace CSampleClient
 
     internal class Program
     {
-        static List<IPeer> game_servers = new List<IPeer>();
-        static List<CUserToken> _dummies = new List<CUserToken>();
+        static List<CRemoteServerPeer> game_servers = new List<CRemoteServerPeer>();
+        static List<CRemoteServerPeer> _dummies = new List<CRemoteServerPeer>();
         public static int count = 0;
+        private static CRemoteServerPeer _session;
+
         // 목표 접속 수
-        const int DUMMY_COUNT = 100;
+        const int DUMMY_COUNT = 1000;
 
         static void Main(string[] args)
         {
@@ -22,56 +24,39 @@ namespace CSampleClient
             CPacketBufferManger.initialize(100000);
 
             // 2. 네트워크 서비스 생성 (하나의 서비스로 모든 연결 처리)
-            CNetworkService service = new CNetworkService();
-            // (필요하다면 service.session_created_callback 설정)
-            service.initialize();
+            string host = Dns.GetHostName();
+            IPHostEntry ipHost = Dns.GetHostEntry(host);
+            IPAddress ipAddr = ipHost.AddressList[0];
+            IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
 
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8000);
+            Connector connector = new Connector();
 
             Console.WriteLine($"[Client] Spawning {DUMMY_COUNT} Zombies...");
 
             // 3. 500개 접속 시도 (Connection Loop)
-            for (int i = 0; i < DUMMY_COUNT; i++)
-            {
-                CConnector connector = new CConnector(service);
+            connector.Connect(endPoint,
+                  () => { return SessionManager.Instance.Generate(); },
+                  DUMMY_COUNT);
 
-                // 콜백 등록: 접속 성공 시 리스트에 추가
-                connector.connected_callback += on_connected_gameserver;
-
-                connector.connect(endpoint);
-
-                // 너무 한 번에 접속하면 OS가 SYN Flood로 오인하거나 포트가 고갈됨.
-                // 10ms 정도 텀을 줍니다.
-                Thread.Sleep(10);
-
-
-            }
             Console.ReadLine();
-            foreach(var session in game_servers)
-            {
-                C_Login_DB loginPacket = new C_Login_DB();
-                loginPacket.ID= $"Dummy_{session.Get_MyID()}"; // 약속된 형식
-                loginPacket.PassWord = "1234";
-                Console.WriteLine($"로그인{session.Get_MyID()}");
-                session.send(loginPacket.Write());
-            }
+            SessionManager.Instance.SendLogin();
          
             while (true)
             {
-                Thread.Sleep(10);
+                //Thread.Sleep(10);
             }
         }
 
         // 접속 성공 시 호출되는 콜백
-        static void on_connected_gameserver(CUserToken token)
-        {
-            Console.WriteLine("dasasdasd");
-            lock (_dummies)
-            {
-                IPeer server = new CRemoteServerPeer(token, ++count);
-                game_servers.Add(server);
-            }
-        }
+        //static void on_connected_gameserver(CUserToken token)
+        //{
+        //    Console.WriteLine("dasasdasd");
+        //    lock (_dummies)
+        //    {
+        //        IPeer server = new CRemoteServerPeer(token, ++count);
+        //        game_servers.Add(server);
+        //    }
+        //}
         private static void TestClientMethod()
         {
             //CPacketBufferManger.initialize(2000);   //1
@@ -107,8 +92,8 @@ namespace CSampleClient
                 //game_servers[0].send(msg);
 
             }
-                    ((CRemoteServerPeer)game_servers[0]).token.disconnect();
-            Console.ReadKey();
+                    //((CRemoteServerPeer)game_servers[0]).token.disconnect();
+            //Console.ReadKey();
         }
 
         /// <summary>

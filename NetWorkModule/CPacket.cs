@@ -1,18 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 
 namespace NetWorkModule
 {
+    class Define
+    {
+        public static readonly short HEADER_SIZE = 2;
+    }
     public class CPacket
     {
-        public IPeer owner { get; private set; }
+        public PacketSession owner { get; private set; }
         public byte[] buffer { get; private set; }
         public int position { get; private set; }
+        public int useCount;
         public Int16 protocol_id { get;  set; }
         public bool is_using = true;
-        private int _refCount = 0;
+        public int _refCount = 0;
+        public static CPacket create(Int16 protocol_id, ArraySegment<byte> data)
+        {
+            CPacket packet = CPacketBufferManger.pop();
+            packet.is_using = true;
+            packet._refCount = 1;
+            
+            short protocol_id_ = BitConverter.ToInt16(data.Array, 2);
+            //packet.overwrite(data);
+            packet.set_protocol(protocol_id_);
+            //Console.WriteLine($"생성시 참조 카운트{packet._refCount}");
+            //Console.Write($"팝 주소 여기는 프로토콜 아이디와 세그먼트");
+            //packet.PrintMemoryAddress();
+            
+            return packet;
+        }
         public static CPacket create(Int16 protocol_id)
         {
             CPacket packet = CPacketBufferManger.pop();
@@ -20,9 +41,34 @@ namespace NetWorkModule
             packet._refCount = 1;
             packet.set_protocol(protocol_id);
             
+
             return packet;
         }
-        public static CPacket create(byte[] buffer, IPeer owner)
+        
+        public ArraySegment<byte> Close()
+        {
+            // 1. 헤더에 최종 사이즈 기록
+            ushort size = (ushort)this.position;
+            Array.Copy(BitConverter.GetBytes(size), 0, this.buffer, 0, 2);
+
+            // 2. 엔진이 원하는 형태(ArraySegment)로 즉시 변환
+            return new ArraySegment<byte>(this.buffer, 0, size);
+        }
+        public void PrintMemoryAddress()
+        {
+            // buffer는 자네가 데이터 담는 byte[] 배열이다.
+            // fixed를 쓰면 GC가 이 배열을 이동시키지 못하게 "핀(Pin)"을 박는다.
+            unsafe
+            {
+                // 배열의 0번째 방 주소를 가져온다.
+                fixed (byte* ptr = &this.buffer[0])
+                {
+                    // 16진수 주소값 (예: 0x1A2B3C...)
+                    Console.WriteLine($"[Memory Check] PacketID: {this.protocol_id} , Address: {(long)ptr:X}");
+                }
+            }
+        }
+        public static CPacket create(byte[] buffer, PacketSession owner)
         {
             CPacket packet = CPacketBufferManger.pop();
             packet._refCount = 1;
@@ -39,27 +85,30 @@ namespace NetWorkModule
         }
         public void Release()
         {
-            //CPacketBufferManger.get_pool_count();
-            if (Interlocked.Decrement(ref _refCount) == 0)
+            Interlocked.Decrement(ref _refCount);
+            lock (this)
             {
-                this.is_using = false;
-                this.position = 0;
-                CPacketBufferManger.push(this);
+                if (_refCount <= 0)
+                {
+
+                    this.is_using = false;
+                    this.position = 0;
+                    //Console.Write($"릴리즈 시 반납된다면 반납되는 주소 : {this._refCount}");
+                    //this.PrintMemoryAddress();
+                    this.protocol_id = -1;
+                    CPacketBufferManger.push(this);
+                    //CPacketBufferManger.get_pool_count();
+                }
+                else
+                {
+                    //Console.WriteLine($"릴리즈{this._refCount}");
+                    return;
+                }
             }
         }
 
-        public static void destroy(CPacket packet)
-        {
-            if (packet.is_using == false)
-            {
-                return;
-            }
-
-            packet.is_using = false;
-            
-            CPacketBufferManger.push(packet);
-        }
-        public CPacket(byte[] buffer, IPeer owner)
+      
+        public CPacket(byte[] buffer, PacketSession owner)
         {
             //참조로만 보관하여 작업한다.
             //복사가 필요하면 별도로 구현
@@ -68,6 +117,7 @@ namespace NetWorkModule
             this.position = Define.HEADER_SIZE;
             this.owner = owner;
             this.protocol_id = BitConverter.ToInt16(buffer, 2);
+            useCount = 0;
         }
         public CPacket()
         {
@@ -83,6 +133,24 @@ namespace NetWorkModule
             target.set_protocol(this.protocol_id);
             target.overwrite(this.buffer, this.position);
 
+        }
+        public void overwrite(ArraySegment<byte> data)
+        {
+            // 1. 필요한 버퍼 크기 계산 (헤더 포함 전체 사이즈)
+            int totalSize = data.Count;
+            short protocol_id = BitConverter.ToInt16(buffer, position);
+            // 2. 내 버퍼가 작으면 새로 할당 (자네가 짠 로직 유지)
+            if (this.buffer == null || this.buffer.Length < totalSize)
+            {
+                this.buffer = new byte[totalSize > 1024 ? totalSize : 1024];
+            }
+
+            // 3. [핵심] 루키스 버퍼(data)를 내 버퍼(this.buffer)로 복사
+            // 자네가 이미 Span을 쓰고 있으니 더 빠르게 복사할 수 있다.
+            data.AsSpan().CopyTo(this.buffer);
+
+            // 4. 읽기 위치를 헤더 바로 뒤로 세팅
+            this.position = Define.HEADER_SIZE;
         }
         public void overwrite(byte[] source, int length)
         {
@@ -280,9 +348,12 @@ namespace NetWorkModule
                 return;
             }
         }
-        
+        public byte[] GetBuffer()
+        {
+            return this.buffer;
+        }
 
-        public void SetOwner(IPeer peer)
+        public void SetOwner(PacketSession peer)
         {
             this.owner = peer;
         }

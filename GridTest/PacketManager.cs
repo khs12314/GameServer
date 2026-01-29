@@ -14,6 +14,8 @@ namespace SnakeServer
         static PacketManager instance = new PacketManager();
         //풀링을 위한 스택, 추후 구현 예정
         //static Stack<IPacket> iPacketPool = new Stack<IPacket>();
+        static int packetCount = 0;
+        static int ErrorCount = 0;
         public static PacketManager Instance { get { return instance; } }
 
         public PacketManager()
@@ -21,10 +23,11 @@ namespace SnakeServer
 
         }
 
-        public void OnRecvPakcet(IPeer session, CPacket packet)
+        public void OnRecvPacket(PacketSession session, CPacket packet)
         {
             short protocol_id = packet.pop_protocol_id();
-            //Console.WriteLine($"패킷 받음{protocol_id}");
+            //Console.WriteLine($"패킷 받음{(PacketID)protocol_id}");
+           // Interlocked.Increment(ref packetCount);
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
@@ -48,17 +51,25 @@ namespace SnakeServer
                     C_Move c_Move = new C_Move();
                     c_Move.Read(packet);
                     PacketHandler.C_Move_SnakeHandler(session, c_Move);
-                        break;
+                    break;
                 case PacketID.C_PlayerLeave:
                     C_PlayerLeave c_PlayerLeave = new C_PlayerLeave();
                     c_PlayerLeave.Read(packet);
                     PacketHandler.C_Player_Leave_Handler(session, c_PlayerLeave);
                     break;
                 default:
-                    Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
+                    //Console.WriteLine($"로스 패킷의 참조 값 아이디{(PacketID)protocol_id}");
+                   // Console.WriteLine($"로스 패킷의 값 아이디{packet.protocol_id}");
+                    //Console.WriteLine($"{packet.position}");
+                   // Console.Write("반납된 로스 패킷의 메모리 : ");
+                    //Console.WriteLine($"반납된 로스 패킷에 대한 정보 : 유저 아이디{packet.owner.Get_MyID()}, {packet.is_using}, {packet._refCount}");
+                   // packet.PrintMemoryAddress();
+                   // Interlocked.Increment(ref ErrorCount);
                     break;
             }
+            //Console.WriteLine($"받은 패킷 반납 전 레프 카운트 : {packet._refCount}");
             packet.Release();
+
         }
     }
 }

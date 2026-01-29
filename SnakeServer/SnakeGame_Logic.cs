@@ -288,7 +288,7 @@ namespace SnakeServer
 
 
             MapLoad(MapSizeY, MapSizeX);
-            GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
+            GameUser_Session gameuser = new GameUser_Session(userid, user);
             Interlocked.Increment(ref UserCount);
             if (UserCount == 1)
             {
@@ -315,7 +315,7 @@ namespace SnakeServer
             s_EnterGame.userid = userid;
             s_EnterGame.mapSizeX = MapSizeX;
             s_EnterGame.mapSizeY = MapSizeY;
-            gameuser.UserToken.send(s_EnterGame.Write());
+            gameuser.Send(s_EnterGame.Write());
 
             S_Spawn packet = new S_Spawn();
             {
@@ -334,7 +334,7 @@ namespace SnakeServer
                 s_EnterGame_Snake.SpawnX = item.GameUser_Session_Info.userPositionX;
                 s_EnterGame_Snake.SpawnY = item.GameUser_Session_Info.userPositionY;
                 s_EnterGame_Snake.userid = item.GameUser_Session_Info.userID;
-                gameuser.UserToken.send(s_EnterGame_Snake.Write());
+                gameuser.Send(s_EnterGame_Snake.Write());
             }
 
             if (UserCount == 1)
@@ -403,7 +403,7 @@ namespace SnakeServer
                 foreach (var item in game_users)
                 {
                     GameUser_Session session = item.Value;
-                    if (session.UserToken.socket != null && session.UserToken.socket.Connected)
+                    if (session.GetMySocket() != null && session.GetMySocket().Connected)
                     {
                         targets.Add(session);
                     }
@@ -427,7 +427,7 @@ namespace SnakeServer
                     // [변경된 것]
                     // 그냥 원본(msg)을 던짐.
                     // 전제조건: session.Send 안에서 msg.Retain()을 하고 있어야 함!
-                    session.send(msg);
+                    session.Send(msg);
                 }
                 catch (Exception)
                 {

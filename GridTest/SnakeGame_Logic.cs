@@ -258,7 +258,7 @@ namespace SnakeServer
 
 
             MapLoad(MapSizeY, MapSizeX);
-            GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
+            GameUser_Session gameuser = new GameUser_Session(user, userid, user);
             Interlocked.Increment(ref UserCount);
 
             gameuser.GameUser_Session_Info.userPositionX = rnd.Next(1, MapSizeX);
@@ -273,12 +273,12 @@ namespace SnakeServer
 
                 }
             }
-            Console.WriteLine($"유저 카운트{UserCount}");
+            //Console.WriteLine($"유저 카운트{UserCount}");
             S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();
             s_EnterGame.userid = userid;
             s_EnterGame.mapSizeX = MapSizeX;
             s_EnterGame.mapSizeY = MapSizeY;
-            gameuser.UserToken.send(s_EnterGame.Write());
+            gameuser.Send(s_EnterGame.Write());
 
             S_Spawn packet = new S_Spawn();
             {
@@ -297,7 +297,7 @@ namespace SnakeServer
                 s_EnterGame_Snake.SpawnX = item.GameUser_Session_Info.userPositionX;
                 s_EnterGame_Snake.SpawnY = item.GameUser_Session_Info.userPositionY;
                 s_EnterGame_Snake.userid = item.GameUser_Session_Info.userID;
-                gameuser.UserToken.send(s_EnterGame_Snake.Write());
+                gameuser.Send(s_EnterGame_Snake.Write());
             }
 
             
@@ -336,8 +336,7 @@ namespace SnakeServer
                 {
                     game_users.Remove(playerID);
                 }
-                Console.WriteLine("체인지 피어");
-                session.Change_Peer();
+                
                 S_PlayerLeave leave = new S_PlayerLeave();
                 leave.userid = session.GameUser_Session_Info.userID;
                 Broadcast(leave.Write(), grid.GetNeighbors(session));
@@ -370,6 +369,7 @@ namespace SnakeServer
 
             // [2] 전송 (Deep Copy 삭제 -> 참조 전달)
             // ---------------------------------------------------------
+            
             for (int i = 0; i < targets.Count; i++)
             {
                 GameUser_Session session = targets[i];
@@ -384,7 +384,8 @@ namespace SnakeServer
                     // [변경된 것]
                     // 그냥 원본(msg)을 던짐.
                     // 전제조건: session.Send 안에서 msg.Retain()을 하고 있어야 함!
-                    session.send(msg);
+                    session.Send(msg);
+                    //Console.WriteLine($"브로드 캐스트 참조 카운트{msg._refCount}");
                 }
                 catch (Exception)
                 {
@@ -397,6 +398,7 @@ namespace SnakeServer
             // 나는(Broadcast 함수) 100명한테 뿌리는 임무를 완수했음.
             // 내 손을 떠났으니 Release.
             // (아직 전송 중인 세션들이 Retain을 잡고 있어서 Ref Count > 0 상태임. 안 죽음)
+            //Console.WriteLine($"브로드캐스트 부분 마지막 참조 카운트 반납 : {msg._refCount}");
             msg.Release();
         }
     }

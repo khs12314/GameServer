@@ -3,6 +3,7 @@ using NetWorkModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,7 +20,7 @@ namespace SnakeServer
         AutoResetEvent loop;
         public RoomManager room_manager { get; private set; }
         //여기는 로비에서 다뤄지는 매칭 대기 유저들 로그인하면 db에 저장된 값 기반으로 키를 설정해줌
-        Dictionary<int, IPeer> matching_waiting_users;
+        Dictionary<int, PacketSession> matching_waiting_users;
 
         public GameServer()
         {
@@ -27,7 +28,7 @@ namespace SnakeServer
             this.loop = new AutoResetEvent(false);
             this.JobQueue = new Queue<CPacket>();
             this.room_manager = new RoomManager(100);
-            this.matching_waiting_users = new Dictionary<int, IPeer>();
+            this.matching_waiting_users = new Dictionary<int, PacketSession>();
             this.locgic_thread = new Thread(GameLoop);
             this.locgic_thread.Start();
         }
@@ -80,7 +81,7 @@ namespace SnakeServer
         {
 
         }
-        public void Enqueue_Job(CPacket packet, CUserToken user_Session)
+        public void Enqueue_Job(CPacket packet, PacketSession user_Session)
         {
             lock (_lock)
             {
@@ -99,15 +100,15 @@ namespace SnakeServer
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
-                IPeer session = packet.owner;
+                PacketSession session = packet.owner;
                 this.User_Disconnect(session);
             }
             else
             {
-                packet.owner.process_user_operation(packet);
+                packet.owner.OnUserOperation(packet);
             }
         }
-        public void User_Disconnect(IPeer session)
+        public void User_Disconnect(PacketSession session)
         {
             lock (_lock)
             {
@@ -115,7 +116,7 @@ namespace SnakeServer
                 
             }
         }
-        public void Set_User_Session(User_Session user, int Userid)
+        public void Set_User_Session(PacketSession user, int Userid)
         {
             lock (_lock)
             {

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Multi_player_Whack_a_Mole
+namespace CSampleClient
 {
     class PacketManager
     {
@@ -24,7 +24,7 @@ namespace Multi_player_Whack_a_Mole
         // [핵심] 네트워크 모듈에서 호출하는 함수
         // session: 패킷을 보낸 유저 (GameUser)
         // packet: 도착한 데이터 뭉치
-        public void OnRecvPacket(IPeer peer, CPacket packet)
+        public void OnRecvPacket(PacketSession peer, CPacket packet)
         {
             // 1. 프로토콜 ID 추출 (short)
             packet.pop_protocol_id();
@@ -99,6 +99,7 @@ namespace Multi_player_Whack_a_Mole
                     }
                     break;
             }
+            packet.Release();
         }
     }
 }

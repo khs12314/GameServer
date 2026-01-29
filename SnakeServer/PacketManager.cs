@@ -21,7 +21,7 @@ namespace SnakeServer
 
         }
 
-        public void OnRecvPakcet(IPeer session, CPacket packet)
+        public void OnRecvPacket(PacketSession session, CPacket packet)
         {
             short protocol_id = packet.pop_protocol_id();
             switch ((PacketID)protocol_id)
@@ -57,6 +57,7 @@ namespace SnakeServer
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
                     break;
             }
+            packet.Release();
         }
     }
 }

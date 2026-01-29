@@ -9,11 +9,13 @@ using System.Threading.Tasks;
 namespace CSampleClient
 {
     using GameServer;
-    using Multi_player_Whack_a_Mole;
+    
+    using System.Net;
+    using System.Security.Cryptography;
 
-    public class CRemoteServerPeer : IPeer
+    public class CRemoteServerPeer : PacketSession
     {
-        public CUserToken token { get; private set; }
+       
         public int DummyIndex { get; private set; } // 내가 몇 번째 더미인지
         public int MyServerID { get;  set; } // 서버가 준 실제 ID
         public int CurrentDirection { get; set; } = 0;
@@ -21,61 +23,73 @@ namespace CSampleClient
         private int myID = 0;
         public byte myIndex = 0;
         public short duration = 0;
+        public static int index_gen = 0;
 
-        public CRemoteServerPeer(CUserToken token, int dummyindex)
+        public CRemoteServerPeer()
         {
-            this.token = token;
-            this.token.set_peer(this);
+          
             this.myID = 0;
             this.duration = 0;
-            this.DummyIndex = dummyindex;
+            this.DummyIndex = Interlocked.Increment(ref index_gen);
         }
 
         // [Setter/Getter] 캡슐화
-        public void SetMyId(int ID) { myID = ID; }
-        public int GetMyId() { return myID; }
+        //public void SetUserID(int userid) { Uid = userid; }
+        //public void Enter_Loby(GameServer gameServer) { Loby = gameServer; }
 
-        // ---------------------------------------------------------
-        // [핵심 수정] 패킷 수신부 (Receive)
-        // ---------------------------------------------------------
-        void IPeer.on_message(Const<byte[]> buffer)
+        // 2. 루키스 엔진이 패킷 하나를 완성하면 호출해주는 지점
+        public override void OnRecvPacket(ArraySegment<byte> buffer)
         {
-            // 1. 버퍼를 CPacket으로 감싼다.
-            CPacket msg = new CPacket(buffer.Value, this);
-            
+            // [알맹이 유지] 자네가 짠 로직 그대로 복사
+            // 다만, buffer(ArraySegment)를 CPacket으로 옮기는 로직만 추가한다.
+            //short protocolid = BitConverter.ToInt16(buffer.Value, 2);
+            //     CPacket msg = CPacket.create(protocolid);
+            //     msg.overwrite(buffer.Value, buffer.Value.Length);
+            //     msg.SetOwner(this);
+            int idOffset = buffer.Offset + 2; // Size가 2바이트라면 +2, 아니면 0
+            short protocolId = BitConverter.ToInt16(buffer.Array, idOffset);
+
+            // 2. 자네가 원하던 대로 '진짜 ID'를 넣어서 생성
+            CPacket msg = CPacket.create(protocolId);
+
+            // 3. 데이터 덮어쓰기 (아까 내가 준 Overwrite 메서드 활용)
+            // 이제 msg에는 ID도 맞고, 데이터도 다 들어간다.
+            msg.overwrite(buffer);
+            msg.SetOwner(this);
+
+            // 3. 자네의 기존 JobQueue 시스템으로 던지기
             PacketManager.Instance.OnRecvPacket(this, msg);
         }
-
-        // ---------------------------------------------------------
-        // [삭제됨] SendHitPacket 등 잡다한 로직은 PacketHandler로 이동했음.
-        // ---------------------------------------------------------
-
-        void IPeer.on_removed()
+        public override int Get_MyID()
         {
-            Console.WriteLine("[Client] Server Disconnected");
-            // 연결 끊김 처리 (PacketHandler.S_RoomRemovedHandler 등에서 처리 가능)
+            return this.myID;
         }
-
-        public void send(CPacket msg)
+        // 4. 나머지 이벤트들 매핑
+        public override void OnConnected(EndPoint endPoint)
         {
-            this.token.send(msg);
+
         }
-
-        void IPeer.disconnect()
+        public override void OnDisconnected(EndPoint endPoint)
         {
-            this.token.socket.Disconnect(false);
+           
+
         }
-
-        void IPeer.process_user_operation(CPacket msg)
+        public override void OnSend(int numOfBytes)
         {
-            // 더미 클라이언트는 보통 on_message에서 즉시 처리하므로 
-            // 여기는 비워두거나, 스레드 모델에 따라 사용함.
-            // 현재 구조에서는 on_message에서 PacketManager를 호출했으므로 비워둠.
+
         }
-
-        public int Get_MyID()
+        public void Send(CPacket packet)
         {
-            return DummyIndex;
+            Console.WriteLine($"{packet.protocol_id}");
+            Send(packet.Close(), packet);
+        }
+        public override void OnUserOperation(CPacket packet)
+        {
+            PacketManager.Instance.OnRecvPacket(this, packet);
+        }
+        public override void Set_MyID(int myID)
+        {
+            this.myID = myID;
         }
     }
 

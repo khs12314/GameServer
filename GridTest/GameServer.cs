@@ -19,7 +19,7 @@ namespace SnakeServer
         AutoResetEvent loop;
         public RoomManager room_manager { get; private set; }
         //여기는 로비에서 다뤄지는 매칭 대기 유저들 로그인하면 db에 저장된 값 기반으로 키를 설정해줌
-        Dictionary<int, IPeer> matching_waiting_users;
+        Dictionary<int, PacketSession> matching_waiting_users;
 
         public GameServer()
         {
@@ -27,7 +27,7 @@ namespace SnakeServer
             this.loop = new AutoResetEvent(false);
             this.JobQueue = new Queue<CPacket>();
             this.room_manager = new RoomManager(100);
-            this.matching_waiting_users = new Dictionary<int, IPeer>();
+            this.matching_waiting_users = new Dictionary<int, PacketSession>();
             this.locgic_thread = new Thread(GameLoop);
             this.locgic_thread.Start();
         }
@@ -43,6 +43,11 @@ namespace SnakeServer
                     if (JobQueue.Count > 0)
                     {
                         packet = JobQueue.Dequeue();
+                        short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
+                        //Console.WriteLine($"잡큐 디큐 카운트{JobQueue.Count}");
+                        //Console.WriteLine($"디큐에서 미리 읽은 값 버퍼 : {(PacketID)protocol_id},값 {(PacketID)packet.protocol_id}, {packet.owner.Get_MyID()},받은 세션{packet.owner}, {packet.position}, {packet.is_using}, {packet._refCount}");
+                        //Console.Write("메모리 디큐 위치");
+                        //packet.PrintMemoryAddress();
                     }
                 }
                 if (packet != null)
@@ -80,12 +85,19 @@ namespace SnakeServer
         {
 
         }
-        public void Enqueue_Job(CPacket packet, CUserToken user_Session)
+        public void Enqueue_Job(CPacket packet, PacketSession user_Session)
         {
+            //Console.WriteLine($"{packet.owner.Get_MyID()}");
             lock (_lock)
             {
               
+                
                 JobQueue.Enqueue(packet);
+                short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
+                //Console.WriteLine($"잡큐 카운트 인큐{JobQueue.Count}");
+                //Console.WriteLine($"인큐에서 미리 읽은 값 버퍼:{(PacketID)protocol_id}, 값 :{(PacketID)packet.protocol_id}, {packet.owner.Get_MyID()},받은 세션{packet.owner}, {packet.position}, {packet.is_using}, {packet._refCount}");
+                //Console.Write("메모리 인큐 위치");
+                //packet.PrintMemoryAddress();
                 loop.Set();
             }
         }
@@ -95,19 +107,21 @@ namespace SnakeServer
             //Console.WriteLine("패킷 들어옴");
 
             short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
-        
+            
+
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
-                IPeer session = packet.owner;
+                PacketSession session = packet.owner;
                 this.User_Disconnect(session);
             }
             else
             {
-                packet.owner.process_user_operation(packet);
+                packet.owner.OnUserOperation(packet);
             }
+            //packet.Release();
         }
-        public void User_Disconnect(IPeer session)
+        public void User_Disconnect(PacketSession session)
         {
             lock (_lock)
             {
@@ -121,7 +135,7 @@ namespace SnakeServer
             {
                 if (!matching_waiting_users.ContainsKey(Userid))
                 {
-                    Console.WriteLine($"로비에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
+                    //Console.WriteLine($"로비에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
                     matching_waiting_users.Add(Userid, user);
                 }
             }

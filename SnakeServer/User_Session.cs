@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,62 +13,63 @@ namespace SnakeServer
         public static readonly short HEADER_SIZE = 2;
     }
     //접속한 유저의 세션(인 게임은 다루지 않음)
-    public class User_Session : IPeer
+    public class User_Session : PacketSession
     {
-        //static int _UserIDGenerator = 0;
-        public CUserToken CUserToken;
         public GameServer Loby { get; set; }
         public int Uid { get; private set; }
-        public User_Session(CUserToken token)
-        {
-            this.CUserToken = token;
-            this.CUserToken.set_peer(this);
-            this.Uid = 0;
-            
-        }
-        public void SetUserID(int userid)
-        {
-            Uid = userid;
-        }
-        public void Enter_Loby(GameServer gameServer)
-        {
-            Loby = gameServer;
-        }
-        void IPeer.on_message(Const<byte[]> buffer)
-        {
-            Console.WriteLine("메시지 받음");
-            short protocolid = BitConverter.ToInt16(buffer.Value, 2);
-            CPacket msg = CPacket.create(protocolid);
-            msg.overwrite(buffer.Value, buffer.Value.Length);
-            msg.SetOwner(this);
-            
-            Console.WriteLine($"받은 메시지 포지션 : {msg.position}");
-            Program.game_server.Enqueue_Job(msg, this.CUserToken);
-        }
 
-        void IPeer.on_removed()
+        // CUserToken은 이제 필요 없다.
+        public User_Session() { this.Uid = 0; }
+
+        public void SetUserID(int userid) { Uid = userid; }
+        public void Enter_Loby(GameServer gameServer) { Loby = gameServer; }
+
+        // 2. 루키스 엔진이 패킷 하나를 완성하면 호출해주는 지점
+        public override void OnRecvPacket(ArraySegment<byte> buffer)
         {
-            Program.remove_user(this);
+            // [알맹이 유지] 자네가 짠 로직 그대로 복사
+            // 다만, buffer(ArraySegment)를 CPacket으로 옮기는 로직만 추가한다.
+
+            CPacket msg = CPacket.create((short)0);
+            msg.overwrite(buffer); // 아까 내가 알려준 이식용 메서드
+            msg.SetOwner(this);
+
+            // 3. 자네의 기존 JobQueue 시스템으로 던지기
+            Program.game_server.Enqueue_Job(msg, this);
         }
-        int IPeer.Get_MyID()
+        public override int Get_MyID()
         {
             return this.Uid;
         }
-        void IPeer.send(CPacket msg)
+        // 4. 나머지 이벤트들 매핑
+        public override void OnConnected(EndPoint endPoint) 
+        { 
+            
+        }
+        public override void OnDisconnected(EndPoint endPoint) 
         {
-            msg.Retain();
-            this.CUserToken.send(msg);
+            Loby?.User_Disconnect(this);
+        
+        }
+        public override void OnSend(int numOfBytes) 
+        {
+            
+        }
+        public void Send(CPacket packet)
+        {
+            Send(packet.Close(), packet);
+        }
+        public override void OnUserOperation(CPacket packet)
+        {
+            PacketManager.Instance.OnRecvPacket(this, packet);
         }
 
-        void IPeer.disconnect()
+        public override void Set_MyID(int myID)
         {
-            Loby.User_Disconnect(this);
+            this.Uid = myID;
         }
 
-        void IPeer.process_user_operation(CPacket msg)
-        {
-            PacketManager.Instance.OnRecvPakcet(this, msg);
-            msg.Release();
-        }
+        // 기존 send 메서드는 PacketSession의 Send를 그대로 쓰면 된다.
     }
 }
+

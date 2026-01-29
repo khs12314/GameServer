@@ -89,7 +89,7 @@ namespace NetWorkModule
                     arg.Completed += new EventHandler<SocketAsyncEventArgs>(send_completed);
                     arg.UserToken = token;
 
-                    this.buffer_manger.SetBuffer(arg);
+                    //this.buffer_manger.SetBuffer(arg);
 
                     this.send_event_args_pool.Push(arg);
                 }
@@ -122,7 +122,7 @@ namespace NetWorkModule
             SocketAsyncEventArgs send_event_arg = new SocketAsyncEventArgs();
             send_event_arg.Completed += new EventHandler<SocketAsyncEventArgs>(send_completed);
             send_event_arg.UserToken = token;
-            send_event_arg.SetBuffer(new byte[1024], 0, 1024);
+            //send_event_arg.SetBuffer(new byte[1024], 0, 1024);
 
             begin_receive(socket, receive_event_arg, send_event_arg);
 
