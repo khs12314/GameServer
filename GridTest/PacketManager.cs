@@ -15,7 +15,7 @@ namespace SnakeServer
         //풀링을 위한 스택, 추후 구현 예정
         //static Stack<IPacket> iPacketPool = new Stack<IPacket>();
         public static PacketManager Instance { get { return instance; } }
-
+        int count = 0;
         public PacketManager()
         {
 
@@ -23,8 +23,18 @@ namespace SnakeServer
 
         public void OnRecvPakcet(IPeer session, CPacket packet)
         {
+            if (packet.GetRefCount() < 0)
+            {
+                Console.WriteLine("레프카운트");
+            }
+            short protocolid = BitConverter.ToInt16(packet.buffer, packet.position);
+            if (packet.protocol_id != protocolid)
+            {
+                Console.WriteLine($"다름 {(PacketID)protocolid}, {protocolid}");
+                return;
+            }
             short protocol_id = packet.pop_protocol_id();
-            //Console.WriteLine($"패킷 받음{protocol_id}");
+            //Console.WriteLine($"패킷 받음{(PacketID)protocol_id}");
             switch ((PacketID)protocol_id)
             {
                 case PacketID.C_Login_DB:
@@ -46,6 +56,8 @@ namespace SnakeServer
                     break;
                 case PacketID.C_Move:
                     C_Move c_Move = new C_Move();
+                    Interlocked.Increment(ref count);
+                    
                     c_Move.Read(packet);
                     PacketHandler.C_Move_SnakeHandler(session, c_Move);
                         break;
@@ -56,6 +68,7 @@ namespace SnakeServer
                     break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
+                    Console.WriteLine($"{packet.position}");
                     break;
             }
             packet.Release();

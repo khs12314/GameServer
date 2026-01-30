@@ -61,6 +61,7 @@ namespace SnakeServer
             Task.Delay(200).ContinueWith(t =>
             {
                 Push(Update);
+                Console.WriteLine("게임 실행중");
             });
 
 
@@ -166,7 +167,7 @@ namespace SnakeServer
             // 맵 범위 체크
             if (pos.x < 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY)
             {
-                Interlocked.Decrement(ref UserCount);
+                //Interlocked.Decrement(ref UserCount);
                 return false;
             }
 
@@ -175,7 +176,7 @@ namespace SnakeServer
             {
                 if (bodyPart.x == pos.x && bodyPart.y == pos.y)
                 {
-                    Interlocked.Decrement(ref UserCount);
+                    //Interlocked.Decrement(ref UserCount);
                     return false;
                 }
             }
@@ -188,7 +189,7 @@ namespace SnakeServer
                 {
                     if (bodyPart.x == pos.x && bodyPart.y == pos.y)
                     {
-                        Interlocked.Decrement(ref UserCount);
+                        //Interlocked.Decrement(ref UserCount);
                         return false;
                     }
                 }
@@ -256,6 +257,7 @@ namespace SnakeServer
                 return;
             }
 
+            //Console.WriteLine($"유저 카운트{UserCount}");
 
             MapLoad(MapSizeY, MapSizeX);
             GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
@@ -273,7 +275,6 @@ namespace SnakeServer
 
                 }
             }
-            Console.WriteLine($"유저 카운트{UserCount}");
             S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();
             s_EnterGame.userid = userid;
             s_EnterGame.mapSizeX = MapSizeX;

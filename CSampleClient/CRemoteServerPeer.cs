@@ -40,9 +40,12 @@ namespace CSampleClient
         // ---------------------------------------------------------
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            // 1. 버퍼를 CPacket으로 감싼다.
-            CPacket msg = new CPacket(buffer.Value, this);
-            
+            short protocolid = BitConverter.ToInt16(buffer.Value, 2);
+            CPacket msg = CPacket.create(protocolid);
+            msg.is_RecvPacket = true;
+            //Console.WriteLine($"메시지 받음 {(PacketID)protocolid}");
+            msg.overwrite(buffer.Value, buffer.Value.Length);
+            msg.SetOwner(this);
             PacketManager.Instance.OnRecvPacket(this, msg);
         }
 

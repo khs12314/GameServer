@@ -27,19 +27,19 @@ namespace Multi_player_Whack_a_Mole
         public void OnRecvPacket(IPeer peer, CPacket packet)
         {
             // 1. 프로토콜 ID 추출 (short)
-            packet.pop_protocol_id();
-            short protocolId = packet.protocol_id;
+           
+            short protocolId = packet.pop_protocol_id();
             CRemoteServerPeer session = peer as CRemoteServerPeer;
-            
+
             // 2. ID에 따라 알맞은 패킷 생성 및 핸들러 호출
             switch ((PacketID)protocolId)
             {
-               
+
 
                 case PacketID.S_LoginOk:
                     S_LoginOk loginPacket = new S_LoginOk();
                     loginPacket.Read(packet);
-                    Console.WriteLine($"로그인 유저 아이디 to 서버 {loginPacket.ServerUserID}");
+                    //Console.WriteLine($"로그인 유저 아이디 to 서버 {loginPacket.ServerUserID}");
                     PacketHandler.S_LoginOkHandler(peer, loginPacket);
                     //로그인 확인
                     break;
@@ -88,10 +88,13 @@ namespace Multi_player_Whack_a_Mole
                 case PacketID.S_Move:
                     S_Move movePacket = new S_Move();
                     movePacket.Read(packet);
-                    
+
                     PacketHandler.S_Move_Handler(peer, movePacket);
                     break;
-
+                case PacketID.S_EnterGame_Snake:
+                    break;
+                case PacketID.S_Spawn:
+                    break;
                 // 정의되지 않은 패킷
                 default:
                     {
@@ -99,6 +102,7 @@ namespace Multi_player_Whack_a_Mole
                     }
                     break;
             }
+            packet.Release();
         }
     }
 }

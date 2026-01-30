@@ -25,7 +25,7 @@ namespace NetWorkModule
         int message_size;
 
         //진행 중인 버퍼
-        byte[] message_buffer = new byte[1024];
+        byte[] message_buffer = new byte[4096];
 
         //현재 진행중인 버퍼의 인덱스를 가리키는 변수.
         //패킷 하나를 완성한 뒤에는 0으로 초기화시켜 줘야한다.
@@ -63,11 +63,11 @@ namespace NetWorkModule
         
         bool read_until(byte[] buffer, ref int src_position, int offset, int transffered)
         {
-            if (this.current_position >= offset + transffered)
-            {
-                //들어온 데이터만큼 다 읽은 상태이므로 더 이상 읽을 데이터가 없다.
-                return false;
-            }
+            //if (this.current_position >= offset + transffered)
+            //{
+            //    //들어온 데이터만큼 다 읽은 상태이므로 더 이상 읽을 데이터가 없다.
+            //    return false;
+            //}
 
             //읽어와야할 바이트.
             //데이터가 분리되어 올 경우 이전에 읽어 놓은 값을 빼줘서 부족한 만큼
@@ -80,7 +80,12 @@ namespace NetWorkModule
                 copy_size = this.remain_bytes;  
 
             }
-
+            if (copy_size == 0) return false;
+            //Console.WriteLine($"{position_to_read}, {this.current_position}, {copy_size}");
+            if(position_to_read < 0 || copy_size < 0)
+            {
+                Console.WriteLine("정지");
+            }
             //버퍼에 복사.
             Array.Copy(buffer, src_position, this.message_buffer, this.current_position, copy_size);
 
@@ -164,8 +169,10 @@ namespace NetWorkModule
             Type type = Define.HEADER_SIZE.GetType();
             if (type.Equals(typeof(Int16)))
             {
+                
                 return BitConverter.ToInt16(this.message_buffer, 0);
             }
+            
             return BitConverter.ToInt32(this.message_buffer, 0);
         }
         void clear_buffer()

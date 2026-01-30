@@ -115,7 +115,7 @@ namespace GridTest
                 session.GameUser_Session_Info.CellY = newY;
             }
 
-            Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
+            //Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
         }
 
         public List<GameUser_Session> GetNeighbors(GameUser_Session session)

@@ -43,6 +43,10 @@ namespace SnakeServer
                     if (JobQueue.Count > 0)
                     {
                         packet = JobQueue.Dequeue();
+                        if (packet.GetRefCount() < 0)
+                        {
+                            Console.WriteLine("레프카운트");
+                        }
                     }
                 }
                 if (packet != null)
@@ -84,8 +88,12 @@ namespace SnakeServer
         {
             lock (_lock)
             {
-              
+                
                 JobQueue.Enqueue(packet);
+                if (packet.GetRefCount() < 0)
+                {
+                    Console.WriteLine("레프카운트");
+                }
                 loop.Set();
             }
         }
@@ -93,9 +101,12 @@ namespace SnakeServer
         {
             if (packet.owner == null) return;
             //Console.WriteLine("패킷 들어옴");
-
-            short protocol_id = BitConverter.ToInt16(packet.buffer, packet.position);
-        
+            if (packet.GetRefCount() < 0)
+            {
+                Console.WriteLine("레프카운트");
+            }
+            short protocol_id = BitConverter.ToInt16(packet.buffer, 2);
+            
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();

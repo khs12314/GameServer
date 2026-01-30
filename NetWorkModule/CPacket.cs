@@ -5,23 +5,30 @@ using System.Text;
 
 namespace NetWorkModule
 {
+    //class Define
+    //{
+    //    public static readonly short HEADER_SIZE = 2;
+    //}
     public class CPacket
     {
         public IPeer owner { get; private set; }
         public byte[] buffer { get; private set; }
         public int position { get; private set; }
-        public Int16 protocol_id { get;  set; }
+        public Int16 protocol_id { get; set; }
         public bool is_using = true;
         private int _refCount = 0;
+        public bool is_sendPacket;
+        public bool is_RecvPacket;
         public static CPacket create(Int16 protocol_id)
         {
             CPacket packet = CPacketBufferManger.pop();
             packet.is_using = true;
             packet._refCount = 1;
             packet.set_protocol(protocol_id);
-            
+
             return packet;
         }
+        public int GetRefCount() { return _refCount; }
         public static CPacket create(byte[] buffer, IPeer owner)
         {
             CPacket packet = CPacketBufferManger.pop();
@@ -30,7 +37,7 @@ namespace NetWorkModule
             packet.owner = owner;
             packet.overwrite(buffer, buffer.Length);
             packet.protocol_id = BitConverter.ToInt16(buffer, 2);
-            
+
             return packet;
         }
         public void Retain()
@@ -39,11 +46,14 @@ namespace NetWorkModule
         }
         public void Release()
         {
-            //CPacketBufferManger.get_pool_count();
-            if (Interlocked.Decrement(ref _refCount) == 0)
+            Interlocked.Decrement(ref _refCount);
+            
+            if (_refCount <= 0)
             {
                 this.is_using = false;
-                this.position = 0;
+                //this.position = 0;
+                //this.protocol_id = -1;
+                //Array.Clear(buffer, 0, buffer.Length);
                 CPacketBufferManger.push(this);
             }
         }
@@ -56,7 +66,7 @@ namespace NetWorkModule
             }
 
             packet.is_using = false;
-            
+
             CPacketBufferManger.push(packet);
         }
         public CPacket(byte[] buffer, IPeer owner)
@@ -67,15 +77,20 @@ namespace NetWorkModule
             //헤더는 읽을 필요 없으니 그 이후부터 시작한다.
             this.position = Define.HEADER_SIZE;
             this.owner = owner;
+            this._refCount = 1;
+            is_sendPacket = false;
             this.protocol_id = BitConverter.ToInt16(buffer, 2);
         }
         public CPacket()
         {
             this.buffer = new byte[1024];
+            is_sendPacket = false;
+            is_RecvPacket = false;
+            this._refCount = 1;
         }
         public Int16 pop_protocol_id()
         {
-            
+
             return pop_int16();
         }
         public void copy_to(CPacket target)
@@ -105,7 +120,7 @@ namespace NetWorkModule
         public void reset_position()
         {
             this.position = 0;
-            
+
         }
 
         // 혹은 원하는 위치로 이동시키는 메서드
@@ -113,7 +128,7 @@ namespace NetWorkModule
         {
 
             this.position = pos;
-           
+
         }
         public byte pop_byte()
         {
@@ -129,11 +144,11 @@ namespace NetWorkModule
         }
         public Int16 pop_int16()
         {
-            
+
             ReadOnlySpan<byte> SpanSpace = new ReadOnlySpan<byte>(this.buffer, this.position, sizeof(Int16));
             Int16 data = BitConverter.ToInt16(SpanSpace);
             this.position += sizeof(Int16);
-            
+
             return data;
         }
         public Int32 pop_int32()
@@ -143,7 +158,7 @@ namespace NetWorkModule
             this.position += sizeof(Int32);
             return data;
         }
-       
+
         public string pop_string()
         {
             //문자열 최대 2바이트까지 0~32767
@@ -184,26 +199,26 @@ namespace NetWorkModule
         public void set_protocol(Int16 protocol_id)
         {
             this.protocol_id = protocol_id;
-            
+
             //헤더는 나중에 넣을것이므로 데이터부터 넣을  수있도록 위치 점프
             this.position = Define.HEADER_SIZE;
             push_int16(protocol_id);
-            
-            
+
+
         }
         public void record_size()
         {
             Int16 body_size = (Int16)(this.position - Define.HEADER_SIZE);
             //Console.WriteLine($"바디 사이즈{body_size}, 포지션원본 {this.position}");
-            Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));   
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, 0, sizeof(Int16));
             BitConverter.TryWriteBytes(SpanSpace, body_size);
             //Console.WriteLine($"바디 사이즈{body_size}, 포지션바디사이즈 후 {this.position}");
         }
-       
+
         public void push_int16(Int16 data)
         {
             Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));
-            bool success = BitConverter.TryWriteBytes(SpanSpace, data); 
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
 
             if (success)
             {
@@ -212,7 +227,7 @@ namespace NetWorkModule
             }
             else
             {
-                
+
             }
         }
         public void push(bool data)
@@ -229,8 +244,8 @@ namespace NetWorkModule
 
         public void push(Int16 data)
         {
-            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));  
-            bool success = BitConverter.TryWriteBytes(SpanSpace, data); 
+            Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int16));
+            bool success = BitConverter.TryWriteBytes(SpanSpace, data);
 
             if (success)
             {
@@ -243,7 +258,7 @@ namespace NetWorkModule
         {
             Span<byte> SpanSpace = new Span<byte>(this.buffer, this.position, sizeof(Int32));
             bool success = BitConverter.TryWriteBytes(SpanSpace, data);
-            
+
             if (success)
             {
                 this.position += sizeof(Int32);
@@ -280,7 +295,10 @@ namespace NetWorkModule
                 return;
             }
         }
-        
+        public byte[] GetBuffer()
+        {
+            return this.buffer;
+        }
 
         public void SetOwner(IPeer peer)
         {

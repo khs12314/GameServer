@@ -62,12 +62,16 @@ namespace SnakeServer
 
         void IPeer.on_message(Const<byte[]> buffer)
         {
-            //Console.WriteLine("메시지 받음");
             short protocolid = BitConverter.ToInt16(buffer.Value, 2);
             CPacket msg = CPacket.create(protocolid);
+            msg.is_RecvPacket = true;
+            //Console.WriteLine($"메시지 받음 {(PacketID)protocolid}");
             msg.overwrite(buffer.Value, buffer.Value.Length);
             msg.SetOwner(this);
-
+            if(msg.GetRefCount() < 0)
+            {
+                Console.WriteLine("레프카운트");
+            }
             Program.game_server.Enqueue_Job(msg, this.UserToken);
         }
 
@@ -79,14 +83,20 @@ namespace SnakeServer
         void IPeer.process_user_operation(CPacket msg)
         {
             
+            if (msg.GetRefCount() < 0)
+            {
+                Console.WriteLine("레프카운트");
+            }
             PacketManager.Instance.OnRecvPakcet(this, msg);
-            msg.Release();
-            
+            //msg.Release();
+
         }
 
        public void send(CPacket msg)
         {
+            msg.is_sendPacket = true;
             msg.Retain();
+            //Console.WriteLine($"보내는 패킷 아이디{msg.protocol_id}");
             this.UserToken.send(msg);
             
         }
