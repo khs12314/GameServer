@@ -113,4 +113,17 @@
 	<Packet name="C_PlayerLeave">
 		<int name="userid"/>
 	</Packet>
+	<Packet name="MMO_C_Move">
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rot"/>
+	</Packet>
+	<Packet name="MMO_S_Move">
+		<int name="playerid"/>
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rot"/>
+	</Packet>
 </PDL>

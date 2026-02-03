@@ -33,6 +33,8 @@ public enum PacketID
     S_PlayerLeave = 24,
     S_Die = 25,
     C_PlayerLeave = 26,
+    MMO_C_Move = 27,
+    MMO_S_Move = 28,
 
 }
 
@@ -47,7 +49,7 @@ public interface IPacket
 
 public class PlayerInfoReq : IPacket
 {
-    public long playerId; public string? name;
+    public long playerId; public string name;
 
     public short Protocol { get { return (short)PacketID.PlayerInfoReq; } }
 
@@ -581,6 +583,46 @@ public class C_PlayerLeave : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_PlayerLeave);
         packet.push(this.userid);
+        return packet;
+    }
+}
+
+public class MMO_C_Move : IPacket
+{
+    public float posX; public float posY; public float posZ; public float rot;
+
+    public short Protocol { get { return (short)PacketID.MMO_C_Move; } }
+
+    public void Read(CPacket packet)
+    {
+        this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.posZ = packet.pop_float(); this.rot = packet.pop_float();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.MMO_C_Move);
+        packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ); packet.push(this.rot);
+        return packet;
+    }
+}
+
+public class MMO_S_Move : IPacket
+{
+    public int playerid; public float posX; public float posY; public float posZ; public float rot;
+
+    public short Protocol { get { return (short)PacketID.MMO_S_Move; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32(); this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.posZ = packet.pop_float(); this.rot = packet.pop_float();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.MMO_S_Move);
+        packet.push(this.playerid); packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ); packet.push(this.rot);
         return packet;
     }
 }

@@ -151,9 +151,9 @@ namespace NetWorkModule
                     msg = this.sending_queue.Dequeue();
                     msg.record_size();
                     _sendList.Add(msg);
-                    _pendingList.Add(new ArraySegment<byte>(msg.GetBuffer(), 0, msg.position));
+                    _pendingList.Add(msg.GetBuffer());
                 }
-
+                
                 //헤더에 패킷 사이즈를 기록
 
                 //이번에 보낼 패킷 사이즈만큼 버퍼 크기를 설정하고

@@ -19,7 +19,7 @@ namespace SnakeServer
                 User_Session? session = peer as User_Session;
                 S_Login_DB login = new S_Login_DB();
                 Console.WriteLine($"로그인받음{packet.ID}");
-                if (session == null) 
+                if (session == null)
                 {
                     return;
                 }
@@ -94,7 +94,7 @@ namespace SnakeServer
                 //}
 
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Console.WriteLine($"{ex}");
             }
@@ -111,7 +111,8 @@ namespace SnakeServer
         {
             User_Session? session = peer as User_Session;
             //GameUser_Session gameUser_Session = peer as GameUser_Session;
-            if (session == null) {
+            if (session == null)
+            {
                 Console.WriteLine("여기서 널 터짐");
                 return;
             }
@@ -123,23 +124,20 @@ namespace SnakeServer
             Console.WriteLine($"패킷 핸들러 실행");
             Program.game_server.Enter_Game_Request(session, packet.userId, room_id);
 
-
-
-
         }
         public static void C_Move_SnakeHandler(IPeer peer, C_Move pakcet)
         {
-            
-            if(peer is GameUser_Session session)
+
+            if (peer is GameUser_Session session)
             {
                 SnakeGame_Logic room = session.room;
-                room.Push(() => {
+                room.Push(() =>
+                {
                     session.room.ChangeDir(session, pakcet);
                 });
-                
             }
-            
-            
+
+
         }
 
         public static void C_Player_Leave_Handler(IPeer peer, C_PlayerLeave c_PlayerLeave)
@@ -150,10 +148,19 @@ namespace SnakeServer
                 {
                     session.room.LeavGame(session, c_PlayerLeave.userid);
                 });
-                
                 return;
 
             }
         }
+        public static void C_MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO)
+        {
+            if (peer is GameUser_Session session)
+            {
+                session.room.Push(() => {
+                    session.room.MMO_Move(session, c_MMO);
+                });
+            }
+        }
     }
 }
+

@@ -15,11 +15,12 @@ namespace SnakeServer
         public int userScore;
         public float userPositionX;
         public float userPositionY;
+        public float userPositionZ;
+        public float RotY;
         public float BodyPosX;
         public float BodyPosY;
         public int CellX;
         public int CellY;
-        public int dir;
 
     }
     //인게임 유저 세션
@@ -27,7 +28,7 @@ namespace SnakeServer
     {
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
-        public struct Pos { public int x, y; }
+        public struct Pos { public float x, y; }
         public LinkedList<Pos> BodyList;
         public bool Is_Alive;
         //구조변경
@@ -47,7 +48,7 @@ namespace SnakeServer
             User_session = user_session;
             GameUser_Session_Info.CellX = 0;
             GameUser_Session_Info.CellY = 0;
-            GameUser_Session_Info.dir = -1;
+            GameUser_Session_Info.RotY = -1;
         }
         int IPeer.Get_MyID()
         {

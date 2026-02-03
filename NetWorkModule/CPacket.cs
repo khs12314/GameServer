@@ -24,6 +24,7 @@ namespace NetWorkModule
             CPacket packet = CPacketBufferManger.pop();
             packet.is_using = true;
             packet._refCount = 1;
+            
             packet.set_protocol(protocol_id);
 
             return packet;
