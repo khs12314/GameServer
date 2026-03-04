@@ -35,6 +35,11 @@ public enum PacketID
     C_PlayerLeave = 26,
     MMO_C_Move = 27,
     MMO_S_Move = 28,
+    MMO_S_Attack = 29,
+    MMO_C_Attack = 30,
+    MMO_S_Die = 31,
+    S_ReSpawn = 32,
+    S_Damage = 33,
 
 }
 
@@ -409,20 +414,20 @@ public class S_EnterGame_Snake : IPacket
 
 public class S_Spawn : IPacket
 {
-    public float SpawnX; public float SpawnY; public int userid;
+    public float SpawnX; public float SpawnY; public float SpawnZ; public int userid;
 
     public short Protocol { get { return (short)PacketID.S_Spawn; } }
 
     public void Read(CPacket packet)
     {
-        this.SpawnX = packet.pop_float(); this.SpawnY = packet.pop_float(); this.userid = packet.pop_int32();
+        this.SpawnX = packet.pop_float(); this.SpawnY = packet.pop_float(); this.SpawnZ = packet.pop_float(); this.userid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Spawn);
-        packet.push(this.SpawnX); packet.push(this.SpawnY); packet.push(this.userid);
+        packet.push(this.SpawnX); packet.push(this.SpawnY); packet.push(this.SpawnZ); packet.push(this.userid);
         return packet;
     }
 }
@@ -623,6 +628,106 @@ public class MMO_S_Move : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Move);
         packet.push(this.playerid); packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ); packet.push(this.rot);
+        return packet;
+    }
+}
+
+public class MMO_S_Attack : IPacket
+{
+    public int playerid; public int skillId;
+
+    public short Protocol { get { return (short)PacketID.MMO_S_Attack; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32(); this.skillId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.MMO_S_Attack);
+        packet.push(this.playerid); packet.push(this.skillId);
+        return packet;
+    }
+}
+
+public class MMO_C_Attack : IPacket
+{
+    public int skillId;
+
+    public short Protocol { get { return (short)PacketID.MMO_C_Attack; } }
+
+    public void Read(CPacket packet)
+    {
+        this.skillId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.MMO_C_Attack);
+        packet.push(this.skillId);
+        return packet;
+    }
+}
+
+public class MMO_S_Die : IPacket
+{
+    public int playerid;
+
+    public short Protocol { get { return (short)PacketID.MMO_S_Die; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.MMO_S_Die);
+        packet.push(this.playerid);
+        return packet;
+    }
+}
+
+public class S_ReSpawn : IPacket
+{
+    public int playerid; public int typeid;
+
+    public short Protocol { get { return (short)PacketID.S_ReSpawn; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32(); this.typeid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_ReSpawn);
+        packet.push(this.playerid); packet.push(this.typeid);
+        return packet;
+    }
+}
+
+public class S_Damage : IPacket
+{
+    public int playerid; public int damage;
+
+    public short Protocol { get { return (short)PacketID.S_Damage; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32(); this.damage = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_Damage);
+        packet.push(this.playerid); packet.push(this.damage);
         return packet;
     }
 }

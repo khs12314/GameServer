@@ -1,4 +1,5 @@
-﻿using NetWorkModule;
+﻿using GridTest;
+using NetWorkModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,30 +13,31 @@ namespace SnakeServer
         public int userIndex;
         public int userID;
         public string userNickName;
-        public int userScore;
-        public float userPositionX;
-        public float userPositionY;
-        public float userPositionZ;
-        public float RotY;
-        public float BodyPosX;
-        public float BodyPosY;
         public int CellX;
         public int CellY;
 
+    }
+    public enum PlayerState
+    {
+        IDLE,
+        ATTACK,
+        MOVE,
+        DIE
     }
     //인게임 유저 세션
     public class GameUser_Session : IPeer
     {
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
         public GameUser_Session_Info GameUser_Session_Info;
-        public struct Pos { public float x, y; }
+        public Player MyPlayer { get; set; }
+        public struct Pos { public float x, z; }
         public LinkedList<Pos> BodyList;
         public bool Is_Alive;
         //구조변경
         //통신을 위한 필수 토큰
         public CUserToken UserToken;
         public User_Session User_session;
-        public SnakeGame_Logic room {  get; set; }
+        public GameRoom_Logic room {  get; set; }
         public GameUser_Session(CUserToken token, int id, User_Session user_session)
         {
             UserToken = token;
@@ -48,7 +50,14 @@ namespace SnakeServer
             User_session = user_session;
             GameUser_Session_Info.CellX = 0;
             GameUser_Session_Info.CellY = 0;
-            GameUser_Session_Info.RotY = -1;
+            MyPlayer = new Player();
+            MyPlayer.Session = this;
+            MyPlayer.PosX = 0;
+            MyPlayer.PosY = 0;
+            MyPlayer.PosZ = 0;
+
+
+
         }
         int IPeer.Get_MyID()
         {
@@ -101,7 +110,7 @@ namespace SnakeServer
             this.UserToken.send(msg);
             
         }
-        public void Enter_Room(SnakeGame_Logic room)
+        public void Enter_Room(GameRoom_Logic room)
         {
             this.room = room;
         }

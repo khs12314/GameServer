@@ -130,7 +130,7 @@ namespace SnakeServer
 
             if (peer is GameUser_Session session)
             {
-                SnakeGame_Logic room = session.room;
+                GameRoom_Logic room = session.room;
                 room.Push(() =>
                 {
                     session.room.ChangeDir(session, pakcet);
@@ -138,6 +138,16 @@ namespace SnakeServer
             }
 
 
+        }
+        public static void MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO_Move)
+        {
+            if (peer is GameUser_Session session)
+            {
+                session.room.Push(() =>
+                {
+                    session.room.MMO_Move(session, c_MMO_Move);
+                });
+            }
         }
 
         public static void C_Player_Leave_Handler(IPeer peer, C_PlayerLeave c_PlayerLeave)
@@ -156,9 +166,37 @@ namespace SnakeServer
         {
             if (peer is GameUser_Session session)
             {
-                session.room.Push(() => {
+                if (session.MyPlayer.State == PlayerState.ATTACK || session.MyPlayer.State == PlayerState.DIE)
+                {
+                    session.room.Push(() =>
+                    {
+                       session.room.Sync_Pos(session);
+                    });
+                    return;
+                }
+                session.room.Push(() =>
+                {
                     session.room.MMO_Move(session, c_MMO);
                 });
+            }
+        }
+        public static void C_MMO_Attack_Handler(IPeer peer, MMO_C_Attack c_MMO_Attack)
+        {
+           
+            if (peer is GameUser_Session session)
+            {
+                if (session.MyPlayer.State == PlayerState.DIE || session.MyPlayer.State == PlayerState.ATTACK)
+                    return;
+
+                session.room.Push(() =>
+                {
+                    session.room.MMO_Attack(session, c_MMO_Attack);
+                    session.room.PushAfter(500, ()=>
+                    {
+                        session.MyPlayer.State = PlayerState.IDLE;
+                    });
+                });
+                
             }
         }
     }

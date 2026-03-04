@@ -6,39 +6,43 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
-    
+
     //룸 생성 및 삭제 관리
     public class RoomManager
     {
-        Dictionary<int, SnakeGame_Logic> room;
-        Stack<SnakeGame_Logic> RoomPool;
+        Dictionary<int, GameRoom_Logic> room;
+        Stack<GameRoom_Logic> RoomPool;
+        GameRoom_Logic[] RoomCache;
         public RoomManager(int poolsize)
         {
-            room = new Dictionary<int, SnakeGame_Logic>();
-            RoomPool = new Stack<SnakeGame_Logic>();
+            room = new Dictionary<int, GameRoom_Logic>();
+            RoomPool = new Stack<GameRoom_Logic>();
             initialize(poolsize);
 
         }
         public void initialize(int max_room_count)
         {
-            room = new Dictionary<int, SnakeGame_Logic>();
-            RoomPool = new Stack<SnakeGame_Logic>();
+            room = new Dictionary<int, GameRoom_Logic>();
+            RoomPool = new Stack<GameRoom_Logic>();
             for (int i = 0; i < max_room_count; i++)
             {
-                RoomPool.Push(new SnakeGame_Logic());
+                RoomPool.Push(new GameRoom_Logic());
             }
             while (RoomPool.Count > 0)
             {
-                SnakeGame_Logic room_PoP = RoomPool.Pop();
+                GameRoom_Logic room_PoP = RoomPool.Pop();
                 room.Add(room_PoP.Room_ID, room_PoP);
-                
             }
-            
+            RoomCache = room.Values.ToArray();
+        }
 
+        public GameRoom_Logic[] GetAllRooms()
+        {
+            return RoomCache;
         }
         public bool Enter_Room(User_Session user1, int userid, int Room_id)
         {
-            if (room.TryGetValue(Room_id, out SnakeGame_Logic? targetRoom) == false)
+            if (room.TryGetValue(Room_id, out GameRoom_Logic? targetRoom) == false)
             {
                 Console.WriteLine($"룸 아이디 검색 실패 {Room_id}");
                 return false;
@@ -54,6 +58,6 @@ namespace SnakeServer
             });
             return true;
         }
-        
+
     }
 }

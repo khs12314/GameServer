@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -57,14 +58,25 @@ namespace SnakeServer
                 case PacketID.C_Move:
                     C_Move c_Move = new C_Move();
                     Interlocked.Increment(ref count);
-                    
+
                     c_Move.Read(packet);
                     PacketHandler.C_Move_SnakeHandler(session, c_Move);
-                        break;
+                    break;
                 case PacketID.C_PlayerLeave:
                     C_PlayerLeave c_PlayerLeave = new C_PlayerLeave();
                     c_PlayerLeave.Read(packet);
                     PacketHandler.C_Player_Leave_Handler(session, c_PlayerLeave);
+                    break;
+                case PacketID.MMO_C_Move:
+                    MMO_C_Move c_MMO_Move = new MMO_C_Move();
+                    c_MMO_Move.Read(packet);
+                    PacketHandler.C_MMO_Move_Handler(session, c_MMO_Move);
+                    Console.WriteLine($"mmo 무빙 {session.Get_MyID()} : {c_MMO_Move.posX}, {c_MMO_Move.posY}, {c_MMO_Move.posZ}, {c_MMO_Move.rot}");
+                    break;
+                case PacketID.MMO_C_Attack:
+                    MMO_C_Attack c_MMO_Attack = new MMO_C_Attack();
+                    c_MMO_Attack.Read(packet);
+                    PacketHandler.C_MMO_Attack_Handler(session, c_MMO_Attack);
                     break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");

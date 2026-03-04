@@ -18,7 +18,7 @@ namespace SnakeServer
             service.session_created_callback += on_session_created;
 
             service.initialize();
-            service.listen("127.0.0.1", 8000, 5000);
+            service.listen("0.0.0.0", 8000, 5000);
             Console.WriteLine("Listening....");
             while (true)
             {

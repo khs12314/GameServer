@@ -80,6 +80,7 @@
 	<Packet name="S_Spawn">
 		<float name="SpawnX"/>
 		<float name="SpawnY"/>
+		<float name="SpawnZ"/>
 		<int name="userid"/>
 	</Packet>
 	<Packet name="Search_Room_id">
@@ -125,5 +126,23 @@
 		<float name="posY"/>
 		<float name="posZ"/>
 		<float name="rot"/>
+	</Packet>
+	<Packet name="MMO_S_Attack">
+		<int name="playerid"/>
+		<int name="skillId"/>
+	</Packet>
+	<Packet name="MMO_C_Attack">
+		<int name="skillId"/>
+	</Packet>
+	<Packet name="MMO_S_Die">
+		<int name="playerid"/>
+	</Packet>
+	<Packet name="S_ReSpawn">
+		<int name="playerid"/>
+		<int name="typeid"/>
+	</Packet>
+	<Packet name="S_Damage">
+		<int name="playerid"/>
+		<int name="damage"/>
 	</Packet>
 </PDL>

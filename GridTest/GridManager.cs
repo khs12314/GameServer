@@ -40,8 +40,8 @@ namespace GridTest
         {
             if (session == null) throw new ArgumentNullException(nameof(session));
 
-            int x = (int)(session.GameUser_Session_Info.userPositionX / _cellSize);
-            int y = (int)(session.GameUser_Session_Info.userPositionY / _cellSize);
+            int x = (int)(session.MyPlayer.PosX / _cellSize);
+            int y = (int)(session.MyPlayer.PosZ / _cellSize);
 
             // 범위 검사
             if (x < 0 || x >= _gridSizeX || y < 0 || y >= _gridSizeY) return;
@@ -82,7 +82,7 @@ namespace GridTest
             if (session == null) return;
 
             int newX = (int)(newPos.x / _cellSize);
-            int newY = (int)(newPos.y / _cellSize);
+            int newY = (int)(newPos.z / _cellSize);
 
             // 맵 밖이면 무시
             if (newX < 0 || newX >= _gridSizeX || newY < 0 || newY >= _gridSizeY) return;

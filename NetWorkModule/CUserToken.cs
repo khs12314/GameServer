@@ -151,7 +151,7 @@ namespace NetWorkModule
                     msg = this.sending_queue.Dequeue();
                     msg.record_size();
                     _sendList.Add(msg);
-                    _pendingList.Add(msg.GetBuffer());
+                    _pendingList.Add(new ArraySegment<byte>(msg.GetBuffer(), 0, msg.position));
                 }
                 
                 //헤더에 패킷 사이즈를 기록
@@ -183,6 +183,7 @@ namespace NetWorkModule
             int expectedSize = 0;
             foreach (var seg in _pendingList) // _pendingList는 아직 안 비웠으니 살아있음
                 expectedSize += seg.Count;
+            Console.WriteLine($"보낸 바이트{e.BytesTransferred}");
             // [수정 1] 에러 처리 시에도 Lock 필수!
             if (e.BytesTransferred != expectedSize)
             {
