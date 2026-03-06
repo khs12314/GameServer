@@ -5,10 +5,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;TeamTest</Configurations>
   </PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='TeamTest|AnyCPU'">
+		<Optimize>True</Optimize>
+		<OutputPath>C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\Builds\TeamTest\</OutputPath>
+	</PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NetWorkModule\NetWorkModule.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Map\Map_00_01.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

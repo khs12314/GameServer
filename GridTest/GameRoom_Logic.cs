@@ -14,8 +14,8 @@ namespace SnakeServer
     //인게임 로직 처리
     public class GameRoom_Logic : IJobqueue
     {
-        private readonly ThreadLocal<List<GameUser_Session>> _threadLocalTargets
-    = new ThreadLocal<List<GameUser_Session>>(() => new List<GameUser_Session>(200));
+        private readonly ThreadLocal<List<GameObject>> _threadLocalTargets
+    = new ThreadLocal<List<GameObject>>(() => new List<GameObject>(200));
         //여기는 인게임 유저를 다루는 딕셔너리 로비의 딕셔너리 키와 같다. 로그인 후 제공받은 고유 키가 여기서도 동일하게 적용된다
         Dictionary<int, GameObject> game_users;
         public int Room_ID;
@@ -35,6 +35,8 @@ namespace SnakeServer
         JobTimer jobTimer;
         List<int> deadUser;
         const float PlayerRadius = 0.4f;
+        private List<GameObject> _searchBuffer;
+        private List<GameObject> _broadcastBuffer;
         public GameRoom_Logic()
         {
             jobqueue = new JobQueue();
@@ -50,6 +52,8 @@ namespace SnakeServer
             grid = new GridManager(MapSizeX, 10);
             gameMap = new GameMap();
             MMO_MapLoad(MapSizeY, MapSizeX);
+            _searchBuffer = new List<GameObject>(30);
+            _broadcastBuffer = new List<GameObject>(50);
         }
         public void Push(Action job)
         {
@@ -65,6 +69,8 @@ namespace SnakeServer
         public void Start()
         {
             SpawnMonster(999, 10.5f, 0.5f, 10.5f);
+            SpawnMonster(998, 11.5f, 0.5f, 10.5f);
+            SpawnMonster(997, 10.5f, 0.5f, 11.5f);
             while (Is_Running)
             {
                 Update();
@@ -166,24 +172,24 @@ namespace SnakeServer
         }
 
         // 기능 4: 뱀의 몸통 리스트 관리 (이동 관련 상태만 변경)
-        void MoveBody(GameUser_Session session, GameUser_Session.Pos nextPos, bool isEat)
-        {
-            // 머리 추가
-            session.BodyList.AddFirst(nextPos);
+        //void MoveBody(GameUser_Session session, GameUser_Session.Pos nextPos, bool isEat)
+        //{
+        //    // 머리 추가
+        //    session.BodyList.AddFirst(nextPos);
 
-            // 사과 안 먹었으면 꼬리 자르기
-            if (isEat == false)
-            {
-                if (session.BodyList.Count > 0)
-                    session.BodyList.RemoveLast();
-            }
+        //    // 사과 안 먹었으면 꼬리 자르기
+        //    if (isEat == false)
+        //    {
+        //        if (session.BodyList.Count > 0)
+        //            session.BodyList.RemoveLast();
+        //    }
 
-            // 좌표 정보 갱신
-            grid.Move(session, nextPos);
-            session.MyPlayer.PosX = nextPos.x;
-            session.MyPlayer.PosY = nextPos.z;
-            //Console.WriteLine($"x: {session.GameUser_Session_Info.userPositionX}, y:{session.GameUser_Session_Info.userPositionY}");
-        }
+        //    // 좌표 정보 갱신
+        //    grid.Move(session.MyPlayer, nextPos);
+        //    session.MyPlayer.PosX = nextPos.x;
+        //    session.MyPlayer.PosY = nextPos.z;
+        //    //Console.WriteLine($"x: {session.GameUser_Session_Info.userPositionX}, y:{session.GameUser_Session_Info.userPositionY}");
+        //}
 
         // 기능 5: 패킷 전송만 담당
         void BroadcastMove(GameUser_Session session, GameUser_Session.Pos pos, bool isEat)
@@ -208,12 +214,14 @@ namespace SnakeServer
         }
         public void MMO_MapLoad(int y, int x)
         {
-            string path = @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\Map";
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string folderPath = Path.Combine(baseDir, "Map");
+
             string mapName = "Map_00_01";
             map = new int[y, x];
             if (gameMap != null)
             {
-                map = gameMap.LoadMap(path, mapName);
+                map = gameMap.LoadMap(folderPath, mapName);
                 Console.WriteLine("generate map");
                 Console.WriteLine($"{map.Length}");
             }
@@ -225,18 +233,18 @@ namespace SnakeServer
         }
         public void Sync_Pos(GameUser_Session session)
         {
-            MMO_S_Move syncpacket = new MMO_S_Move();
+            S_Sync syncpacket = new S_Sync();
             syncpacket.posX = session.MyPlayer.PosX;
             syncpacket.posY = session.MyPlayer.PosY;
             syncpacket.posZ = session.MyPlayer.PosZ;
-            syncpacket.rot = session.MyPlayer.RotY;
+            syncpacket.rotY = session.MyPlayer.RotY;
             syncpacket.playerid = session.GameUser_Session_Info.userID;
             Console.WriteLine($"sync pos : {syncpacket.posX}, {syncpacket.posZ}");
             Broadcast(syncpacket.Write(), session);
         }
         public void MMO_Move(GameUser_Session session, MMO_C_Move packet)
         {
-            var NextPos = new GameUser_Session.Pos { x = packet.posX, z = packet.posZ };
+            var NextPos = new GameObject.Pos { x = packet.posX, z = packet.posZ };
             if (session.MyPlayer.State == PlayerState.ATTACK)
             {
                 Console.WriteLine("공격 중 이동 불가");
@@ -244,8 +252,8 @@ namespace SnakeServer
             }
             if (!gameMap.CanGo(NextPos.x, NextPos.z))
             {
-
                 Console.WriteLine("장애물");
+                Console.WriteLine("aaa");
                 Sync_Pos(session);
                 return;
             }
@@ -255,6 +263,8 @@ namespace SnakeServer
             session.MyPlayer.PosY = packet.posY;
             session.MyPlayer.PosZ = packet.posZ;
             session.MyPlayer.RotY = packet.rot;
+
+            grid.Move(session.MyPlayer, NextPos);
             MMO_S_Move movePacket = new MMO_S_Move();
             movePacket.posX = session.MyPlayer.PosX;
             movePacket.posY = session.MyPlayer.PosY;
@@ -280,7 +290,7 @@ namespace SnakeServer
             gameuser.MyPlayer.PosX = 2.5f;
             gameuser.MyPlayer.PosY = 0.5f;
             gameuser.MyPlayer.PosZ = 2.5f;
-            grid.Add(gameuser);
+            grid.Add(gameuser.MyPlayer);
             lock (game_users)
             {
                 if (!game_users.ContainsKey(user.Uid))
@@ -339,30 +349,33 @@ namespace SnakeServer
             session.MyPlayer.State = PlayerState.ATTACK;
             GameObject target = FindObjectById(999);
             if (target == null) return;
-
+            grid.GetNeighbors(session.MyPlayer, _searchBuffer);
+            foreach (var item in _searchBuffer)
+            {
+                bool isHit = false;
+                if(item is Monster monster)
+                {
+                    isHit = MathUtils.IsHitValid(
+                        session.MyPlayer.PosX, session.MyPlayer.PosZ, session.MyPlayer.RotY,
+                        monster.PosX, monster.PosZ,
+                        2.0f,    // 사거리 2m (기획 데이터)
+                        120.0f   // 시야각 120도 (기획 데이터)
+                    );
+                    if (isHit)
+                    {
+                        Console.WriteLine($"[Hit] Player {session.MyPlayer.Id} -> Target {target.Id}");
+                        // TODO: 타겟 HP 차감 및 S_ChangeHp 브로드캐스트
+                        ChangeHP(target);
+                    }
+                    
+                }
+            }
             // 서버 권위 검증 실시
-            bool isHit = MathUtils.IsHitValid(
-                session.MyPlayer.PosX, session.MyPlayer.PosZ, session.MyPlayer.RotY,
-                target.PosX, target.PosZ,
-                2.0f,    // 사거리 2m (기획 데이터)
-                120.0f   // 시야각 120도 (기획 데이터)
-            );
-
-            if (isHit)
-            {
-                Console.WriteLine($"[Hit] Player {session.MyPlayer.Id} -> Target {target.Id}");
-                // TODO: 타겟 HP 차감 및 S_ChangeHp 브로드캐스트
-                ChangeHP(target);
-            }
-            else
-            {
-                Console.WriteLine($"[Miss] Out of range or angle.");
-            }
             Broadcast(attackPacket.Write(), session);
         }
         void ChangeHP(GameObject target)
         {
-            
+
             target.Hp -= 10; // 예시로 10 데미지
             if (target.Hp <= 0)
             {
@@ -403,7 +416,7 @@ namespace SnakeServer
         {
             foreach (var item in game_users)
             {
-                if(item.Value is Player player)
+                if (item.Value is Player player)
                 {
                     GameUser_Session session = player.Session;
                     if (session.UserToken.socket != null && session.UserToken.socket.Connected)
@@ -426,8 +439,8 @@ namespace SnakeServer
         {
             // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
             // ---------------------------------------------------------
-            List<GameUser_Session> targets = grid.GetNeighbors(player);
-            if (targets == null)
+           grid.GetNeighbors(player.MyPlayer, _broadcastBuffer);
+            if (_broadcastBuffer == null)
             {
                 Console.WriteLine("보낼 대상 없음");
                 return;
@@ -448,36 +461,39 @@ namespace SnakeServer
 
             // [2] 전송 (Deep Copy 삭제 -> 참조 전달)
             // ---------------------------------------------------------
-            for (int i = 0; i < targets.Count; i++)
+            for (int i = 0; i < _broadcastBuffer.Count; i++)
             {
-                GameUser_Session session = targets[i];
-                //Console.WriteLine($"{session.GameUser_Session_Info.userID}");
-                try
+                if (_broadcastBuffer[i] is Player players)
                 {
-                    // [삭제된 것들]
-                    // - CPacketBufferManger.pop() (할당 X)
-                    // - SetOwner (공유 객체라 주인 설정 의미 없음)
-                    // - Buffer.BlockCopy (복사 X)
-                    // - move_position (커서 이동 X)
+                    Console.WriteLine($"대상 플레이어 아이디: {players.Id}");
+                    try
+                    {
+                        // [삭제된 것들]
+                        // - CPacketBufferManger.pop() (할당 X)
+                        // - SetOwner (공유 객체라 주인 설정 의미 없음)
+                        // - Buffer.BlockCopy (복사 X)
+                        // - move_position (커서 이동 X)
 
-                    // [변경된 것]
-                    // 그냥 원본(msg)을 던짐.
-                    // 전제조건: session.Send 안에서 msg.Retain()을 하고 있어야 함!
-                    session.send(msg);
-                }
-                catch (Exception)
-                {
-                    // 에러 처리
+                        // [변경된 것]
+                        // 그냥 원본(msg)을 던짐.
+                        // 전제조건: session.Send 안에서 msg.Retain()을 하고 있어야 함!
+                        players.Session.send(msg);
+                    }
+                    catch (Exception)
+                    {
+                        // 에러 처리
+                    }
                 }
             }
 
+            //Console.WriteLine($"{session.GameUser_Session_Info.userID}");
             // [3] 뒷정리 (매우 중요)
             // ---------------------------------------------------------
             // 나는(Broadcast 함수) 100명한테 뿌리는 임무를 완수했음.
             // 내 손을 떠났으니 Release.
             // (아직 전송 중인 세션들이 Retain을 잡고 있어서 Ref Count > 0 상태임. 안 죽음)
             msg.Release();
-            targets.Clear();
+            _broadcastBuffer.Clear();
         }
         public void SpawnMonster(int id, float x, float y, float z)
         {

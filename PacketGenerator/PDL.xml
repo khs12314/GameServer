@@ -145,4 +145,11 @@
 		<int name="playerid"/>
 		<int name="damage"/>
 	</Packet>
+	<Packet name="S_Sync">
+		<int name="playerid"/>
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rotY"/>
+	</Packet>
 </PDL>

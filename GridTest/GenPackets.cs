@@ -7,107 +7,108 @@ using NetWorkModule;
 public enum PacketID
 {
     PlayerInfoReq = 0,
-    TestMove = 1,
-    C_Login = 2,
-    C_EnterGame = 3,
-    C_LoadingComplete = 4,
-    C_HitMole = 5,
-    S_LoginOk = 6,
-    S_ScoreUpdate = 7,
-    S_StartLoading = 8,
-    S_Spawn_Mole = 9,
-    S_GameStart = 10,
-    S_PlayerInfo = 11,
-    S_RoomRemoved = 12,
-    C_Login_DB = 13,
-    S_Login_DB = 14,
-    C_SignUp_DB = 15,
-    S_SignUp_DB = 16,
-    S_EnterGame_Snake = 17,
-    S_Spawn = 18,
-    Search_Room_id = 19,
-    C_EnterGame_Snake = 20,
-    C_Move = 21,
-    S_Move = 22,
-    S_SpawnItem = 23,
-    S_PlayerLeave = 24,
-    S_Die = 25,
-    C_PlayerLeave = 26,
-    MMO_C_Move = 27,
-    MMO_S_Move = 28,
-    MMO_S_Attack = 29,
-    MMO_C_Attack = 30,
-    MMO_S_Die = 31,
-    S_ReSpawn = 32,
-    S_Damage = 33,
-
+	TestMove = 1,
+	C_Login = 2,
+	C_EnterGame = 3,
+	C_LoadingComplete = 4,
+	C_HitMole = 5,
+	S_LoginOk = 6,
+	S_ScoreUpdate = 7,
+	S_StartLoading = 8,
+	S_Spawn_Mole = 9,
+	S_GameStart = 10,
+	S_PlayerInfo = 11,
+	S_RoomRemoved = 12,
+	C_Login_DB = 13,
+	S_Login_DB = 14,
+	C_SignUp_DB = 15,
+	S_SignUp_DB = 16,
+	S_EnterGame_Snake = 17,
+	S_Spawn = 18,
+	Search_Room_id = 19,
+	C_EnterGame_Snake = 20,
+	C_Move = 21,
+	S_Move = 22,
+	S_SpawnItem = 23,
+	S_PlayerLeave = 24,
+	S_Die = 25,
+	C_PlayerLeave = 26,
+	MMO_C_Move = 27,
+	MMO_S_Move = 28,
+	MMO_S_Attack = 29,
+	MMO_C_Attack = 30,
+	MMO_S_Die = 31,
+	S_ReSpawn = 32,
+	S_Damage = 33,
+	S_Sync = 34,
+	
 }
 
 // 공통 인터페이스
 public interface IPacket
 {
-    short Protocol { get; }
-    void Read(CPacket packet);
-    CPacket Write();
+	short Protocol { get; }
+	void Read(CPacket packet);
+	CPacket Write();
 }
 
 
 public class PlayerInfoReq : IPacket
 {
-    public long playerId; public string name;
+    public long playerId;public string name;
 
     public short Protocol { get { return (short)PacketID.PlayerInfoReq; } }
 
     public void Read(CPacket packet)
     {
-        this.playerId = packet.pop_int64(); this.name = packet.pop_string();
+        this.playerId = packet.pop_int64();this.name = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.PlayerInfoReq);
-        packet.push(this.playerId); packet.push(this.name);
+        packet.push(this.playerId);packet.push(this.name);
         return packet;
     }
 }
 
 public class TestMove : IPacket
 {
-    public float posX; public float posY; public float posZ;
+    public float posX;public float posY;public float posZ;
 
     public short Protocol { get { return (short)PacketID.TestMove; } }
 
     public void Read(CPacket packet)
     {
-        this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.posZ = packet.pop_float();
+        this.posX = packet.pop_float();this.posY = packet.pop_float();this.posZ = packet.pop_float();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.TestMove);
-        packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ);
+        packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);
         return packet;
     }
 }
 
 public class C_Login : IPacket
 {
-
+    
 
     public short Protocol { get { return (short)PacketID.C_Login; } }
 
     public void Read(CPacket packet)
     {
-
+        
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Login);
-
+        
         return packet;
     }
 }
@@ -134,40 +135,40 @@ public class C_EnterGame : IPacket
 
 public class C_LoadingComplete : IPacket
 {
-
+    
 
     public short Protocol { get { return (short)PacketID.C_LoadingComplete; } }
 
     public void Read(CPacket packet)
     {
-
+        
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_LoadingComplete);
-
+        
         return packet;
     }
 }
 
 public class C_HitMole : IPacket
 {
-    public int moleIndex; public int UserID;
+    public int moleIndex;public int UserID;
 
     public short Protocol { get { return (short)PacketID.C_HitMole; } }
 
     public void Read(CPacket packet)
     {
-        this.moleIndex = packet.pop_int32(); this.UserID = packet.pop_int32();
+        this.moleIndex = packet.pop_int32();this.UserID = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_HitMole);
-        packet.push(this.moleIndex); packet.push(this.UserID);
+        packet.push(this.moleIndex);packet.push(this.UserID);
         return packet;
     }
 }
@@ -294,140 +295,140 @@ public class S_PlayerInfo : IPacket
 
 public class S_RoomRemoved : IPacket
 {
-
+    
 
     public short Protocol { get { return (short)PacketID.S_RoomRemoved; } }
 
     public void Read(CPacket packet)
     {
-
+        
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_RoomRemoved);
-
+        
         return packet;
     }
 }
 
 public class C_Login_DB : IPacket
 {
-    public string ID; public string PassWord;
+    public string ID;public string PassWord;
 
     public short Protocol { get { return (short)PacketID.C_Login_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.ID = packet.pop_string(); this.PassWord = packet.pop_string();
+        this.ID = packet.pop_string();this.PassWord = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Login_DB);
-        packet.push(this.ID); packet.push(this.PassWord);
+        packet.push(this.ID);packet.push(this.PassWord);
         return packet;
     }
 }
 
 public class S_Login_DB : IPacket
 {
-    public bool Sucess; public int UserID; public string Nickname;
+    public bool Sucess;public int UserID;public string Nickname;
 
     public short Protocol { get { return (short)PacketID.S_Login_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.Sucess = packet.pop_bool(); this.UserID = packet.pop_int32(); this.Nickname = packet.pop_string();
+        this.Sucess = packet.pop_bool();this.UserID = packet.pop_int32();this.Nickname = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Login_DB);
-        packet.push(this.Sucess); packet.push(this.UserID); packet.push(this.Nickname);
+        packet.push(this.Sucess);packet.push(this.UserID);packet.push(this.Nickname);
         return packet;
     }
 }
 
 public class C_SignUp_DB : IPacket
 {
-    public string ID; public string PassWord; public string nickname;
+    public string ID;public string PassWord;public string nickname;
 
     public short Protocol { get { return (short)PacketID.C_SignUp_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.ID = packet.pop_string(); this.PassWord = packet.pop_string(); this.nickname = packet.pop_string();
+        this.ID = packet.pop_string();this.PassWord = packet.pop_string();this.nickname = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_SignUp_DB);
-        packet.push(this.ID); packet.push(this.PassWord); packet.push(this.nickname);
+        packet.push(this.ID);packet.push(this.PassWord);packet.push(this.nickname);
         return packet;
     }
 }
 
 public class S_SignUp_DB : IPacket
 {
-    public bool Sucess; public string nickname;
+    public bool Sucess;public string nickname;
 
     public short Protocol { get { return (short)PacketID.S_SignUp_DB; } }
 
     public void Read(CPacket packet)
     {
-        this.Sucess = packet.pop_bool(); this.nickname = packet.pop_string();
+        this.Sucess = packet.pop_bool();this.nickname = packet.pop_string();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SignUp_DB);
-        packet.push(this.Sucess); packet.push(this.nickname);
+        packet.push(this.Sucess);packet.push(this.nickname);
         return packet;
     }
 }
 
 public class S_EnterGame_Snake : IPacket
 {
-    public float mapSizeX; public float mapSizeY; public int userid;
+    public float mapSizeX;public float mapSizeY;public int userid;
 
     public short Protocol { get { return (short)PacketID.S_EnterGame_Snake; } }
 
     public void Read(CPacket packet)
     {
-        this.mapSizeX = packet.pop_float(); this.mapSizeY = packet.pop_float(); this.userid = packet.pop_int32();
+        this.mapSizeX = packet.pop_float();this.mapSizeY = packet.pop_float();this.userid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_EnterGame_Snake);
-        packet.push(this.mapSizeX); packet.push(this.mapSizeY); packet.push(this.userid);
+        packet.push(this.mapSizeX);packet.push(this.mapSizeY);packet.push(this.userid);
         return packet;
     }
 }
 
 public class S_Spawn : IPacket
 {
-    public float SpawnX; public float SpawnY; public float SpawnZ; public int userid;
+    public float SpawnX;public float SpawnY;public float SpawnZ;public int userid;
 
     public short Protocol { get { return (short)PacketID.S_Spawn; } }
 
     public void Read(CPacket packet)
     {
-        this.SpawnX = packet.pop_float(); this.SpawnY = packet.pop_float(); this.SpawnZ = packet.pop_float(); this.userid = packet.pop_int32();
+        this.SpawnX = packet.pop_float();this.SpawnY = packet.pop_float();this.SpawnZ = packet.pop_float();this.userid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Spawn);
-        packet.push(this.SpawnX); packet.push(this.SpawnY); packet.push(this.SpawnZ); packet.push(this.userid);
+        packet.push(this.SpawnX);packet.push(this.SpawnY);packet.push(this.SpawnZ);packet.push(this.userid);
         return packet;
     }
 }
@@ -454,20 +455,20 @@ public class Search_Room_id : IPacket
 
 public class C_EnterGame_Snake : IPacket
 {
-    public int userId; public int Room_id;
+    public int userId;public int Room_id;
 
     public short Protocol { get { return (short)PacketID.C_EnterGame_Snake; } }
 
     public void Read(CPacket packet)
     {
-        this.userId = packet.pop_int32(); this.Room_id = packet.pop_int32();
+        this.userId = packet.pop_int32();this.Room_id = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_EnterGame_Snake);
-        packet.push(this.userId); packet.push(this.Room_id);
+        packet.push(this.userId);packet.push(this.Room_id);
         return packet;
     }
 }
@@ -494,40 +495,40 @@ public class C_Move : IPacket
 
 public class S_Move : IPacket
 {
-    public int playerId; public float posX; public float posY; public bool IsEat;
+    public int playerId;public float posX;public float posY;public bool IsEat;
 
     public short Protocol { get { return (short)PacketID.S_Move; } }
 
     public void Read(CPacket packet)
     {
-        this.playerId = packet.pop_int32(); this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.IsEat = packet.pop_bool();
+        this.playerId = packet.pop_int32();this.posX = packet.pop_float();this.posY = packet.pop_float();this.IsEat = packet.pop_bool();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Move);
-        packet.push(this.playerId); packet.push(this.posX); packet.push(this.posY); packet.push(this.IsEat);
+        packet.push(this.playerId);packet.push(this.posX);packet.push(this.posY);packet.push(this.IsEat);
         return packet;
     }
 }
 
 public class S_SpawnItem : IPacket
 {
-    public int ItemID; public int posX; public int posY;
+    public int ItemID;public int posX;public int posY;
 
     public short Protocol { get { return (short)PacketID.S_SpawnItem; } }
 
     public void Read(CPacket packet)
     {
-        this.ItemID = packet.pop_int32(); this.posX = packet.pop_int32(); this.posY = packet.pop_int32();
+        this.ItemID = packet.pop_int32();this.posX = packet.pop_int32();this.posY = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SpawnItem);
-        packet.push(this.ItemID); packet.push(this.posX); packet.push(this.posY);
+        packet.push(this.ItemID);packet.push(this.posX);packet.push(this.posY);
         return packet;
     }
 }
@@ -594,60 +595,60 @@ public class C_PlayerLeave : IPacket
 
 public class MMO_C_Move : IPacket
 {
-    public float posX; public float posY; public float posZ; public float rot;
+    public float posX;public float posY;public float posZ;public float rot;
 
     public short Protocol { get { return (short)PacketID.MMO_C_Move; } }
 
     public void Read(CPacket packet)
     {
-        this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.posZ = packet.pop_float(); this.rot = packet.pop_float();
+        this.posX = packet.pop_float();this.posY = packet.pop_float();this.posZ = packet.pop_float();this.rot = packet.pop_float();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_C_Move);
-        packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ); packet.push(this.rot);
+        packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rot);
         return packet;
     }
 }
 
 public class MMO_S_Move : IPacket
 {
-    public int playerid; public float posX; public float posY; public float posZ; public float rot;
+    public int playerid;public float posX;public float posY;public float posZ;public float rot;
 
     public short Protocol { get { return (short)PacketID.MMO_S_Move; } }
 
     public void Read(CPacket packet)
     {
-        this.playerid = packet.pop_int32(); this.posX = packet.pop_float(); this.posY = packet.pop_float(); this.posZ = packet.pop_float(); this.rot = packet.pop_float();
+        this.playerid = packet.pop_int32();this.posX = packet.pop_float();this.posY = packet.pop_float();this.posZ = packet.pop_float();this.rot = packet.pop_float();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Move);
-        packet.push(this.playerid); packet.push(this.posX); packet.push(this.posY); packet.push(this.posZ); packet.push(this.rot);
+        packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rot);
         return packet;
     }
 }
 
 public class MMO_S_Attack : IPacket
 {
-    public int playerid; public int skillId;
+    public int playerid;public int skillId;
 
     public short Protocol { get { return (short)PacketID.MMO_S_Attack; } }
 
     public void Read(CPacket packet)
     {
-        this.playerid = packet.pop_int32(); this.skillId = packet.pop_int32();
+        this.playerid = packet.pop_int32();this.skillId = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Attack);
-        packet.push(this.playerid); packet.push(this.skillId);
+        packet.push(this.playerid);packet.push(this.skillId);
         return packet;
     }
 }
@@ -694,40 +695,60 @@ public class MMO_S_Die : IPacket
 
 public class S_ReSpawn : IPacket
 {
-    public int playerid; public int typeid;
+    public int playerid;public int typeid;
 
     public short Protocol { get { return (short)PacketID.S_ReSpawn; } }
 
     public void Read(CPacket packet)
     {
-        this.playerid = packet.pop_int32(); this.typeid = packet.pop_int32();
+        this.playerid = packet.pop_int32();this.typeid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_ReSpawn);
-        packet.push(this.playerid); packet.push(this.typeid);
+        packet.push(this.playerid);packet.push(this.typeid);
         return packet;
     }
 }
 
 public class S_Damage : IPacket
 {
-    public int playerid; public int damage;
+    public int playerid;public int damage;
 
     public short Protocol { get { return (short)PacketID.S_Damage; } }
 
     public void Read(CPacket packet)
     {
-        this.playerid = packet.pop_int32(); this.damage = packet.pop_int32();
+        this.playerid = packet.pop_int32();this.damage = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Damage);
-        packet.push(this.playerid); packet.push(this.damage);
+        packet.push(this.playerid);packet.push(this.damage);
+        return packet;
+    }
+}
+
+public class S_Sync : IPacket
+{
+    public int playerid;public float posX;public float posY;public float posZ;public float rotY;
+
+    public short Protocol { get { return (short)PacketID.S_Sync; } }
+
+    public void Read(CPacket packet)
+    {
+        this.playerid = packet.pop_int32();this.posX = packet.pop_float();this.posY = packet.pop_float();this.posZ = packet.pop_float();this.rotY = packet.pop_float();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_Sync);
+        packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);
         return packet;
     }
 }

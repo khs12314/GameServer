@@ -16,8 +16,9 @@ namespace GridTest
         public float RotY { get; set; }
         public float Hp { get; set; }
         public float MaxHp { get; set; }
-        //public int CellX { get; set; }
-        //public int CellY { get; set; }
+        public struct Pos { public float x, z; }
+        public int CellX { get; set; }
+        public int CellY { get; set; }
 
         public PlayerState State { get; set; }
     }

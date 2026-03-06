@@ -34,8 +34,16 @@ namespace PacketGenerator
             // [2] Format의 구멍({0}, {1})에 파싱한 내용 끼워 넣기
             string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
 
-            // [3] 파일로 내보내기 (일단은 실행 폴더인 bin/Debug/... 에 생김)
-            File.WriteAllText("GenPackets.cs", fileText);
+            string[] outputPaths =
+ {
+    @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Aplication\GenPackets.cs",
+    @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\GenPackets.cs"
+};
+
+            foreach (string path in outputPaths)
+            {
+                File.WriteAllText(path, fileText);
+            }
 
             Console.WriteLine("----------------------------------");
             Console.WriteLine(" [Success] GenPackets.cs 생성 완료!");

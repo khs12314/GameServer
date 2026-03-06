@@ -7,5 +7,6 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<Configurations>Debug;Release;TeamTest</Configurations>
 	</PropertyGroup>
 </Project>
