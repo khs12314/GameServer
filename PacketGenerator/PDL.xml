@@ -126,16 +126,19 @@
 		<float name="posY"/>
 		<float name="posZ"/>
 		<float name="rot"/>
+		<byte name="state"/>
 	</Packet>
 	<Packet name="MMO_S_Attack">
 		<int name="playerid"/>
 		<int name="skillId"/>
+		<byte name="state"/>
 	</Packet>
 	<Packet name="MMO_C_Attack">
 		<int name="skillId"/>
 	</Packet>
 	<Packet name="MMO_S_Die">
 		<int name="playerid"/>
+		<byte name="state"/>
 	</Packet>
 	<Packet name="S_ReSpawn">
 		<int name="playerid"/>
@@ -144,6 +147,7 @@
 	<Packet name="S_Damage">
 		<int name="playerid"/>
 		<int name="damage"/>
+		<byte name="state"/>
 	</Packet>
 	<Packet name="S_Sync">
 		<int name="playerid"/>

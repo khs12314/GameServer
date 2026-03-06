@@ -17,12 +17,13 @@ namespace SnakeServer
         public int CellY;
 
     }
-    public enum PlayerState
+    public enum PlayerState : byte
     {
-        IDLE,
-        ATTACK,
-        MOVE,
-        DIE
+        IDLE = 0,
+        ATTACK = 1,
+        MOVE = 2,
+        HIT = 3,
+        DIE = 4
     }
     //인게임 유저 세션
     public class GameUser_Session : IPeer

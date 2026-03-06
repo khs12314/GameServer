@@ -59,12 +59,17 @@ namespace SnakeServer
         {
             jobqueue.Push(job);
         }
+
         public void PushAfter(int tickAfter, Action job)
         {
             jobTimer.PushAfter(tickAfter, () =>
             {
                 Push(job);
             });
+        }
+        public Dictionary<int, GameObject> GetGameUsers()
+        {
+            return game_users;
         }
         public void Start()
         {
@@ -271,6 +276,7 @@ namespace SnakeServer
             movePacket.posZ = session.MyPlayer.PosZ;
             movePacket.rot = session.MyPlayer.RotY;
             movePacket.playerid = session.GameUser_Session_Info.userID;
+            movePacket.state = (byte)PlayerState.MOVE;
             Broadcast(movePacket.Write(), session);
         }
         public void Enter_Game(User_Session user, int userid)
@@ -342,6 +348,7 @@ namespace SnakeServer
             MMO_S_Attack attackPacket = new MMO_S_Attack();
             attackPacket.playerid = session.GameUser_Session_Info.userID;
             attackPacket.skillId = packet.skillId;
+            attackPacket.state = (byte)PlayerState.ATTACK;
             if (true)
             {
                 //메소드를 만들어 보안 검사 구현 예정
@@ -381,8 +388,9 @@ namespace SnakeServer
             {
                 Console.WriteLine($"Target {target.Id} is dead.");
                 //S_Die
-                S_Die s_Die = new S_Die();
-                s_Die.userid = target.Id;
+                MMO_S_Die s_Die = new MMO_S_Die();
+                s_Die.playerid = target.Id;
+                s_Die.state = (byte)PlayerState.DIE;
                 Broadcast(s_Die.Write());
                 game_users.Remove(target.Id);
                 jobTimer.PushAfter(5000, () =>
@@ -394,6 +402,10 @@ namespace SnakeServer
             else
             {
                 S_Damage s_Damage = new S_Damage();
+                s_Damage.playerid = target.Id;
+                s_Damage.damage = 10; // 예시로 10 데미지
+                s_Damage.state = (byte)PlayerState.HIT;
+                Broadcast(s_Damage.Write());
             }
         }
         void ChangeHP(GameObject target, int damage)
@@ -497,12 +509,14 @@ namespace SnakeServer
         }
         public void SpawnMonster(int id, float x, float y, float z)
         {
-            GameObject monster = new GameObject();
+            Monster monster = new Monster();
             monster.Id = id;
             monster.PosX = x;
             monster.PosY = y;
             monster.PosZ = z;
             monster.Hp = 100;
+            monster.MaxHp = 100;
+            monster.Room = this;
             lock (game_users)
             {
                 if (!game_users.ContainsKey(id))
@@ -510,12 +524,14 @@ namespace SnakeServer
                     game_users.Add(monster.Id, monster);
                 }
             }
+            monster.UpdateAI();
             S_Spawn spawnMonsterPacket = new S_Spawn();
             spawnMonsterPacket.userid = monster.Id;
             spawnMonsterPacket.SpawnX = monster.PosX;
             spawnMonsterPacket.SpawnY = monster.PosY;
             spawnMonsterPacket.SpawnZ = monster.PosZ;
             Broadcast(spawnMonsterPacket.Write());
+            
         }
         public GameObject FindObjectById(int id)
         {

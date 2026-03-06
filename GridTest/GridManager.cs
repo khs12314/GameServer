@@ -128,7 +128,7 @@ namespace GridTest
             int centerY = gameobject.CellY;
 
             // 방어: 캐시가 유효한지 확인
-            if (centerX < 0 || centerX >= _gridSizeX || centerY < 0 || centerY >= _gridSizeY) return sessions;
+            if (centerX < 0 || centerX >= _gridSizeX || centerY < 0 || centerY >= _gridSizeY) return;
 
             for (int dy = -1; dy <= 1; dy++)
             {
