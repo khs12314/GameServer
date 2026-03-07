@@ -41,6 +41,7 @@ public enum PacketID
 	S_ReSpawn = 32,
 	S_Damage = 33,
 	S_Sync = 34,
+	S_MonsterSpawn = 35,
 	
 }
 
@@ -749,6 +750,26 @@ public class S_Sync : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Sync);
         packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);
+        return packet;
+    }
+}
+
+public class S_MonsterSpawn : IPacket
+{
+    public float SpawnX;public float SpawnY;public float SpawnZ;public int userid;public byte typeid;
+
+    public short Protocol { get { return (short)PacketID.S_MonsterSpawn; } }
+
+    public void Read(CPacket packet)
+    {
+        this.SpawnX = packet.pop_float();this.SpawnY = packet.pop_float();this.SpawnZ = packet.pop_float();this.userid = packet.pop_int32();this.typeid = packet.pop_byte();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MonsterSpawn);
+        packet.push(this.SpawnX);packet.push(this.SpawnY);packet.push(this.SpawnZ);packet.push(this.userid);packet.push(this.typeid);
         return packet;
     }
 }

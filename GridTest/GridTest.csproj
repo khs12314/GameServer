@@ -13,6 +13,10 @@
 		<OutputPath>C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\Builds\TeamTest\</OutputPath>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
+	</ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\NetWorkModule\NetWorkModule.csproj" />
   </ItemGroup>

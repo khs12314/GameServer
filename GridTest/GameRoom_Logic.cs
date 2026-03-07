@@ -74,8 +74,8 @@ namespace SnakeServer
         public void Start()
         {
             SpawnMonster(999, 10.5f, 0.5f, 10.5f);
-            SpawnMonster(998, 11.5f, 0.5f, 10.5f);
-            SpawnMonster(997, 10.5f, 0.5f, 11.5f);
+           // SpawnMonster(998, 11.5f, 0.5f, 10.5f);
+            //SpawnMonster(997, 10.5f, 0.5f, 11.5f);
             while (Is_Running)
             {
                 Update();
@@ -249,6 +249,11 @@ namespace SnakeServer
         }
         public void MMO_Move(GameUser_Session session, MMO_C_Move packet)
         {
+            if (session.MyPlayer.State == PlayerState.DIE)
+            {
+                return;
+                //메소드를 만들어 보안 검사 구현 예정
+            }
             var NextPos = new GameObject.Pos { x = packet.posX, z = packet.posZ };
             if (session.MyPlayer.State == PlayerState.ATTACK)
             {
@@ -296,12 +301,16 @@ namespace SnakeServer
             gameuser.MyPlayer.PosX = 2.5f;
             gameuser.MyPlayer.PosY = 0.5f;
             gameuser.MyPlayer.PosZ = 2.5f;
+            gameuser.MyPlayer.Id = userid;
+            gameuser.MyPlayer.Room = this;
+            gameuser.MyPlayer.Hp = 100;
+            gameuser.MyPlayer.MaxHp = 100;
             grid.Add(gameuser.MyPlayer);
             lock (game_users)
             {
                 if (!game_users.ContainsKey(user.Uid))
                 {
-                    game_users.Add(gameuser.GameUser_Session_Info.userID, gameuser.MyPlayer);
+                    game_users.Add(gameuser.MyPlayer.Id, gameuser.MyPlayer);
                     gameuser.Enter_Room(this);
 
                 }
@@ -336,6 +345,17 @@ namespace SnakeServer
                     gameuser.UserToken.send(MMO_Spawn.Write());
                 }
             }
+            foreach (var item in game_users.Values)
+            {
+                if (item is Monster monster)
+                {
+                    MMO_Spawn.SpawnX = monster.PosX;
+                    MMO_Spawn.SpawnY = monster.PosY;
+                    MMO_Spawn.SpawnZ = monster.PosZ;
+                    MMO_Spawn.userid = monster.Id;
+                    gameuser.UserToken.send(MMO_Spawn.Write());
+                }
+            }
             if (!Is_Running)
             {
                 //Console.WriteLine($"{UserCount}, {Is_Running}");
@@ -345,14 +365,15 @@ namespace SnakeServer
         }
         public void MMO_Attack(GameUser_Session session, MMO_C_Attack packet)
         {
+            if (session.MyPlayer.State == PlayerState.DIE)
+            {
+                return;
+                //메소드를 만들어 보안 검사 구현 예정
+            }
             MMO_S_Attack attackPacket = new MMO_S_Attack();
             attackPacket.playerid = session.GameUser_Session_Info.userID;
             attackPacket.skillId = packet.skillId;
             attackPacket.state = (byte)PlayerState.ATTACK;
-            if (true)
-            {
-                //메소드를 만들어 보안 검사 구현 예정
-            }
             session.MyPlayer.State = PlayerState.ATTACK;
             GameObject target = FindObjectById(999);
             if (target == null) return;
@@ -525,11 +546,12 @@ namespace SnakeServer
                 }
             }
             monster.UpdateAI();
-            S_Spawn spawnMonsterPacket = new S_Spawn();
+            S_MonsterSpawn spawnMonsterPacket = new S_MonsterSpawn();
             spawnMonsterPacket.userid = monster.Id;
             spawnMonsterPacket.SpawnX = monster.PosX;
             spawnMonsterPacket.SpawnY = monster.PosY;
             spawnMonsterPacket.SpawnZ = monster.PosZ;
+            spawnMonsterPacket.typeid = 1; // 몬스터 타입 ID (예시로 1)
             Broadcast(spawnMonsterPacket.Write());
             
         }

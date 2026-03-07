@@ -156,4 +156,11 @@
 		<float name="posZ"/>
 		<float name="rotY"/>
 	</Packet>
+	<Packet name="S_MonsterSpawn">
+		<float name="SpawnX"/>
+		<float name="SpawnY"/>
+		<float name="SpawnZ"/>
+		<int name="userid"/>
+		<byte name="typeid"/>
+	</Packet>
 </PDL>

@@ -71,7 +71,7 @@ namespace SnakeServer
                     MMO_C_Move c_MMO_Move = new MMO_C_Move();
                     c_MMO_Move.Read(packet);
                     PacketHandler.C_MMO_Move_Handler(session, c_MMO_Move);
-                    Console.WriteLine($"mmo 무빙 {session.Get_MyID()} : {c_MMO_Move.posX}, {c_MMO_Move.posY}, {c_MMO_Move.posZ}, {c_MMO_Move.rot}");
+                    //Console.WriteLine($"mmo 무빙 {session.Get_MyID()} : {c_MMO_Move.posX}, {c_MMO_Move.posY}, {c_MMO_Move.posZ}, {c_MMO_Move.rot}");
                     break;
                 case PacketID.MMO_C_Attack:
                     MMO_C_Attack c_MMO_Attack = new MMO_C_Attack();
