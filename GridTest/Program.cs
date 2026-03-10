@@ -12,6 +12,7 @@ namespace SnakeServer
         public static GameServer game_server = new GameServer();
         static void Main(string[] args)
         {
+            RedisManager.Init();
             CPacketBufferManger.initialize(1000000);//임시
             ThreadPool.SetMinThreads(100, 100);
             userlist = new Dictionary<int, IPeer>();

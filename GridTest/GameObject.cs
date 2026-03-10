@@ -1,4 +1,5 @@
-﻿using SnakeServer;
+﻿using NetWorkModule;
+using SnakeServer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,8 @@ namespace GridTest
         public float PosY { get; set; }
         public float PosZ { get; set; }
         public float RotY { get; set; }
-        public float Hp { get; set; }
-        public float MaxHp { get; set; }
+        public int Hp { get; set; }
+        public int MaxHp { get; set; }
         public struct Pos { public float x, z; }
         public int CellX { get; set; }
         public int CellY { get; set; }
@@ -169,7 +170,7 @@ namespace GridTest
             // 1. 타격 발생
             NextAttackTime = now + 2000; // 2초 쿨타임
             targetPlayer.Hp -= 10;
-
+            RedisManager.SavePlayerHp(targetPlayer.Id, targetPlayer.Hp);
             Console.WriteLine($"[AI 타격] 몬스터 {this.Id} -> 유저 {targetPlayer.Id} (남은 HP: {targetPlayer.Hp})");
 
             // (선택) 클라이언트에 타격 애니메이션용 S_Attack 패킷 전송 로직...
@@ -213,6 +214,7 @@ namespace GridTest
                     spawnPacket.posZ = targetPlayer.PosZ;
                     spawnPacket.rotY = targetPlayer.RotY;
                     Room.Broadcast(spawnPacket.Write());
+                    RedisManager.SavePlayerHp(targetPlayer.Id, targetPlayer.Hp); // DB에도 최신 HP 저장
                 });
 
                 return 1000; // 몬스터는 1초 탐색 틱으로 전환

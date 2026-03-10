@@ -15,11 +15,11 @@ namespace SnakeServer
         Queue<CPacket> JobQueue;
         //로직 스레드
         Thread locgic_thread;
-
+        JobQueue jobqueue;
         AutoResetEvent loop;
         public RoomManager room_manager { get; private set; }
         //여기는 로비에서 다뤄지는 매칭 대기 유저들 로그인하면 db에 저장된 값 기반으로 키를 설정해줌
-        Dictionary<int, IPeer> matching_waiting_users;
+        Dictionary<int, IPeer> Loby_User;
 
         public GameServer()
         {
@@ -27,9 +27,14 @@ namespace SnakeServer
             this.loop = new AutoResetEvent(false);
             this.JobQueue = new Queue<CPacket>();
             this.room_manager = new RoomManager(100);
-            this.matching_waiting_users = new Dictionary<int, IPeer>();
+            this.Loby_User = new Dictionary<int, IPeer>();
             this.locgic_thread = new Thread(GameLoop);
             this.locgic_thread.Start();
+            jobqueue = new JobQueue();
+        }
+        public void Push(Action job)
+        {
+            jobqueue.Push(job);
         }
         void GameLoop()
         {
@@ -58,12 +63,12 @@ namespace SnakeServer
                     }
                     catch (Exception ex)
                     {
-                        
+
                         Console.WriteLine($"게임서버 루프에서 예외 발생: {ex}");
                     }
                     finally
                     {
-                        
+
                     }
                 }
                 else
@@ -88,7 +93,7 @@ namespace SnakeServer
         {
             lock (_lock)
             {
-                
+
                 JobQueue.Enqueue(packet);
                 if (packet.GetRefCount() < 0)
                 {
@@ -106,7 +111,7 @@ namespace SnakeServer
                 Console.WriteLine("레프카운트");
             }
             short protocol_id = BitConverter.ToInt16(packet.buffer, 2);
-            
+
             if (protocol_id == (short)SystemPacketID.InternalDisconnect)
             {
                 packet.pop_protocol_id();
@@ -122,20 +127,19 @@ namespace SnakeServer
         {
             lock (_lock)
             {
-                matching_waiting_users.Remove(session.Get_MyID());
-                
+                Loby_User.Remove(session.Get_MyID());
+
             }
         }
         public void Set_User_Session(User_Session user, int Userid)
         {
-            lock (_lock)
+
+            if (!Loby_User.ContainsKey(Userid))
             {
-                if (!matching_waiting_users.ContainsKey(Userid))
-                {
-                    Console.WriteLine($"로비에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
-                    matching_waiting_users.Add(Userid, user);
-                }
+                Console.WriteLine($"로비에 등록 완료 및 로비 등록 완료 유저 아이디는 {Userid}");
+                Loby_User.Add(Userid, user);
             }
+
         }
 
 

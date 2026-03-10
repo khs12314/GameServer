@@ -56,7 +56,7 @@ namespace SnakeServer
             MyPlayer.PosX = 0;
             MyPlayer.PosY = 0;
             MyPlayer.PosZ = 0;
-
+            MyPlayer.Id = id;
 
 
         }
@@ -66,9 +66,12 @@ namespace SnakeServer
         }
         void IPeer.disconnect()
         {
+            Task.Run(async() =>
+            await DBMananger.SavePlayerToDBAsync(this.MyPlayer.Id)
+            );
             Console.WriteLine("유저 연결 끊김");
             room?.LeavGame(this, this.GameUser_Session_Info.userID);
-           
+            
         }
 
         void IPeer.on_message(Const<byte[]> buffer)

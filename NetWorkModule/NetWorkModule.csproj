@@ -9,4 +9,8 @@
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<Configurations>Debug;Release;TeamTest</Configurations>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
+	</ItemGroup>
 </Project>

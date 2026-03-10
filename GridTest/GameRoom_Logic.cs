@@ -273,6 +273,7 @@ namespace SnakeServer
             session.MyPlayer.PosY = packet.posY;
             session.MyPlayer.PosZ = packet.posZ;
             session.MyPlayer.RotY = packet.rot;
+            RedisManager.SavePlayerPosition(session.MyPlayer.Id, session.MyPlayer.PosX, session.MyPlayer.PosY, session.MyPlayer.PosZ);
 
             grid.Move(session.MyPlayer, NextPos);
             MMO_S_Move movePacket = new MMO_S_Move();
