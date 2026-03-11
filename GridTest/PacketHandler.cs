@@ -151,6 +151,7 @@ namespace SnakeServer
                 {
                     session.room.MMO_Move(session, c_MMO_Move);
                 });
+                
             }
         }
 

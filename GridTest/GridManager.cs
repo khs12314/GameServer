@@ -117,7 +117,7 @@ namespace GridTest
 
             //Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
         }
-
+        
         public void GetNeighbors(GameObject gameobject, List<GameObject> outBuffer)
         {
             outBuffer.Clear();

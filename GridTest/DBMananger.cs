@@ -1,4 +1,5 @@
-﻿using MySqlConnector;
+﻿using GridTest;
+using MySqlConnector;
 using NetWorkModule;
 using System;
 using System.Collections.Generic;
@@ -126,6 +127,39 @@ hp = @hp, posx = @posx, posy = @posy, posz = @posz";
             {
                 Console.WriteLine($"[DB Error] 플레이어 상태 저장 실패: {ex.Message}");
             }
+        }
+        public static async Task GetCharacterPos(int id, Player player)
+        {
+            using (var conn = new MySqlConnection(connString))
+            {
+                await conn.OpenAsync();
+                string sql = "SELECT accountid, hp, posx, posy, posz FROM players WHERE accountid = @accountid";
+                using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@accountid", id);
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if(await reader.ReadAsync())
+                        {
+                            int accountid = reader.GetInt32("accountid");
+                            int hp = reader.GetInt32("hp");
+                            float posx = reader.GetFloat("posx");
+                            float posy = reader.GetFloat("posy");
+                            float posz = reader.GetFloat("posz");
+                            player.Hp = hp;
+                            player.PosX = posx;
+                            player.PosY = posy;
+                            player.PosZ = posz;
+                            Console.WriteLine($"캐릭터 정보 조회 성공 {player.Id} : {player.PosX}, {player.PosY}, {player.PosZ}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("존재하지않는 캐릭터입니다.");
+                        }
+                    }
+                }
+            }
+
         }
         public static async Task<(int dbResult, string nickname)> LoginAsync(string id, string inputPw)
         {

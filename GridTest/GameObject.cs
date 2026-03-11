@@ -21,12 +21,22 @@ namespace GridTest
         public int CellX { get; set; }
         public int CellY { get; set; }
         public GameRoom_Logic Room { get; set; }
-
+        public List<GameObject> AOIObjects { get; set; } = new List<GameObject>();
         public PlayerState State { get; set; }
     }
     public class Player : GameObject
     {
         public GameUser_Session Session { get; set; }
+        public void RedisSave()
+        {
+            if (this.Room == null || !Session.UserToken.socket.Connected /* 혹은 this.Session.IsConnected == false 등 자네의 종료 조건 */)
+            {
+                Console.WriteLine($"[Redis 틱 종료] {this.Id}번 유저 퇴장. 주기적 저장 루프 정지.");
+                return; // 여기서 return 해버리면 더 이상 PushAfter가 안 돌고 소멸한다.
+            }
+            RedisManager.SavePlayerState(this.Id, this.Hp, this.PosX, this.PosY, this.PosZ);
+            this.Room.PushAfter(1000, RedisSave); // 1초마다 DB에 저장 예약
+        }
 
     }
     public class Monster : GameObject
@@ -36,10 +46,12 @@ namespace GridTest
         public long NextMoveTime { get; set; } = 0;
         public long NextAttackTime { get; set; } = 0;
         public int TargetId { get; set; } = 0;
+        int tickAfter;
         public Monster()
         {
 
             this.State = PlayerState.IDLE; // 태어날 땐 무조건 대기 상태
+            tickAfter = 1000; // 1초마다 AI 업데이트
             Room = null;
         }
         public void UpdateAI()
@@ -49,7 +61,7 @@ namespace GridTest
                 this.State = PlayerState.DIE;
                 return;
             }
-            int tickAfter = 1000;
+          
             switch (this.State)
             {
                 case PlayerState.IDLE:
@@ -70,7 +82,7 @@ namespace GridTest
         }
         int Update_Idle()
         {
-            foreach (var player in Room.GetGameUsers().Values)
+            foreach (var player in Room.GetAOIGameUsers(this, AOIObjects))
             {
                 if (player is Player targetPlayer)
                 {
@@ -162,16 +174,27 @@ namespace GridTest
                 this.State = PlayerState.MOVE;
                 return 100; // 다시 0.1초 틱으로 쫓아간다 (Trace 상태 복귀)
             }
-
+            
             // 3. 공격 쿨타임 검사 (핵심)
             long now = Environment.TickCount64;
             if (now < NextAttackTime) return 100; // 쿨타임 대기
 
             // 1. 타격 발생
             NextAttackTime = now + 2000; // 2초 쿨타임
-            targetPlayer.Hp -= 10;
-            RedisManager.SavePlayerHp(targetPlayer.Id, targetPlayer.Hp);
-            Console.WriteLine($"[AI 타격] 몬스터 {this.Id} -> 유저 {targetPlayer.Id} (남은 HP: {targetPlayer.Hp})");
+            foreach(var player in Room.GetAOIGameUsers(this, AOIObjects))
+            {
+                if (MathUtils.IsHitValid(this.PosX, this.PosZ, this.RotY, player.PosX, player.PosZ, 2.0f, 60.0f))
+                {
+                    Console.WriteLine($"[AI 타격 판정] 몬스터 {this.Id} -> 유저 {player.Id} (유효한 타격)");
+                    player.Hp -= 10;
+                    RedisManager.SavePlayerHp(player.Id, player.Hp);
+                    Console.WriteLine($"[AI 타격] 몬스터 {this.Id} -> 유저 {player.Id} (남은 HP: {player.Hp})");
+                }
+                else
+                {
+                    Console.WriteLine("타격 범위 내 없음");
+                }
+            }
 
             // (선택) 클라이언트에 타격 애니메이션용 S_Attack 패킷 전송 로직...
 
@@ -214,7 +237,10 @@ namespace GridTest
                     spawnPacket.posZ = targetPlayer.PosZ;
                     spawnPacket.rotY = targetPlayer.RotY;
                     Room.Broadcast(spawnPacket.Write());
-                    RedisManager.SavePlayerHp(targetPlayer.Id, targetPlayer.Hp); // DB에도 최신 HP 저장
+                    RedisManager.SavePlayerState(targetPlayer.Id, targetPlayer.Hp, targetPlayer.PosX, targetPlayer.PosY, targetPlayer.PosZ); // DB에도 최신 HP 저장
+                    Task.Run(()=> 
+                    DBMananger.SavePlayerToDBAsync(targetPlayer.Id)
+                    ); // DB에도 저장 (비동기)
                 });
 
                 return 1000; // 몬스터는 1초 탐색 틱으로 전환

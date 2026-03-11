@@ -71,6 +71,11 @@ namespace SnakeServer
         {
             return game_users;
         }
+        public List<GameObject> GetAOIGameUsers(GameObject gameObject, List<GameObject> _objectsearchBuffer)
+        {
+            grid.GetNeighbors(gameObject, _objectsearchBuffer);
+            return _searchBuffer;
+        }
         public void Start()
         {
             SpawnMonster(999, 10.5f, 0.5f, 10.5f);
@@ -285,7 +290,14 @@ namespace SnakeServer
             movePacket.state = (byte)PlayerState.MOVE;
             Broadcast(movePacket.Write(), session);
         }
-        public void Enter_Game(User_Session user, int userid)
+        public void RedisSavePlayerInfo(GameObject gameObject)
+        {
+            if(gameObject is Player player)
+            {
+                RedisManager.SavePlayerPosition(player.Id, player.PosX, player.PosY, player.PosZ);
+            }
+        }
+        public async void Enter_Game(User_Session user, int userid)
         {
             if (user == null)
             {
@@ -299,13 +311,14 @@ namespace SnakeServer
             GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
             Interlocked.Increment(ref UserCount);
 
-            gameuser.MyPlayer.PosX = 2.5f;
-            gameuser.MyPlayer.PosY = 0.5f;
-            gameuser.MyPlayer.PosZ = 2.5f;
+            //gameuser.MyPlayer.PosX = 2.5f;
+            //gameuser.MyPlayer.PosY = 0.5f;
+            //gameuser.MyPlayer.PosZ = 2.5f;
             gameuser.MyPlayer.Id = userid;
             gameuser.MyPlayer.Room = this;
             gameuser.MyPlayer.Hp = 100;
             gameuser.MyPlayer.MaxHp = 100;
+            await DBMananger.GetCharacterPos(gameuser.MyPlayer.Id, gameuser.MyPlayer);
             grid.Add(gameuser.MyPlayer);
             lock (game_users)
             {
@@ -321,17 +334,20 @@ namespace SnakeServer
             s_EnterGame.mapSizeX = MapSizeX;
             s_EnterGame.mapSizeY = MapSizeY;
             gameuser.UserToken.send(s_EnterGame.Write());
-
-            S_Spawn packet = new S_Spawn();
+            Spawn_User(gameuser);
+            MMO_Spawn(gameuser);
+            gameuser.MyPlayer.RedisSave();
+            Console.WriteLine($"플레이어 스폰 : {gameuser.MyPlayer.PosX}, {gameuser.MyPlayer.PosZ}");
+            if (!Is_Running)
             {
-                packet.userid = gameuser.GameUser_Session_Info.userID;
-                packet.SpawnX = gameuser.MyPlayer.PosX;
-                packet.SpawnY = gameuser.MyPlayer.PosY;
-                packet.SpawnZ = gameuser.MyPlayer.PosZ;
-                Broadcast(packet.Write(), gameuser);
-
+                //Console.WriteLine($"{UserCount}, {Is_Running}");
+                Is_Running = true;
+                _ = Task.Run(() => Start());
             }
+        }
 
+        public void MMO_Spawn(GameUser_Session gameuser)
+        {
             S_Spawn MMO_Spawn = new S_Spawn();
             foreach (var item in game_users.Values)
             {
@@ -357,13 +373,22 @@ namespace SnakeServer
                     gameuser.UserToken.send(MMO_Spawn.Write());
                 }
             }
-            if (!Is_Running)
+        }
+
+        public void Spawn_User(GameUser_Session gameuser)
+        {
+            S_Spawn packet = new S_Spawn();
             {
-                //Console.WriteLine($"{UserCount}, {Is_Running}");
-                Is_Running = true;
-                Task.Run(() => Start());
+                packet.userid = gameuser.GameUser_Session_Info.userID;
+                packet.SpawnX = gameuser.MyPlayer.PosX;
+                packet.SpawnY = gameuser.MyPlayer.PosY;
+                packet.SpawnZ = gameuser.MyPlayer.PosZ;
+                Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
+                Broadcast(packet.Write(), gameuser);
+
             }
         }
+
         public void MMO_Attack(GameUser_Session session, MMO_C_Attack packet)
         {
             if (session.MyPlayer.State == PlayerState.DIE)
