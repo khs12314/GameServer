@@ -1,6 +1,7 @@
 ﻿
 
 
+using GridTest;
 using NetWorkModule;
 
 namespace SnakeServer
@@ -15,6 +16,7 @@ namespace SnakeServer
             RedisManager.Init();
             CPacketBufferManger.initialize(1000000);//임시
             ThreadPool.SetMinThreads(100, 100);
+            DataManager.LoadData();
             userlist = new Dictionary<int, IPeer>();
             CNetworkService service = new CNetworkService();
             service.session_created_callback += on_session_created;

@@ -23,6 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Data\MMO_Data.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Map\Map_00_01.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

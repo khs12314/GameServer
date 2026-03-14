@@ -79,7 +79,7 @@ namespace SnakeServer
         public void Start()
         {
             SpawnMonster(999, 10.5f, 0.5f, 10.5f);
-           // SpawnMonster(998, 11.5f, 0.5f, 10.5f);
+            // SpawnMonster(998, 11.5f, 0.5f, 10.5f);
             //SpawnMonster(997, 10.5f, 0.5f, 11.5f);
             while (Is_Running)
             {
@@ -292,7 +292,7 @@ namespace SnakeServer
         }
         public void RedisSavePlayerInfo(GameObject gameObject)
         {
-            if(gameObject is Player player)
+            if (gameObject is Player player)
             {
                 RedisManager.SavePlayerPosition(player.Id, player.PosX, player.PosY, player.PosZ);
             }
@@ -388,45 +388,78 @@ namespace SnakeServer
 
             }
         }
+        void Normal_Attack()
+        {
 
+        }
         public void MMO_Attack(GameUser_Session session, MMO_C_Attack packet)
         {
             if (session.MyPlayer.State == PlayerState.DIE)
             {
                 return;
                 //메소드를 만들어 보안 검사 구현 예정
+                //예시로는 직업별로 가능한 공격인지 아닌지 판단 후 리턴
             }
             MMO_S_Attack attackPacket = new MMO_S_Attack();
             attackPacket.playerid = session.GameUser_Session_Info.userID;
             attackPacket.skillId = packet.skillId;
             attackPacket.state = (byte)PlayerState.ATTACK;
             session.MyPlayer.State = PlayerState.ATTACK;
-            GameObject target = FindObjectById(999);
-            if (target == null) return;
-            grid.GetNeighbors(session.MyPlayer, _searchBuffer);
-            foreach (var item in _searchBuffer)
+            switch (packet.skillId)
             {
-                bool isHit = false;
-                if(item is Monster monster)
-                {
-                    isHit = MathUtils.IsHitValid(
-                        session.MyPlayer.PosX, session.MyPlayer.PosZ, session.MyPlayer.RotY,
-                        monster.PosX, monster.PosZ,
-                        2.0f,    // 사거리 2m (기획 데이터)
-                        120.0f   // 시야각 120도 (기획 데이터)
-                    );
-                    if (isHit)
+                case 1:
+
+                    break;
+                case 2:
+                    // Use_Skill(session, IsHitValid_Skill2);
+                    break;
+                case 3:
+                    break;
+                case 4:
+                    SkillData? skill = DataManager.GetSkillData(packet.skillId);
+                    if(skill == null)
                     {
-                        Console.WriteLine($"[Hit] Player {session.MyPlayer.Id} -> Target {target.Id}");
-                        // TODO: 타겟 HP 차감 및 S_ChangeHp 브로드캐스트
-                        ChangeHP(target);
+                        Console.WriteLine("스킬 데이터 없음");
+                        return;
                     }
-                    
-                }
+                    Use_Skill(session, (targetMonster) =>
+                    {
+
+                        return MathUtils.IsHitValid(
+                            session.MyPlayer.PosX, session.MyPlayer.PosZ, session.MyPlayer.RotY,
+                            targetMonster.PosX, targetMonster.PosZ,
+                            skill.Range, skill.Angle);
+                    });
+                    break;
+
+                default:
+                    Console.WriteLine("알 수 없는 스킬 ID");
+                    return;
             }
             // 서버 권위 검증 실시
             Broadcast(attackPacket.Write(), session);
         }
+
+        private void Use_Skill(GameUser_Session session, Func<Monster, bool> func)
+        {
+            grid.GetNeighbors(session.MyPlayer, session.MyPlayer.AOIObjects);
+            foreach (var item in session.MyPlayer.AOIObjects)
+            {
+                bool isHit = false;
+                if (item is Monster monster)
+                {
+
+                    if (func(monster))
+                    {
+                        Console.WriteLine($"[Hit] Player {session.MyPlayer.Id} -> Target {item.Id}");
+                        // TODO: 타겟 HP 차감 및 S_ChangeHp 브로드캐스트
+                        ChangeHP(monster);
+                    }
+
+                }
+            }
+        }
+
         void ChangeHP(GameObject target)
         {
 
@@ -498,7 +531,7 @@ namespace SnakeServer
         {
             // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
             // ---------------------------------------------------------
-           grid.GetNeighbors(player.MyPlayer, _broadcastBuffer);
+            grid.GetNeighbors(player.MyPlayer, _broadcastBuffer);
             if (_broadcastBuffer == null)
             {
                 Console.WriteLine("보낼 대상 없음");
@@ -579,7 +612,7 @@ namespace SnakeServer
             spawnMonsterPacket.SpawnZ = monster.PosZ;
             spawnMonsterPacket.typeid = 1; // 몬스터 타입 ID (예시로 1)
             Broadcast(spawnMonsterPacket.Write());
-            
+
         }
         public GameObject FindObjectById(int id)
         {

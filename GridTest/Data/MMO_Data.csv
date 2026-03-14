@@ -1,0 +1,5 @@
+﻿Id,Name,SkillType,Damage,Range,Cooldown,Speed,Angle
+1,Fireball,1,50,10.5,3000,5,0
+2,PoisonCloud,2,20,5,5000,3,0
+3,Heal,3,-30,0,10000,0,0
+4,Basic_Attack,0,10,2,500,0,120
