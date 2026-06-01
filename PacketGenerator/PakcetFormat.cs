@@ -74,5 +74,36 @@ public class {0} : IPacket
         public static string writeFormat =
 @"packet.push(this.{0});";
 
+        public static string listMemberFormat =
+@"public struct {0}Item
+{{
+    {1}
+}}
+public List<{0}Item> {0} = new List<{0}Item>();";
+
+        // [리스트 Read (역직렬화) 포맷]
+        // {0}: 리스트 이름 (예: Characters)
+        // {1}: 루프 안에서 item에 데이터를 pop 하는 코드들 (예: item.CharacterId = packet.pop_int32();)
+        public static string listReadFormat =
+        @"this.{0}.Clear();
+int {0}Count = packet.pop_int32();
+for (int i = 0; i < {0}Count; i++)
+{{
+    {0}Item item = new {0}Item();
+    {1}
+    this.{0}.Add(item);
+}}";
+
+        // [리스트 Write (직렬화) 포맷]
+        // {0}: 리스트 이름 (예: Characters)
+        // {1}: 루프 안에서 item의 데이터를 push 하는 코드들 (예: packet.push(item.CharacterId);)
+        public static string listWriteFormat =
+        @"packet.push(this.{0}.Count);
+foreach ({0}Item item in this.{0})
+{{
+    {1}
+}}";
+
     }
+
 }

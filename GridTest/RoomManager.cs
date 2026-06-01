@@ -40,7 +40,7 @@ namespace SnakeServer
         {
             return RoomCache;
         }
-        public bool Enter_Room(User_Session user1, int userid, int Room_id)
+        public bool Enter_Room(User_Session user, int userid, int Room_id)
         {
             if (room.TryGetValue(Room_id, out GameRoom_Logic? targetRoom) == false)
             {
@@ -54,7 +54,7 @@ namespace SnakeServer
             targetRoom.Push(() =>
             {
                 // 여기는 나중에 Room 스레드가 실행함
-                targetRoom.Enter_Game(user1, userid);
+                targetRoom.Enter_Game(user, userid);
             });
             return true;
         }

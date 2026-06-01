@@ -183,7 +183,7 @@ namespace NetWorkModule
             int expectedSize = 0;
             foreach (var seg in _pendingList) // _pendingList는 아직 안 비웠으니 살아있음
                 expectedSize += seg.Count;
-            Console.WriteLine($"보낸 바이트{e.BytesTransferred}");
+            //Console.WriteLine($"보낸 바이트{e.BytesTransferred}");
             // [수정 1] 에러 처리 시에도 Lock 필수!
             if (e.BytesTransferred != expectedSize)
             {

@@ -11,12 +11,12 @@ namespace GridTest
     public class GridManager
     {
         // _cells[row(y), column(x)]
-        List<GameObject>[,] _cells;
+        HashSet<GameObject>[,] _cells;
         int _cellSize;      // 한 셀의 월드 단위 길이
         int _gridSizeX;     // 칸(열) 개수
         int _gridSizeY;     // 칸(행) 개수
         readonly object _lock = new object();
-        
+
         public GridManager(int mapSize, int cellSize)
         {
             if (cellSize <= 0) throw new ArgumentOutOfRangeException(nameof(cellSize));
@@ -26,12 +26,12 @@ namespace GridTest
             _gridSizeX = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
             _gridSizeY = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
 
-            _cells = new List<GameObject>[_gridSizeY, _gridSizeX];
+            _cells = new HashSet<GameObject>[_gridSizeY, _gridSizeX];
             for (int y = 0; y < _gridSizeY; y++)
             {
                 for (int x = 0; x < _gridSizeX; x++)
                 {
-                    _cells[y, x] = new List<GameObject>();
+                    _cells[y, x] = new HashSet<GameObject>();
                 }
             }
         }
@@ -39,7 +39,7 @@ namespace GridTest
         public void Add(GameObject gameobject)
         {
             if (gameobject == null) throw new ArgumentNullException(nameof(gameobject));
-
+            Console.WriteLine($"grid에 저장 ");
             int x = (int)(gameobject.PosX / _cellSize);
             int y = (int)(gameobject.PosZ / _cellSize);
 
@@ -54,7 +54,7 @@ namespace GridTest
                 var list = _cells[y, x];
                 if (list == null)
                 {
-                    list = new List<GameObject>();
+                    list = new HashSet<GameObject>();
                     _cells[y, x] = list;
                 }
                 list.Add(gameobject);
@@ -77,51 +77,39 @@ namespace GridTest
             }
         }
 
-        public void Move(GameObject gameobject, GameObject.Pos newPos)
+        public void Move(GameObject gameobject)
         {
             if (gameobject == null) return;
 
-            int newX = (int)(newPos.x / _cellSize);
-            int newY = (int)(newPos.z / _cellSize);
+            int newX = (int)(gameobject.PosX / _cellSize);
+            int newY = (int)(gameobject.PosZ / _cellSize);
 
-            // 맵 밖이면 무시
             if (newX < 0 || newX >= _gridSizeX || newY < 0 || newY >= _gridSizeY) return;
 
             int oldX = gameobject.CellX;
             int oldY = gameobject.CellY;
 
-            // 같은 셀이면 아무것도 안 함
             if (oldX == newX && oldY == newY) return;
 
-            lock (_lock)
+            // 3. Job Queue 내부에서 실행된다고 가정하므로 무거운 lock은 제거했다.
+
+            // 4. 기존 셀에서 제거 (HashSet이므로 O(1) 속도로 즉시 삭제됨)
+            if (oldX >= 0 && oldX < _gridSizeX && oldY >= 0 && oldY < _gridSizeY)
             {
-                // 기존 셀에서 제거 (방어적 검사)
-                if (oldX >= 0 && oldX < _gridSizeX && oldY >= 0 && oldY < _gridSizeY)
-                {
-                    _cells[oldY, oldX]?.Remove(gameobject);
-                }
-
-                // 새 셀에 추가
-                var list = _cells[newY, newX];
-                if (list == null)
-                {
-                    list = new List<GameObject>();
-                    _cells[newY, newX] = list;
-                }
-                list.Add(gameobject);
-
-                // 캐시 갱신
-                gameobject.CellX = newX;
-                gameobject.CellY = newY;
+                _cells[oldY, oldX].Remove(gameobject);
             }
 
-            //Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
+            // 5. 새 셀에 추가 (미리 만들어뒀으므로 null 체크나 new 할당이 아예 필요 없다!)
+            _cells[newY, newX].Add(gameobject);
+
+            gameobject.CellX = newX;
+            gameobject.CellY = newY;
         }
-        
+
         public void GetNeighbors(GameObject gameobject, List<GameObject> outBuffer)
         {
             outBuffer.Clear();
-          
+
             if (gameobject == null) return;
 
             int centerX = gameobject.CellX;
@@ -146,7 +134,7 @@ namespace GridTest
                 }
             }
 
-            
+
         }
     }
 }

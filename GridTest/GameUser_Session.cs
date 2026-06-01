@@ -8,28 +8,21 @@ using System.Threading.Tasks;
 
 namespace SnakeServer
 {
-    public struct GameUser_Session_Info
-    {
-        public int userIndex;
-        public int userID;
-        public string userNickName;
-        public int CellX;
-        public int CellY;
+    //public struct GameUser_Session_Info
+    //{
+    //    public int userIndex;
+    //    public int userID;
+    //    public string userNickName;
+    //    public int CellX;
+    //    public int CellY;
 
-    }
-    public enum PlayerState : byte
-    {
-        IDLE = 0,
-        ATTACK = 1,
-        MOVE = 2,
-        HIT = 3,
-        DIE = 4
-    }
+    //}
+   
     //인게임 유저 세션
     public class GameUser_Session : IPeer
     {
         //인게임에서 유저가 사용할 정보 혹은 필요한 정보
-        public GameUser_Session_Info GameUser_Session_Info;
+        //public GameUser_Session_Info GameUser_Session_Info;
         public Player MyPlayer { get; set; }
         public struct Pos { public float x, z; }
         public LinkedList<Pos> BodyList;
@@ -42,27 +35,28 @@ namespace SnakeServer
         public GameUser_Session(CUserToken token, int id, User_Session user_session)
         {
             UserToken = token;
-            GameUser_Session_Info = new GameUser_Session_Info();
-            GameUser_Session_Info.userID = id;
+            //GameUser_Session_Info = new GameUser_Session_Info();
+            //GameUser_Session_Info.userID = id;
             
             UserToken.set_peer(this);
             BodyList = new LinkedList<Pos>();
             Is_Alive = true;
             User_session = user_session;
-            GameUser_Session_Info.CellX = 0;
-            GameUser_Session_Info.CellY = 0;
-            MyPlayer = new Player();
+            //GameUser_Session_Info.CellX = 0;
+            //GameUser_Session_Info.CellY = 0;
+            MyPlayer = new Player(this.User_session.Uid, this);
             MyPlayer.Session = this;
             MyPlayer.PosX = 0;
             MyPlayer.PosY = 0;
             MyPlayer.PosZ = 0;
-            MyPlayer.Id = id;
+            MyPlayer.PlayerID = id;
+            MyPlayer.Id = ObjectManager.GenerateId(GameObjectType.Player);
 
 
         }
         int IPeer.Get_MyID()
         {
-            return this.GameUser_Session_Info.userID;
+            return this.MyPlayer.PlayerID;
         }
         void IPeer.disconnect()
         {
@@ -70,7 +64,7 @@ namespace SnakeServer
             await DBMananger.SavePlayerToDBAsync(this.MyPlayer.Id)
             );
             Console.WriteLine("유저 연결 끊김");
-            room?.LeavGame(this, this.GameUser_Session_Info.userID);
+            room?.LeavGame(this, this.MyPlayer.PlayerID);
             
         }
 
@@ -101,7 +95,7 @@ namespace SnakeServer
             {
                 Console.WriteLine("레프카운트");
             }
-            PacketManager.Instance.OnRecvPakcet(this, msg);
+            PacketManager.Instance.OnRecvPacket(this, msg);
             //msg.Release();
 
         }

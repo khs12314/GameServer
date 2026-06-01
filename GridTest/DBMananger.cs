@@ -32,7 +32,46 @@ namespace SnakeServer
                 return null;
             }
         }
+        public static async Task<bool> CreateCharacterAsync(int accountId, string nickname, int characterType)
+        {
+            if (PacketHandler.USE_DB)
+            {
+                using (MySqlConnection? conn = GetConnection())
+                {
+                    if (conn == null) return false;
 
+                    // 연결도 비동기로 열어야 한다. (GetConnection 내부에 이미 Open이 있다면 생략 가능)
+                    await conn.OpenAsync();
+
+                    string sql = "INSERT INTO characters (account_id, nickname, character_type, level) VALUES (@accountId, @nickname, @characterType, 1)";
+                    using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@accountId", accountId);
+                        cmd.Parameters.AddWithValue("@nickname", nickname);
+                        cmd.Parameters.AddWithValue("@characterType", characterType);
+
+                        // 핵심 교정: I/O 완료를 스레드 낭비 없이 기다린다 (Non-Blocking)
+                        int rows = await cmd.ExecuteNonQueryAsync();
+
+                        if (rows > 0)
+                        {
+                            Console.WriteLine($"[DB] 캐릭터 생성 성공: {nickname}");
+                            return true;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DB] 캐릭터 생성 실패: {nickname}");
+                            return false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+
+                return true;
+            }
+        }
         // [예제 1] 회원가입 (INSERT) - 결과가 필요 없는 쿼리
         public static bool CreateAccount(string name, string pw, string NicName)
         {
@@ -130,6 +169,11 @@ hp = @hp, posx = @posx, posy = @posy, posz = @posz";
         }
         public static async Task GetCharacterPos(int id, Player player)
         {
+            if(!PacketHandler.USE_DB)
+            {
+                Console.WriteLine("DB 사용 안함");
+                return;
+            }
             using (var conn = new MySqlConnection(connString))
             {
                 await conn.OpenAsync();
@@ -188,7 +232,7 @@ hp = @hp, posx = @posx, posy = @posy, posz = @posz";
 
                             if (dbHash == inputHash)
                             {
-
+                                GetCharacterInfos(account_id);
                                 return (account_id, dbnickname);
                             }
                             else
@@ -204,11 +248,41 @@ hp = @hp, posx = @posx, posy = @posy, posz = @posz";
                         }
                     }
                 }
-
-
             }
         }
-
+        public static async Task<List<CharacterInfo>> GetCharacterInfos(int accountId)
+        {
+            List<CharacterInfo> characterInfos = new List<CharacterInfo>();
+            using (MySqlConnection? conn = GetConnection())
+            {
+                if (conn == null) return characterInfos;
+                string sql = "SELECT character_id, nickname, character_type, level FROM characters WHERE account_id = @accountId";
+                using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@accountId", accountId);
+                    using (MySqlDataReader reader = await cmd.ExecuteReaderAsync())
+                    {
+                        // 2. 한 줄(Row)을 읽어오는 행위도 비동기로!
+                        while (await reader.ReadAsync())
+                        {
+                            CharacterInfo info = new CharacterInfo
+                            {
+                                // 주의: ReadAsync()가 끝났다는 건 이미 한 줄의 데이터가 
+                                // C# 서버 메모리 버퍼로 배달되었다는 뜻이다.
+                                // 따라서 값을 꺼내는 GetInt32, GetString은 동기로 써도 전혀 문제없다!
+                                CharacterId = reader.GetInt32("character_id"),
+                                Nickname = reader.GetString("nickname"),
+                                CharacterType = reader.GetInt32("character_type"),
+                                Level = reader.GetInt32("level")
+                            };
+                            characterInfos.Add(info);
+                        }
+                    }
+                }
+            }
+            //Console.WriteLine($"가져온 캐릭터 수 {characterInfos.Count}");
+            return characterInfos;
+        }
         public static int LoginAccount(string id, string inputPw, out string nickname)
         {
             using (MySqlConnection? conn = GetConnection())

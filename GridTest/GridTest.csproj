@@ -14,6 +14,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Include="Data\MMO_Monster.csv">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <PackageReference Include="MySqlConnector" Version="2.5.0" />
 	  <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
 	</ItemGroup>
@@ -24,6 +30,15 @@
 
   <ItemGroup>
     <None Update="Data\MMO_Data.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\MMO_Drop.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\MMO_Item.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\Monster_Ani.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Map\Map_00_01.txt">

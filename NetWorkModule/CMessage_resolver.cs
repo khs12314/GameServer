@@ -84,7 +84,7 @@ namespace NetWorkModule
             //Console.WriteLine($"{position_to_read}, {this.current_position}, {copy_size}");
             if(position_to_read < 0 || copy_size < 0)
             {
-                Console.WriteLine("정지");
+                //Console.WriteLine("정지");
             }
             //버퍼에 복사.
             Array.Copy(buffer, src_position, this.message_buffer, this.current_position, copy_size);
@@ -188,37 +188,3 @@ namespace NetWorkModule
 
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

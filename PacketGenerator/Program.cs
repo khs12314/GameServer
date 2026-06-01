@@ -36,7 +36,7 @@ namespace PacketGenerator
 
             string[] outputPaths =
  {
-    @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Aplication\GenPackets.cs",
+    @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Scripts\Application\GenPackets.cs",
     @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\GenPackets.cs"
 };
 
@@ -142,12 +142,68 @@ namespace PacketGenerator
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
                         break;
                     case "list":
-                        // 리스트는 나중에 (Phase 2) 구현
+                        // 1. 리스트의 자식 노드들을 파싱해오는 전용 함수 호출
+                        Tuple<string, string, string> t = ParseList(r);
+
+                        // 2. 아까 PacketFormat.cs에 추가했던 리스트 전용 템플릿에 데이터 삽입
+                        // t.Item1: 구조체 안에 들어갈 변수들
+                        // t.Item2: 역직렬화(Read) 루프 안의 pop 코드들
+                        // t.Item3: 직렬화(Write) 루프 안의 push 코드들
+                        memberCode += string.Format(PacketFormat.listMemberFormat, memberName, t.Item1);
+                        readCode += string.Format(PacketFormat.listReadFormat, memberName, t.Item2);
+                        writeCode += string.Format(PacketFormat.listWriteFormat, memberName, t.Item3);
                         break;
                 }
             }
 
             // 보기 좋게 탭(\t) 정리
+            memberCode = memberCode.Replace("\n", "\n\t");
+            readCode = readCode.Replace("\n", "\n\t\t");
+            writeCode = writeCode.Replace("\n", "\n\t\t");
+
+            return new Tuple<string, string, string>(memberCode, readCode, writeCode);
+        }
+        static Tuple<string, string, string> ParseList(XmlReader r)
+        {
+            string memberCode = "";
+            string readCode = "";
+            string writeCode = "";
+
+            int depth = r.Depth + 1; // <list>보다 한 단계 깊은 곳
+
+            while (r.Read())
+            {
+                if (r.Depth != depth) break; // </list> 만나면 종료
+
+                string memberName = r["name"];
+                if (string.IsNullOrEmpty(memberName)) continue;
+
+                string memberType = r.Name.ToLower();
+
+                // [핵심] 리스트 안에서는 this. 가 아니라 item. 을 사용해야 한다!
+                switch (memberType)
+                {
+                    case "byte":
+                    case "sbyte":
+                        memberCode += string.Format("public {0} {1};\n", memberType, memberName);
+                        readCode += string.Format("item.{0} = packet.pop_byte();\n", memberName);
+                        writeCode += string.Format("packet.push(item.{0});\n", memberName);
+                        break;
+                    case "int":
+                        memberCode += string.Format("public {0} {1};\n", memberType, memberName);
+                        readCode += string.Format("item.{0} = packet.pop_int32();\n", memberName);
+                        writeCode += string.Format("packet.push(item.{0});\n", memberName);
+                        break;
+                    case "string":
+                        memberCode += string.Format("public {0} {1};\n", memberType, memberName);
+                        readCode += string.Format("item.{0} = packet.pop_string();\n", memberName);
+                        writeCode += string.Format("packet.push(item.{0});\n", memberName);
+                        break;
+                        // 필요하다면 short, long, float 등도 위 패턴에 맞춰 똑같이 추가해라!
+                }
+            }
+
+            // 보기 좋게 들여쓰기 탭(\t) 정리
             memberCode = memberCode.Replace("\n", "\n\t");
             readCode = readCode.Replace("\n", "\n\t\t");
             writeCode = writeCode.Replace("\n", "\n\t\t");

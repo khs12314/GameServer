@@ -22,12 +22,9 @@ namespace SnakeServer
 
         }
 
-        public void OnRecvPakcet(IPeer session, CPacket packet)
+        public void OnRecvPacket(IPeer session, CPacket packet)
         {
-            if (packet.GetRefCount() < 0)
-            {
-                Console.WriteLine("레프카운트");
-            }
+
             short protocolid = BitConverter.ToInt16(packet.buffer, packet.position);
             if (packet.protocol_id != protocolid)
             {
@@ -42,7 +39,7 @@ namespace SnakeServer
 
                     C_Login_DB chatPacket = new C_Login_DB();
                     chatPacket.Read(packet);
-                    PacketHandler.C_LoginDBHandler(session, chatPacket);
+                    Task.Run(async () => await PacketHandler.C_LoginDBHandler(session, chatPacket));
                     break;
                 case PacketID.C_SignUp_DB:
                     C_SignUp_DB c_SignUp_DB = new C_SignUp_DB();
@@ -77,6 +74,28 @@ namespace SnakeServer
                     MMO_C_Attack c_MMO_Attack = new MMO_C_Attack();
                     c_MMO_Attack.Read(packet);
                     PacketHandler.C_MMO_Attack_Handler(session, c_MMO_Attack);
+                    break;
+                case PacketID.C_ResCharacterList:
+                    C_ResCharacterList c_ResCharacterList = new C_ResCharacterList();
+                    c_ResCharacterList.Read(packet);
+                    PacketHandler.C_ResCharacterList_Handler(session, c_ResCharacterList);
+                    break;
+                case PacketID.C_UseSkill:
+                    C_UseSkill c_UseSkill = new C_UseSkill();
+                    c_UseSkill.Read(packet);
+                    PacketHandler.C_UseSkill_Handler(session, c_UseSkill);
+                    break;
+                case PacketID.C_CreateCharacter:
+                    C_CreateCharacter c_CreateCharacter = new C_CreateCharacter();
+                    c_CreateCharacter.Read(packet);
+                    Task.Run(async () =>
+                    await PacketHandler.C_CreateCharacter_HandlerAsync(session, c_CreateCharacter)
+                    );
+                    break;
+                case PacketID.C_MMOGetItem:
+                    C_MMOGetItem c_MMOGetItem = new C_MMOGetItem();
+                    c_MMOGetItem.Read(packet);
+                    PacketHandler.C_MMOGetItem_Handler(session, c_MMOGetItem);
                     break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");

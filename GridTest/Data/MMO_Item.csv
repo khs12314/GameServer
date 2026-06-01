@@ -1,0 +1,4 @@
+TemplateId,Name,Grade,MaxStack,Type
+101,Stone,Common,99,3
+102,Iron_Ore,Uncommon,99,3
+103,Ruby_Ore,Rare,10,3

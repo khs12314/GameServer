@@ -11,12 +11,28 @@ namespace SnakeServer
     {
         public static Dictionary<int, IPeer> userlist = new Dictionary<int, IPeer>();
         public static GameServer game_server = new GameServer();
+
         static void Main(string[] args)
         {
-            RedisManager.Init();
+            if (PacketHandler.USE_DB)
+            {
+                RedisManager.Init();
+                DataManager.LoadSkillData();
+                DataManager.LoadAniData();
+                
+                DataManager.LoadDropData();
+                Console.WriteLine("DB, redis 사용 모드로 실행합니다.");
+            }
+            else
+            {
+                DataManager.LoadSkillData();
+                DataManager.LoadAniData();
+                
+                DataManager.LoadDropData();
+                Console.WriteLine("DB, redis 미사용 모드로 실행합니다.");
+            }
             CPacketBufferManger.initialize(1000000);//임시
             ThreadPool.SetMinThreads(100, 100);
-            DataManager.LoadData();
             userlist = new Dictionary<int, IPeer>();
             CNetworkService service = new CNetworkService();
             service.session_created_callback += on_session_created;
@@ -73,7 +89,7 @@ namespace SnakeServer
                 game_server.User_Disconnect(user);
                 if (user is GameUser_Session gameUser_Session)
                 {
-                    gameUser_Session.room.LeavGame(gameUser_Session, gameUser_Session.GameUser_Session_Info.userID);
+                    gameUser_Session.room.LeavGame(gameUser_Session, gameUser_Session.User_session.Uid);
                 }
 
             }

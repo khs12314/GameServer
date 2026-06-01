@@ -240,16 +240,6 @@ namespace NetWorkModule
                 this.send_event_args_pool.Push(token.send_event_args);
             }
         }
-
-
-
-
-
-
-
-
-
-
     }
 }
 //buffer_manger = new BufferManger();

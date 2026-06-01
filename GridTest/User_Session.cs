@@ -43,7 +43,7 @@ namespace SnakeServer
             msg.SetOwner(this);
             if (msg.GetRefCount() < 0)
             {
-                Console.WriteLine("레프카운트");
+                //Console.WriteLine("레프카운트");
             }
             //msg.move_position(Define.HEADER_SIZE);
             //Console.WriteLine($"받은 메시지 포지션 : {msg.position}");
@@ -76,9 +76,9 @@ namespace SnakeServer
         {
             if (msg.GetRefCount() < 0)
             {
-                Console.WriteLine("레프카운트");
+                //Console.WriteLine("레프카운트");
             }
-            PacketManager.Instance.OnRecvPakcet(this, msg);
+            PacketManager.Instance.OnRecvPacket(this, msg);
             //msg.Release();
         }
     }

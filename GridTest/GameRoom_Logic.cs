@@ -17,7 +17,9 @@ namespace SnakeServer
         private readonly ThreadLocal<List<GameObject>> _threadLocalTargets
     = new ThreadLocal<List<GameObject>>(() => new List<GameObject>(200));
         //여기는 인게임 유저를 다루는 딕셔너리 로비의 딕셔너리 키와 같다. 로그인 후 제공받은 고유 키가 여기서도 동일하게 적용된다
-        Dictionary<int, GameObject> game_users;
+        Dictionary<int, GameObject> WorldObjectList;
+        HashSet<Player> DirtySet;
+        Stack<ProJectile> proJectiles;
         public int Room_ID;
         static int Room_ID_Generator = 0;
         public int[,] map;
@@ -29,6 +31,10 @@ namespace SnakeServer
         int appleX = -1;
         int appleY = -1;
         GridManager grid;
+        public const float CellSize = 10.0f;
+
+        // 컴파일러가 빌드할 때 1.0f / 10.0f를 미리 계산해서 0.1f로 박아버린다! (연산 비용 0)
+        public const float InvCellSize = 1.0f / CellSize;
         GameMap gameMap;
         Random rnd = new Random();
         JobQueue jobqueue;
@@ -39,8 +45,9 @@ namespace SnakeServer
         private List<GameObject> _broadcastBuffer;
         public GameRoom_Logic()
         {
+
             jobqueue = new JobQueue();
-            game_users = new Dictionary<int, GameObject>();
+            WorldObjectList = new Dictionary<int, GameObject>();
             Room_ID = System.Threading.Interlocked.Increment(ref Room_ID_Generator);
             Console.WriteLine($"게임 룸 생성{Room_ID}, {Room_ID_Generator}");
             _lock = new object();
@@ -49,11 +56,18 @@ namespace SnakeServer
             //map = new int[MapSizeY + 1, MapSizeX + 1];
             Is_Running = false;
             UserCount = 0;
-            grid = new GridManager(MapSizeX, 10);
+            grid = new GridManager(MapSizeX, (int)CellSize);
             gameMap = new GameMap();
             MMO_MapLoad(MapSizeY, MapSizeX);
             _searchBuffer = new List<GameObject>(30);
             _broadcastBuffer = new List<GameObject>(50);
+            proJectiles = new Stack<ProJectile>(100);
+            DirtySet = new HashSet<Player>();
+            SpawnMonster(10.5f, 0.5f, 10.5f, 1);
+            SpawnMonster(11.5f, 0.5f, 11.5f, 1);
+            SpawnMonster(10.5f, 0.5f, 11.5f, 1);
+            Start();
+
         }
         public void Push(Action job)
         {
@@ -69,25 +83,28 @@ namespace SnakeServer
         }
         public Dictionary<int, GameObject> GetGameUsers()
         {
-            return game_users;
+            return WorldObjectList;
+        }
+        public void SetObject(GameObject gameObject)
+        {
+            if (WorldObjectList.ContainsKey(gameObject.Id))
+            {
+                Console.WriteLine($"이미 존재하는 오브젝트 {gameObject.Id}");
+                return;
+            }
+            WorldObjectList.Add(gameObject.Id, gameObject);
+
+            grid.Add(gameObject);
+        }
+        public void Item()
+        {
+            return;
         }
         public List<GameObject> GetAOIGameUsers(GameObject gameObject, List<GameObject> _objectsearchBuffer)
         {
             grid.GetNeighbors(gameObject, _objectsearchBuffer);
-            return _searchBuffer;
-        }
-        public void Start()
-        {
-            SpawnMonster(999, 10.5f, 0.5f, 10.5f);
-            // SpawnMonster(998, 11.5f, 0.5f, 10.5f);
-            //SpawnMonster(997, 10.5f, 0.5f, 11.5f);
-            while (Is_Running)
-            {
-                Update();
 
-            }
-            //GenerateApple();
-            //ScheduleUpdate();
+            return _objectsearchBuffer;
         }
         //void ScheduleUpdate()
         //{
@@ -100,34 +117,19 @@ namespace SnakeServer
 
 
         //}
+        public void Start()
+        {
+            while (Is_Running)
+            {
+                Update();
+                Thread.Sleep(1);
+            }
+
+        }
         public void Update()
         {
             jobTimer.Flush();
-
-
         }
-        //void ProcessUserTurn(GameUser_Session session)
-        //{
-        //    // 1. [계산] 다음 좌표 구하기
-        //    if (!session.Is_Alive) return;
-        //    //MMO_Move();
-        //    //Console.WriteLine("계속 진행되는지 확인");
-        //    // 2. [판정] 갈 수 있는 곳인가? (벽, 충돌)
-        //    if (CanGo(nextPos, session) == false)
-        //    {
-        //        //ProcessDeath(session);
-        //        return;
-        //    }
-
-        //    // 3. [판정] 사과가 있는가?
-        //    //bool isEat = TryEatApple(nextPos);
-
-        //    // 4. [행동] 실제 몸통 이동 (여기서 Insert/Remove 수행)
-        //    //MoveBody(session, nextPos, isEat);
-
-        //    // 5. [전송] 브로드캐스팅
-        //    BroadcastMove(session, nextPos, isEat);
-        //}
 
         private void ProcessDeath(GameUser_Session session)
         {
@@ -138,8 +140,8 @@ namespace SnakeServer
             }
             session.Is_Alive = false;
             S_Die s_Die = new S_Die();
-            s_Die.userid = session.GameUser_Session_Info.userID;
-            Broadcast(s_Die.Write(), session);
+            s_Die.userid = session.MyPlayer.Id;
+            Broadcast(s_Die.Write(), session.MyPlayer);
             //S_Move deathPacket = new S_Move();
             //deathPacket.playerId = session.GameUser_Session_Info.userID;
             //deathPacket.posX = -1000;
@@ -187,6 +189,8 @@ namespace SnakeServer
         //    // 머리 추가
         //    session.BodyList.AddFirst(nextPos);
 
+
+
         //    // 사과 안 먹었으면 꼬리 자르기
         //    if (isEat == false)
         //    {
@@ -205,11 +209,11 @@ namespace SnakeServer
         void BroadcastMove(GameUser_Session session, GameUser_Session.Pos pos, bool isEat)
         {
             S_Move move = new S_Move();
-            move.playerId = session.GameUser_Session_Info.userID;
+            move.playerId = session.MyPlayer.Id;
             move.posX = pos.x;
             move.posY = pos.z;
             move.IsEat = isEat;
-            Broadcast(move.Write(), session);
+            Broadcast(move.Write(), session.MyPlayer);
         }
         //여기 아래는 주기적으로 행동하는게 아닌 세팅 혹은 받은 값 기반으로 바로 처리해야하는 부분
         public void MapLoad(int y, int x)
@@ -248,9 +252,9 @@ namespace SnakeServer
             syncpacket.posY = session.MyPlayer.PosY;
             syncpacket.posZ = session.MyPlayer.PosZ;
             syncpacket.rotY = session.MyPlayer.RotY;
-            syncpacket.playerid = session.GameUser_Session_Info.userID;
+            syncpacket.playerid = session.MyPlayer.Id;
             Console.WriteLine($"sync pos : {syncpacket.posX}, {syncpacket.posZ}");
-            Broadcast(syncpacket.Write(), session);
+            Broadcast(syncpacket.Write(), session.MyPlayer);
         }
         public void MMO_Move(GameUser_Session session, MMO_C_Move packet)
         {
@@ -272,23 +276,24 @@ namespace SnakeServer
                 Sync_Pos(session);
                 return;
             }
-            Console.WriteLine("이동 가능");
-            session.MyPlayer.State = PlayerState.MOVE;
+            //Console.WriteLine("이동 가능");
+            session.MyPlayer.ChangeStateAndBroadcast(PlayerState.MOVE, this);
             session.MyPlayer.PosX = packet.posX;
             session.MyPlayer.PosY = packet.posY;
             session.MyPlayer.PosZ = packet.posZ;
             session.MyPlayer.RotY = packet.rot;
             RedisManager.SavePlayerPosition(session.MyPlayer.Id, session.MyPlayer.PosX, session.MyPlayer.PosY, session.MyPlayer.PosZ);
 
-            grid.Move(session.MyPlayer, NextPos);
+            //Console.WriteLine($"주변 오브젝트{GetAOIGameUsers(session.MyPlayer, session.MyPlayer.AOIObjects).Count}");
+            grid.Move(session.MyPlayer);
             MMO_S_Move movePacket = new MMO_S_Move();
             movePacket.posX = session.MyPlayer.PosX;
             movePacket.posY = session.MyPlayer.PosY;
             movePacket.posZ = session.MyPlayer.PosZ;
             movePacket.rot = session.MyPlayer.RotY;
-            movePacket.playerid = session.GameUser_Session_Info.userID;
+            movePacket.playerid = session.MyPlayer.Id;
             movePacket.state = (byte)PlayerState.MOVE;
-            Broadcast(movePacket.Write(), session);
+            Broadcast(movePacket.Write(), session.MyPlayer);
         }
         public void RedisSavePlayerInfo(GameObject gameObject)
         {
@@ -310,26 +315,30 @@ namespace SnakeServer
 
             GameUser_Session gameuser = new GameUser_Session(user.CUserToken, userid, user);
             Interlocked.Increment(ref UserCount);
-
-            //gameuser.MyPlayer.PosX = 2.5f;
-            //gameuser.MyPlayer.PosY = 0.5f;
-            //gameuser.MyPlayer.PosZ = 2.5f;
-            gameuser.MyPlayer.Id = userid;
-            gameuser.MyPlayer.Room = this;
-            gameuser.MyPlayer.Hp = 100;
-            gameuser.MyPlayer.MaxHp = 100;
-            await DBMananger.GetCharacterPos(gameuser.MyPlayer.Id, gameuser.MyPlayer);
-            grid.Add(gameuser.MyPlayer);
-            lock (game_users)
+            if (PacketHandler.USE_DB)
+                await DBMananger.SavePlayerToDBAsync(userid);
+            else
             {
-                if (!game_users.ContainsKey(user.Uid))
+                gameuser.MyPlayer.PosX = 2.5f;
+                gameuser.MyPlayer.PosY = 0.5f;
+                gameuser.MyPlayer.PosZ = 2.5f;
+                gameuser.MyPlayer.Id = userid;
+                gameuser.MyPlayer.Room = this;
+                gameuser.MyPlayer.Hp = 100;
+                gameuser.MyPlayer.MaxHp = 100;
+            }
+
+            grid.Add(gameuser.MyPlayer);
+            lock (WorldObjectList)
+            {
+                if (!WorldObjectList.ContainsKey(gameuser.MyPlayer.Id))
                 {
-                    game_users.Add(gameuser.MyPlayer.Id, gameuser.MyPlayer);
+                    WorldObjectList.Add(gameuser.MyPlayer.Id, gameuser.MyPlayer);//entityID 등록
                     gameuser.Enter_Room(this);
 
                 }
             }
-            S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();
+            S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();//임시
             s_EnterGame.userid = userid;
             s_EnterGame.mapSizeX = MapSizeX;
             s_EnterGame.mapSizeY = MapSizeY;
@@ -338,39 +347,41 @@ namespace SnakeServer
             MMO_Spawn(gameuser);
             gameuser.MyPlayer.RedisSave();
             Console.WriteLine($"플레이어 스폰 : {gameuser.MyPlayer.PosX}, {gameuser.MyPlayer.PosZ}");
-            if (!Is_Running)
-            {
-                //Console.WriteLine($"{UserCount}, {Is_Running}");
-                Is_Running = true;
-                _ = Task.Run(() => Start());
-            }
+
+            //Console.WriteLine($"{UserCount}, {Is_Running}");
+
+
+
         }
 
         public void MMO_Spawn(GameUser_Session gameuser)
         {
             S_Spawn MMO_Spawn = new S_Spawn();
-            foreach (var item in game_users.Values)
+            foreach (var item in WorldObjectList.Values)
             {
                 if (item is Player player)
                 {
-                    if (player.Session.GameUser_Session_Info.userID == gameuser.GameUser_Session_Info.userID)
+                    if (player.Id == gameuser.MyPlayer.Id)
                         continue;
                     MMO_Spawn.SpawnX = player.PosX;
                     MMO_Spawn.SpawnY = player.PosY;
                     MMO_Spawn.SpawnZ = player.PosZ;
-                    MMO_Spawn.userid = player.Session.GameUser_Session_Info.userID;
+                    MMO_Spawn.entityID = player.Id;
                     gameuser.UserToken.send(MMO_Spawn.Write());
                 }
             }
-            foreach (var item in game_users.Values)
+            S_MonsterSpawn monsterSpawn = new S_MonsterSpawn();
+            foreach (var item in WorldObjectList.Values)
             {
                 if (item is Monster monster)
                 {
-                    MMO_Spawn.SpawnX = monster.PosX;
-                    MMO_Spawn.SpawnY = monster.PosY;
-                    MMO_Spawn.SpawnZ = monster.PosZ;
-                    MMO_Spawn.userid = monster.Id;
-                    gameuser.UserToken.send(MMO_Spawn.Write());
+                    monsterSpawn.SpawnX = monster.PosX;
+                    monsterSpawn.SpawnY = monster.PosY;
+                    monsterSpawn.SpawnZ = monster.PosZ;
+                    monsterSpawn.entityid = monster.Id;//내부 고유 id
+                    monsterSpawn.objectid = monster.MonsterID; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
+                    gameuser.UserToken.send(monsterSpawn.Write());
+                    Console.WriteLine($"몬스터 정보 전송 id는 {item.Id}");
                 }
             }
         }
@@ -379,12 +390,12 @@ namespace SnakeServer
         {
             S_Spawn packet = new S_Spawn();
             {
-                packet.userid = gameuser.GameUser_Session_Info.userID;
+                packet.entityID = gameuser.MyPlayer.Id;
                 packet.SpawnX = gameuser.MyPlayer.PosX;
                 packet.SpawnY = gameuser.MyPlayer.PosY;
                 packet.SpawnZ = gameuser.MyPlayer.PosZ;
                 Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
-                Broadcast(packet.Write(), gameuser);
+                Broadcast(packet.Write(), gameuser.MyPlayer);
 
             }
         }
@@ -401,23 +412,24 @@ namespace SnakeServer
                 //예시로는 직업별로 가능한 공격인지 아닌지 판단 후 리턴
             }
             MMO_S_Attack attackPacket = new MMO_S_Attack();
-            attackPacket.playerid = session.GameUser_Session_Info.userID;
+            attackPacket.playerid = session.MyPlayer.Id;
             attackPacket.skillId = packet.skillId;
             attackPacket.state = (byte)PlayerState.ATTACK;
-            session.MyPlayer.State = PlayerState.ATTACK;
+            session.MyPlayer.ChangeStateAndBroadcast(PlayerState.ATTACK, this);
             switch (packet.skillId)
             {
                 case 1:
 
                     break;
                 case 2:
-                    // Use_Skill(session, IsHitValid_Skill2);
+                    //투사체 구현 예정
+                    //Use_Skill(session, IsHitValid_Skill2);
                     break;
                 case 3:
                     break;
                 case 4:
                     SkillData? skill = DataManager.GetSkillData(packet.skillId);
-                    if(skill == null)
+                    if (skill == null)
                     {
                         Console.WriteLine("스킬 데이터 없음");
                         return;
@@ -437,7 +449,7 @@ namespace SnakeServer
                     return;
             }
             // 서버 권위 검증 실시
-            Broadcast(attackPacket.Write(), session);
+            Broadcast(attackPacket.Write(), session.MyPlayer);
         }
 
         private void Use_Skill(GameUser_Session session, Func<Monster, bool> func)
@@ -464,6 +476,7 @@ namespace SnakeServer
         {
 
             target.Hp -= 10; // 예시로 10 데미지
+            Console.WriteLine($"Target HP: {target.Hp}");
             if (target.Hp <= 0)
             {
                 Console.WriteLine($"Target {target.Id} is dead.");
@@ -472,12 +485,19 @@ namespace SnakeServer
                 s_Die.playerid = target.Id;
                 s_Die.state = (byte)PlayerState.DIE;
                 Broadcast(s_Die.Write());
-                game_users.Remove(target.Id);
-                jobTimer.PushAfter(5000, () =>
+                if (target is Player player)
                 {
-                    // 5초 후 몬스터 리스폰
-                    SpawnMonster(target.Id, target.PosX, target.PosY, target.PosZ);
-                });
+
+                }
+                else if (target is Monster monster)
+                {
+
+                    jobTimer.PushAfter(5000, () =>
+                    {
+                        // 5초 후 몬스터 리스폰
+                        ReSpawnMonster(monster);
+                    });
+                }
             }
             else
             {
@@ -496,17 +516,40 @@ namespace SnakeServer
             {
                 Console.WriteLine($"Target {target.Id} is dead.");
                 //S_Die
-                game_users.Remove(target.Id);
-                jobTimer.PushAfter(5000, () =>
+                MMO_S_Die s_Die = new MMO_S_Die();
+                s_Die.playerid = target.Id;
+                s_Die.state = (byte)PlayerState.DIE;
+                Broadcast(s_Die.Write());
+                if (target is Player player)
                 {
-                    // 5초 후 몬스터 리스폰
-                    SpawnMonster(target.Id, target.PosX, target.PosY, target.PosZ);
-                });
+                    jobTimer.PushAfter(5000, () =>
+                    {
+                        // 5초 후 플레이어 리스폰
+                        ReSpawnUser(player);
+                    });
+                }
+                else if (target is Monster monster)
+                {
+
+                    jobTimer.PushAfter(5000, () =>
+                    {
+                        // 5초 후 몬스터 리스폰
+                        ReSpawnMonster(monster);
+                    });
+                }
+            }
+            else
+            {
+                S_Damage s_Damage = new S_Damage();
+                s_Damage.playerid = target.Id;
+                s_Damage.damage = damage; // 예시로 10 데미지
+                s_Damage.state = (byte)PlayerState.HIT;
+                Broadcast(s_Damage.Write());
             }
         }
         public void Broadcast(CPacket msg)
         {
-            foreach (var item in game_users)
+            foreach (var item in WorldObjectList)
             {
                 if (item.Value is Player player)
                 {
@@ -527,11 +570,11 @@ namespace SnakeServer
             }
             msg.Release();
         }
-        public void Broadcast(CPacket msg, GameUser_Session player)
+        public void Broadcast(CPacket msg, GameObject player)
         {
             // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
             // ---------------------------------------------------------
-            grid.GetNeighbors(player.MyPlayer, _broadcastBuffer);
+            grid.GetNeighbors(player, _broadcastBuffer);
             if (_broadcastBuffer == null)
             {
                 Console.WriteLine("보낼 대상 없음");
@@ -557,7 +600,7 @@ namespace SnakeServer
             {
                 if (_broadcastBuffer[i] is Player players)
                 {
-                    Console.WriteLine($"대상 플레이어 아이디: {players.Id}");
+                    //Console.WriteLine($"대상 플레이어 아이디: {players.Id}");
                     try
                     {
                         // [삭제된 것들]
@@ -587,36 +630,44 @@ namespace SnakeServer
             msg.Release();
             _broadcastBuffer.Clear();
         }
-        public void SpawnMonster(int id, float x, float y, float z)
+        public void SpawnMonster(float x, float y, float z, int obectid)
         {
-            Monster monster = new Monster();
-            monster.Id = id;
-            monster.PosX = x;
-            monster.PosY = y;
-            monster.PosZ = z;
-            monster.Hp = 100;
-            monster.MaxHp = 100;
-            monster.Room = this;
-            lock (game_users)
+            Monster monster = new Monster(obectid);
+            monster.Initialize(x, y, z, this, monster.Id);
+            grid.Add(monster);
+            lock (WorldObjectList)
             {
-                if (!game_users.ContainsKey(id))
+                if (!WorldObjectList.ContainsKey(monster.Id))
                 {
-                    game_users.Add(monster.Id, monster);
+                    WorldObjectList.Add(monster.Id, monster);
                 }
             }
             monster.UpdateAI();
+        }
+        public void ReSpawnUser(Player player)
+        {
+            player.Hp = player.MaxHp;
+            S_Spawn spawnPacket = new S_Spawn();
+            spawnPacket.entityID = player.Id;
+            spawnPacket.SpawnX = player.PosX;
+            spawnPacket.SpawnY = player.PosY;
+            spawnPacket.SpawnZ = player.PosZ;
+            Broadcast(spawnPacket.Write());
+        }
+        public void ReSpawnMonster(Monster monster)
+        {
+            monster.Hp = monster.MaxHp;
             S_MonsterSpawn spawnMonsterPacket = new S_MonsterSpawn();
-            spawnMonsterPacket.userid = monster.Id;
+            spawnMonsterPacket.entityid = monster.Id;//고유 id 클라에서도 오브젝트 매니저에서 관리할 번호
             spawnMonsterPacket.SpawnX = monster.PosX;
             spawnMonsterPacket.SpawnY = monster.PosY;
             spawnMonsterPacket.SpawnZ = monster.PosZ;
-            spawnMonsterPacket.typeid = 1; // 몬스터 타입 ID (예시로 1)
+            spawnMonsterPacket.objectid = 1; // 몬스터 타입 ID 프리펩에서 생성할 때 구분짓기용
             Broadcast(spawnMonsterPacket.Write());
-
         }
         public GameObject FindObjectById(int id)
         {
-            if (game_users.TryGetValue(id, out GameObject obj))
+            if (WorldObjectList.TryGetValue(id, out GameObject obj))
                 return obj;
             return null;
         }
@@ -625,26 +676,26 @@ namespace SnakeServer
             Console.WriteLine("리브 게임");
             lock (this)
             {
-                if (game_users.ContainsKey(playerID) == false)
+                if (WorldObjectList.ContainsKey(playerID) == false)
                 {
                     Console.WriteLine("검색 안됨");
                     return;
                 }
-                else if (game_users.Count == 1)
+                else if (WorldObjectList.Count == 1)
                 {
-                    game_users.Clear();
+                    WorldObjectList.Clear();
                     Is_Running = false;
 
                 }
                 else
                 {
-                    game_users.Remove(playerID);
+                    WorldObjectList.Remove(playerID);
                 }
                 Console.WriteLine("체인지 피어");
                 session.Change_Peer();
                 S_PlayerLeave leave = new S_PlayerLeave();
-                leave.userid = session.GameUser_Session_Info.userID;
-                Broadcast(leave.Write(), session);
+                leave.userid = session.MyPlayer.Id;
+                Broadcast(leave.Write(), session.MyPlayer);
             }
         }
         public void ChangeDir(GameUser_Session session, C_Move packet)
@@ -654,7 +705,72 @@ namespace SnakeServer
                 //session.GameUser_Session_Info.dir = packet.direction;
             }
         }
+        public ProJectile Get_Projectile()
+        {
+            if (proJectiles.Count > 0)
+            {
+                return proJectiles.Pop();
+            }
+            else
+            {
+                // 필요에 따라 새로운 프로젝타일 생성
+                return new ProJectile();
+            }
+        }
+        public void Return_Projectile(ProJectile proJectile)
+        {
+            proJectiles.Push(proJectile);
+        }
+        public void Add_Projectile(SkillData skillData, float dirx, float dirz, ProJectile proJectile, GameObject gameObject)
+        {
+            proJectile.Initialize(gameObject.Id,
+                   gameObject.PosX, gameObject.PosY, gameObject.PosZ,
+                    dirx, dirz, 3000, skillData.Id, skillData.Damage, gameObject, skillData.Speed);
+            Console.WriteLine($"{gameObject.PosX}");
+            S_UseSkill s_UseSkill = new S_UseSkill();
+            s_UseSkill.playerid = gameObject.Id;
+            s_UseSkill.posX = gameObject.PosX;
+            s_UseSkill.posY = gameObject.PosY;
+            s_UseSkill.posZ = gameObject.PosZ;
+            s_UseSkill.rotY = gameObject.RotY;
+            s_UseSkill.dirx = dirx;
+            s_UseSkill.dirz = dirz;
+            s_UseSkill.skillId = skillData.Id;
+            Broadcast(s_UseSkill.Write(), gameObject);
 
 
+        }
+
+        public void Get_Item(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem)
+        {
+            GameObject obj = FindObjectById(c_MMOGetItem.ItemID);
+            Player player = gameUser_Session.MyPlayer;
+            if (!(obj is Item item))
+            {
+                return;
+            }
+            float dx = player.PosX - item.PosX;
+            float dz = player.PosZ - item.PosZ;
+            float sqrDist = (dx * dx) + (dz * dz);
+            if (sqrDist > 4.0f) // 예시로 1.0f 이상 떨어져 있으면 아이템 획득 불가
+            {
+                Console.WriteLine("아이템과의 거리가 멀어서 획득 불가");
+                return;
+            }
+
+            bool isGetItem = player.Inventory.AddItem(item);
+            if (isGetItem)
+            {
+                S_MMOGetItem s_MMOGetItem = new S_MMOGetItem();
+                s_MMOGetItem.ItemID = c_MMOGetItem.ItemID;
+                Broadcast(s_MMOGetItem.Write(), gameUser_Session.MyPlayer);
+                S_MMODespawnItem s_MMODespawnItem = new S_MMODespawnItem();
+                s_MMODespawnItem.entityID = c_MMOGetItem.ItemID;
+                Broadcast(s_MMODespawnItem.Write(), gameUser_Session.MyPlayer);
+                WorldObjectList.Remove(c_MMOGetItem.ItemID);
+                DirtySet.Add(player);
+            }
+            
+        }
     }
 }

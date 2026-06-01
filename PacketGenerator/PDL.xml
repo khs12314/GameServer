@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <PDL>
-	
-	
+
+
 	<Packet name="PlayerInfoReq">
 		<long name="playerId"/>
 		<string name="name"/>
@@ -13,7 +13,7 @@
 		<float name="posZ"/>
 	</Packet>
 	<Packet name="C_Login">
-		
+
 	</Packet>
 	<Packet name="C_EnterGame">
 		<int name="userId"/>
@@ -53,7 +53,7 @@
 
 	<Packet name="S_RoomRemoved">
 	</Packet>
-	
+
 	<Packet name="C_Login_DB">
 		<string name="ID"/>
 		<string name="PassWord"/>
@@ -81,7 +81,9 @@
 		<float name="SpawnX"/>
 		<float name="SpawnY"/>
 		<float name="SpawnZ"/>
-		<int name="userid"/>
+		<int name="entityID"/>
+		<int name="typeid"/>
+		<int name="objectid"/>
 	</Packet>
 	<Packet name="Search_Room_id">
 		<bool name="Room_ID"/>
@@ -91,7 +93,7 @@
 		<int name ="Room_id"/>
 	</Packet>
 	<Packet name="C_Move">
-		
+
 		<int name="direction"/>
 	</Packet>
 	<Packet name="S_Move">
@@ -106,7 +108,7 @@
 		<int name="posY"/>
 	</Packet>
 	<Packet name="S_PlayerLeave">
-		<int name="userid"/>	
+		<int name="userid"/>
 	</Packet>
 	<Packet name="S_Die">
 		<int name="userid"/>
@@ -160,7 +162,83 @@
 		<float name="SpawnX"/>
 		<float name="SpawnY"/>
 		<float name="SpawnZ"/>
-		<int name="userid"/>
-		<byte name="typeid"/>
+		<int name="entityid"/>
+		<int name="objectid"/>
+	</Packet>
+	<Packet name="S_ResCharacterList">
+		<list name="Characters">
+			<int name="CharacterType"/>
+			<string name="Nickname"/>
+			<int name="Level"/>
+			<int name="CharacterId"/>
+		</list>
+	</Packet>
+	<Packet name="C_ResCharacterList">
+		<list name="Characters">
+			<int name="CharacterType"/>
+			<string name="Nickname"/>
+			<int name="Level"/>
+			<int name="CharacterId"/>
+		</list>
+	</Packet>
+	<Packet name="C_UseSkill">
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rotY"/>
+		<int name="skillId"/>
+	</Packet>
+	<Packet name="S_UseSkill">
+		<int name="playerid"/>
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rotY"/>
+		<float name="dirx"/>
+		<float name="dirz"/>
+		<int name="skillId"/>
+		<bool name="Cooldown"/>
+	</Packet>
+	<Packet name="Spawn_Object">
+		<list name="Objects">
+			<float name="SpawnX"/>
+			<float name="SpawnY"/>
+			<float name="SpawnZ"/>
+			<int name="userid"/>
+			<byte name="typeid"/>
+		</list>
+	</Packet>
+	<Packet name ="S_ChangeState">
+		<int name="playerid"/>
+		<byte name="state"/>
+	</Packet>
+	<Packet name="C_CreateCharacter">
+		<string name="Nickname"/>
+		<byte name="CharacterType"/>
+	</Packet>
+	<Packet name="S_CreateCharacter">
+		<bool name="Success"/>
+		<string name="Nickname"/>
+		<byte name="CharacterType"/>
+	</Packet>
+	<Packet name="C_DeleteCharacter">
+		<int name="CharacterId"/>
+	</Packet>
+	<Packet name="S_MMOSpawnItem">
+		<int name="ItemID"/>
+		<int name="entityID"/>
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+	</Packet>
+	<Packet name="C_MMOGetItem">
+		<int name="ItemID"/>
+	</Packet>
+	<Packet name="S_MMOGetItem">
+		<int name="ItemID"/>
+		<int name="playerid"/>
+	</Packet>
+	<Packet name="S_MMODespawnItem">
+		<int name="entityID"/>
 	</Packet>
 </PDL>

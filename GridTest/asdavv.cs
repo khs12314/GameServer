@@ -45,7 +45,7 @@
 //            session.GameUser_Session_Info.CellY = y;
 //            if (session == null)
 //            {
-//                Console.WriteLine("@@@@@@@@@@@@@@@@@@@@널");
+//               
 //            }
 //            lock (this)
 //            {
@@ -94,7 +94,7 @@
 //            session.GameUser_Session_Info.CellY = newY;
 
 //            // 로그: "이사 완료: (1,1) -> (1,2)" 찍어보면 쾌감 쩐다.
-//            Console.WriteLine($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
+//            ($"현재 aoi : {session.GameUser_Session_Info.CellX},{session.GameUser_Session_Info.CellY}");
 //        }
 //        public List<GameUser_Session> GetNeighbors(GameUser_Session session)
 //        {
