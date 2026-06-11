@@ -55,6 +55,15 @@ public enum PacketID
 	C_MMOGetItem = 46,
 	S_MMOGetItem = 47,
 	S_MMODespawnItem = 48,
+	S_UpdateSlot = 49,
+	C_SwapItem = 50,
+	C_NpcInteract = 51,
+	S_NpcInteractResult = 52,
+	C_AcceptQuest = 53,
+	S_AcceptQuest = 54,
+	S_UpdateQuestProgress = 55,
+	C_CompleteQuest = 56,
+	S_CompleteQuest = 57,
 	
 }
 
@@ -1064,40 +1073,40 @@ public class S_MMOSpawnItem : IPacket
 
 public class C_MMOGetItem : IPacket
 {
-    public int ItemID;
+    public int entityid;
 
     public short Protocol { get { return (short)PacketID.C_MMOGetItem; } }
 
     public void Read(CPacket packet)
     {
-        this.ItemID = packet.pop_int32();
+        this.entityid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_MMOGetItem);
-        packet.push(this.ItemID);
+        packet.push(this.entityid);
         return packet;
     }
 }
 
 public class S_MMOGetItem : IPacket
 {
-    public int ItemID;public int playerid;
+    public int entityid;public int playerid;
 
     public short Protocol { get { return (short)PacketID.S_MMOGetItem; } }
 
     public void Read(CPacket packet)
     {
-        this.ItemID = packet.pop_int32();this.playerid = packet.pop_int32();
+        this.entityid = packet.pop_int32();this.playerid = packet.pop_int32();
     }
 
     public CPacket Write()
     {
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMOGetItem);
-        packet.push(this.ItemID);packet.push(this.playerid);
+        packet.push(this.entityid);packet.push(this.playerid);
         return packet;
     }
 }
@@ -1118,6 +1127,243 @@ public class S_MMODespawnItem : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMODespawnItem);
         packet.push(this.entityID);
+        return packet;
+    }
+}
+
+public class S_UpdateSlot : IPacket
+{
+    public short SlotIndex;public int entityid;public int TemplateID;public int Count;
+
+    public short Protocol { get { return (short)PacketID.S_UpdateSlot; } }
+
+    public void Read(CPacket packet)
+    {
+        this.SlotIndex = packet.pop_int16();this.entityid = packet.pop_int32();this.TemplateID = packet.pop_int32();this.Count = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_UpdateSlot);
+        packet.push(this.SlotIndex);packet.push(this.entityid);packet.push(this.TemplateID);packet.push(this.Count);
+        return packet;
+    }
+}
+
+public class C_SwapItem : IPacket
+{
+    public short FromIndex;public short ToIndex;
+
+    public short Protocol { get { return (short)PacketID.C_SwapItem; } }
+
+    public void Read(CPacket packet)
+    {
+        this.FromIndex = packet.pop_int16();this.ToIndex = packet.pop_int16();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_SwapItem);
+        packet.push(this.FromIndex);packet.push(this.ToIndex);
+        return packet;
+    }
+}
+
+public class C_NpcInteract : IPacket
+{
+    public int NpcId;
+
+    public short Protocol { get { return (short)PacketID.C_NpcInteract; } }
+
+    public void Read(CPacket packet)
+    {
+        this.NpcId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_NpcInteract);
+        packet.push(this.NpcId);
+        return packet;
+    }
+}
+
+public class S_NpcInteractResult : IPacket
+{
+    public int NpcId;public struct AvailableQuestsItem
+	{
+	    public int QuestId;
+		
+	}
+	public List<AvailableQuestsItem> AvailableQuests = new List<AvailableQuestsItem>();public struct CompletableQuestsItem
+	{
+	    public int QuestId;
+		
+	}
+	public List<CompletableQuestsItem> CompletableQuests = new List<CompletableQuestsItem>();
+
+    public short Protocol { get { return (short)PacketID.S_NpcInteractResult; } }
+
+    public void Read(CPacket packet)
+    {
+        this.NpcId = packet.pop_int32();this.AvailableQuests.Clear();
+		int AvailableQuestsCount = packet.pop_int32();
+		for (int i = 0; i < AvailableQuestsCount; i++)
+		{
+		    AvailableQuestsItem item = new AvailableQuestsItem();
+		    item.QuestId = packet.pop_int32();
+				
+		    this.AvailableQuests.Add(item);
+		}this.CompletableQuests.Clear();
+		int CompletableQuestsCount = packet.pop_int32();
+		for (int i = 0; i < CompletableQuestsCount; i++)
+		{
+		    CompletableQuestsItem item = new CompletableQuestsItem();
+		    item.QuestId = packet.pop_int32();
+				
+		    this.CompletableQuests.Add(item);
+		}
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_NpcInteractResult);
+        packet.push(this.NpcId);packet.push(this.AvailableQuests.Count);
+		foreach (AvailableQuestsItem item in this.AvailableQuests)
+		{
+		    packet.push(item.QuestId);
+				
+		}packet.push(this.CompletableQuests.Count);
+		foreach (CompletableQuestsItem item in this.CompletableQuests)
+		{
+		    packet.push(item.QuestId);
+				
+		}
+        return packet;
+    }
+}
+
+public class C_AcceptQuest : IPacket
+{
+    public int NpcId;public int QuestId;
+
+    public short Protocol { get { return (short)PacketID.C_AcceptQuest; } }
+
+    public void Read(CPacket packet)
+    {
+        this.NpcId = packet.pop_int32();this.QuestId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_AcceptQuest);
+        packet.push(this.NpcId);packet.push(this.QuestId);
+        return packet;
+    }
+}
+
+public class S_AcceptQuest : IPacket
+{
+    public int QuestId;public int ErrorCode;
+
+    public short Protocol { get { return (short)PacketID.S_AcceptQuest; } }
+
+    public void Read(CPacket packet)
+    {
+        this.QuestId = packet.pop_int32();this.ErrorCode = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_AcceptQuest);
+        packet.push(this.QuestId);packet.push(this.ErrorCode);
+        return packet;
+    }
+}
+
+public class S_UpdateQuestProgress : IPacket
+{
+    public int QuestId;public struct ObjectivesItem
+	{
+	    public int ObjectiveIndex;
+		public int CurrentCount;
+		
+	}
+	public List<ObjectivesItem> Objectives = new List<ObjectivesItem>();
+
+    public short Protocol { get { return (short)PacketID.S_UpdateQuestProgress; } }
+
+    public void Read(CPacket packet)
+    {
+        this.QuestId = packet.pop_int32();this.Objectives.Clear();
+		int ObjectivesCount = packet.pop_int32();
+		for (int i = 0; i < ObjectivesCount; i++)
+		{
+		    ObjectivesItem item = new ObjectivesItem();
+		    item.ObjectiveIndex = packet.pop_int32();
+				item.CurrentCount = packet.pop_int32();
+				
+		    this.Objectives.Add(item);
+		}
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_UpdateQuestProgress);
+        packet.push(this.QuestId);packet.push(this.Objectives.Count);
+		foreach (ObjectivesItem item in this.Objectives)
+		{
+		    packet.push(item.ObjectiveIndex);
+				packet.push(item.CurrentCount);
+				
+		}
+        return packet;
+    }
+}
+
+public class C_CompleteQuest : IPacket
+{
+    public int NpcId;public int QuestId;
+
+    public short Protocol { get { return (short)PacketID.C_CompleteQuest; } }
+
+    public void Read(CPacket packet)
+    {
+        this.NpcId = packet.pop_int32();this.QuestId = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_CompleteQuest);
+        packet.push(this.NpcId);packet.push(this.QuestId);
+        return packet;
+    }
+}
+
+public class S_CompleteQuest : IPacket
+{
+    public int QuestId;public int RewardItemId;public int RewardItemCount;public int ErrorCode;
+
+    public short Protocol { get { return (short)PacketID.S_CompleteQuest; } }
+
+    public void Read(CPacket packet)
+    {
+        this.QuestId = packet.pop_int32();this.RewardItemId = packet.pop_int32();this.RewardItemCount = packet.pop_int32();this.ErrorCode = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_CompleteQuest);
+        packet.push(this.QuestId);packet.push(this.RewardItemId);packet.push(this.RewardItemCount);packet.push(this.ErrorCode);
         return packet;
     }
 }

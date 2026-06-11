@@ -259,7 +259,7 @@ namespace SnakeServer
             //보안검사 후
             if (peer is GameUser_Session session)
             {
-                SkillData? skillData = DataManager.GetSkillData(c_UseSkill.skillId);
+                SkillData? skillData = SkillDataManager.GetSkillData(c_UseSkill.skillId);
 
                 float angleRad = (float)(c_UseSkill.rotY * Math.PI / 180f);
                 float dirX = (float)Math.Sin(angleRad); // X가 Sin
@@ -325,6 +325,28 @@ namespace SnakeServer
                 gameUser_Session.room.Push(() =>
                 {
                     gameUser_Session.room.Get_Item(gameUser_Session, c_MMOGetItem);
+                });
+            }
+        }
+
+        public static void C_SwapItem_Handler(IPeer session, C_SwapItem c_SwapItem)
+        {
+            if (session is GameUser_Session gameUser_Session)
+            {
+                gameUser_Session.room.Push(() =>
+                {
+                    gameUser_Session.room.Swap_Item(gameUser_Session, c_SwapItem);
+                });
+            }
+        }
+
+        public static void C_NpcInteract_Handler(IPeer session, C_NpcInteract c_NpcInteract)
+        {
+            if (session is GameUser_Session gameUser_Session)
+            {
+                gameUser_Session.room.Push(() =>
+                {
+                    gameUser_Session.room.Npc_Interact(gameUser_Session, c_NpcInteract);
                 });
             }
         }

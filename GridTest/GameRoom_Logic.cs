@@ -428,7 +428,7 @@ namespace SnakeServer
                 case 3:
                     break;
                 case 4:
-                    SkillData? skill = DataManager.GetSkillData(packet.skillId);
+                    SkillData? skill = SkillDataManager.GetSkillData(packet.skillId);
                     if (skill == null)
                     {
                         Console.WriteLine("스킬 데이터 없음");
@@ -725,7 +725,7 @@ namespace SnakeServer
         {
             proJectile.Initialize(gameObject.Id,
                    gameObject.PosX, gameObject.PosY, gameObject.PosZ,
-                    dirx, dirz, 3000, skillData.Id, skillData.Damage, gameObject, skillData.Speed);
+                    dirx, dirz, 3000, skillData.SkillId, skillData.Damage, gameObject, skillData.Speed);
             Console.WriteLine($"{gameObject.PosX}");
             S_UseSkill s_UseSkill = new S_UseSkill();
             s_UseSkill.playerid = gameObject.Id;
@@ -735,7 +735,7 @@ namespace SnakeServer
             s_UseSkill.rotY = gameObject.RotY;
             s_UseSkill.dirx = dirx;
             s_UseSkill.dirz = dirz;
-            s_UseSkill.skillId = skillData.Id;
+            s_UseSkill.skillId = skillData.SkillId;
             Broadcast(s_UseSkill.Write(), gameObject);
 
 
@@ -743,34 +743,197 @@ namespace SnakeServer
 
         public void Get_Item(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem)
         {
-            GameObject obj = FindObjectById(c_MMOGetItem.ItemID);
+            GameObject obj = FindObjectById(c_MMOGetItem.entityid);
             Player player = gameUser_Session.MyPlayer;
             if (!(obj is Item item))
             {
                 return;
             }
-            float dx = player.PosX - item.PosX;
-            float dz = player.PosZ - item.PosZ;
-            float sqrDist = (dx * dx) + (dz * dz);
-            if (sqrDist > 4.0f) // 예시로 1.0f 이상 떨어져 있으면 아이템 획득 불가
+            bool IsCollision = CollisionCircle(player, item.PosX, item.PosZ, 2.0f);
+            if (!IsCollision)
             {
-                Console.WriteLine("아이템과의 거리가 멀어서 획득 불가");
+                return;
+            }
+            if (!player.Room.WorldObjectList.Remove(item.Id, out GameObject targetItem))
+            {
+                Console.WriteLine("동일 id 아이템이므로 삭제");
                 return;
             }
 
-            bool isGetItem = player.Inventory.AddItem(item);
-            if (isGetItem)
+            List<short> changedSlots = player.Inventory.AddItem(item);
+
+            // 핸들러는 몇 개가 변했든 신경 쓰지 않고 무지성으로 foreach만 돌리면 끝난다.
+            FileLogger.Log($"{player.PlayerID}가 {item.Id} : {item.ItemID}획득");
+            foreach (short slotIdx in changedSlots)
             {
-                S_MMOGetItem s_MMOGetItem = new S_MMOGetItem();
-                s_MMOGetItem.ItemID = c_MMOGetItem.ItemID;
-                Broadcast(s_MMOGetItem.Write(), gameUser_Session.MyPlayer);
-                S_MMODespawnItem s_MMODespawnItem = new S_MMODespawnItem();
-                s_MMODespawnItem.entityID = c_MMOGetItem.ItemID;
-                Broadcast(s_MMODespawnItem.Write(), gameUser_Session.MyPlayer);
-                WorldObjectList.Remove(c_MMOGetItem.ItemID);
+                SendUpdateSlot(player, slotIdx);
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 업데이트 : {slotIdx} 슬롯에 {item.Id} : {item.ItemID}이(가) 들어감");
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 상태 : {slotIdx} 슬롯의 Count{player.Inventory.Slots[slotIdx].Count}");
+            }
+
+            GetItemSendPacket(gameUser_Session, c_MMOGetItem, player);
+
+
+        }
+        private static bool CollisionCircle(Player player, float posx, float posz, float radius)
+        {
+            float dx = player.PosX - posx;
+            float dz = player.PosZ - posz;
+            float sqrDist = (dx * dx) + (dz * dz);
+            if (sqrDist > (radius * radius)) // 예시로 1.0f 이상 떨어져 있으면 아이템 획득 불가
+            {
+                return false;
+            }
+            return true;
+        }
+
+        private void SendUpdateSlot(Player player, short slotIdx)
+        {
+            if (slotIdx < 0 || slotIdx >= 20) return;//임시로 하드코딩
+
+            Item item = player.Inventory.Slots[slotIdx];
+            S_UpdateSlot s_UpdateSlot = new S_UpdateSlot();
+
+            // 1. 핵심: 슬롯 번호(인덱스)는 아이템 존재 여부와 상관없이 무조건 채운다.
+            s_UpdateSlot.SlotIndex = slotIdx;
+
+            // 2. 3항 연산자를 활용한 안전한 데이터 채우기 (Null 검증)
+            // item이 null이면(빈칸이면) 0을 넣고, 존재하면 진짜 데이터를 넣는다.
+            s_UpdateSlot.entityid = (item != null) ? item.Id : 0;
+            s_UpdateSlot.TemplateID = (item != null) ? item.ItemID : 0;
+            s_UpdateSlot.Count = (item != null) ? item.Count : 0;
+
+            // 3. 빈칸이든 아니든 패킷은 무조건 전송하여 클라이언트의 락을 해제시킨다.
+            player.Session.send(s_UpdateSlot.Write());
+        }
+        private void GetItemSendPacket(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem, Player player)
+        {
+            S_MMOGetItem s_MMOGetItem = new S_MMOGetItem();
+            s_MMOGetItem.entityid = c_MMOGetItem.entityid;
+            Broadcast(s_MMOGetItem.Write(), gameUser_Session.MyPlayer);
+            S_MMODespawnItem s_MMODespawnItem = new S_MMODespawnItem();
+            s_MMODespawnItem.entityID = c_MMOGetItem.entityid;
+            Broadcast(s_MMODespawnItem.Write(), gameUser_Session.MyPlayer);
+            //WorldObjectList.Remove(c_MMOGetItem.entityid);
+            //DirtySet.Add(player);
+        }
+
+        public void Swap_Item(GameUser_Session gameUser_Session, C_SwapItem c_SwapItem)
+        {
+            Player player = gameUser_Session.MyPlayer;
+            short fromindex = c_SwapItem.FromIndex;
+            short toindex = c_SwapItem.ToIndex;
+            SwapResult result = player.Inventory.SwapItem(fromindex, toindex);
+            if (result == SwapResult.Failed)
+            {
+                //빈칸+빈칸 이동 시 nullref 버그 나오는 중 수정 예정
+                // 강제 롤백 패킷 발송 (이전 상태 복구)
+                SendUpdateSlot(player, fromindex);
+                SendUpdateSlot(player, toindex);
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 롤백: {fromindex}의 {player.Inventory.Slots[fromindex].ItemID} :{player.Inventory.Slots[fromindex].Id} 복구,{toindex}의 {player.Inventory.Slots[toindex].ItemID} :{player.Inventory.Slots[toindex].Id} 복구");
+
+
+
+                return;
+            }
+
+            // 2. 룸(Room)의 DB 저장 명부에 유저 등록 (JSON Write-Back)
+            if (player.Room != null)
+            {
                 DirtySet.Add(player);
             }
-            
+
+            // 3. 결과에 따른 아웃바운드 패킷 전송 (옵티미스틱 UI 적용)
+            if (result == SwapResult.Swapped)
+            {
+                Item itemA = player.Inventory.Slots[fromindex];
+                Item itemB = player.Inventory.Slots[toindex];
+
+                // itemA가 null이면 ?. 연산자가 null을 반환하고, ?? 연산자가 이를 캐치하여 0(또는 "빈칸")을 반환한다.
+                int idA = itemA?.Id ?? 0;
+                int tempA = itemA?.ItemID ?? 0;
+
+                long idB = itemB?.Id ?? 0;
+                int tempB = itemB?.ItemID ?? 0;
+
+                FileLogger.Log($"[스왑 완료] {player.PlayerID} : {fromindex}칸(DB:{idA}/Temp:{tempA}) <-> {toindex}칸(DB:{idB}/Temp:{tempB})");
+                SendUpdateSlot(player, fromindex);
+                SendUpdateSlot(player, toindex);
+            }
+            else if (result == SwapResult.MergedComplete || result == SwapResult.MergedPartial)
+            {
+                // 병합이 일어났으므로 두 슬롯의 최신 상태를 모두 쏴서 동기화
+                SendUpdateSlot(player, fromindex);
+                SendUpdateSlot(player, toindex);
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 병합: {fromindex}의 {player.Inventory.Slots[fromindex].ItemID} :{player.Inventory.Slots[fromindex].Id}의 현재 남은 갯수 {player.Inventory.Slots[fromindex].Count},{fromindex}의 {player.Inventory.Slots[toindex].ItemID} :{player.Inventory.Slots[toindex].Id} 복구");
+            }
+
+        }
+
+        public void Npc_Interact(GameUser_Session gameUser_Session, C_NpcInteract c_NpcInteract)
+        {
+            int npcId = c_NpcInteract.NpcId;
+            Player player = gameUser_Session.MyPlayer;
+            if (player == null) { return; }
+            NPCData? npcData = NPCManager.GetNpcData(c_NpcInteract.NpcId);
+            if (npcData == null)
+            {
+                Console.WriteLine("NPC 데이터 없음");
+                return;
+            }
+            bool isCollision = CollisionCircle(player, npcData.X, npcData.Z, 10.0f);
+            if (!isCollision)
+            {
+                Console.WriteLine("NPC와의 상호작용 범위 벗어남");
+                return;
+            }
+            S_NpcInteractResult s_NpcInteractResult = new S_NpcInteractResult();
+            s_NpcInteractResult.NpcId = c_NpcInteract.NpcId;
+            // 퀘스트 데이터베이스에서 해당 NPC와 관련된 퀘스트 정보를 조회하여 패킷에 담는다.
+            foreach (int questId in QuestManager.GetAvailableQuestsFromNpc(npcId))
+            {
+                // 필터 1: 유저가 이미 완료한 퀘스트인가? -> 버림 (continue)
+                if (player.QuestState.IsComplete(questId))
+                    continue;
+
+                // 필터 2: 유저가 현재 진행 중인 퀘스트인가? -> 버림 (continue)
+                if (player.QuestState.IsActive(questId))
+                    continue;
+
+                // TODO: 필터 3: 마스터 데이터의 요구 레벨(Level) 조건을 만족하는가? (필요시 추가)
+
+                // 모든 보안/상태 필터를 통과한 '진짜 수락 가능한' 퀘스트만 넣는다.
+                s_NpcInteractResult.AvailableQuests.Add(new S_NpcInteractResult.AvailableQuestsItem { QuestId = questId });
+            }
+
+            // ---------------------------------------------------------
+            // [2단계] CompletableQuests 필터링 (완료 보고/보상 대기 중인 퀘스트)
+            // ---------------------------------------------------------
+            foreach (QuestProgress activeQuest in player.QuestState.GetActiveQuests())
+            {
+                // 1. 상태 객체에게 "너 목표 다 채웠어?" 라고 물어봄 (캡슐화)
+                // 2. 마스터 데이터에서 해당 퀘스트의 보고 대상 NPC 번호 검증
+                if (activeQuest.IsObjectiveMet())
+                {
+                    if (QuestManager.TryGetQuest(activeQuest.QuestId, out QuestTemplate template))
+                    {
+                        if (template.CompleteNpcId == npcId)
+                        {
+
+                            s_NpcInteractResult.CompletableQuests.Add(new S_NpcInteractResult.CompletableQuestsItem
+                            {
+                                QuestId = activeQuest.QuestId
+                            });
+
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                }
+            }
+            gameUser_Session.send(s_NpcInteractResult.Write());
         }
     }
 }

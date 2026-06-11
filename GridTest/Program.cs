@@ -6,29 +6,26 @@ using NetWorkModule;
 
 namespace SnakeServer
 {
-
+    
     internal class Program
     {
         public static Dictionary<int, IPeer> userlist = new Dictionary<int, IPeer>();
         public static GameServer game_server = new GameServer();
-
+        
         static void Main(string[] args)
         {
+            FileLogger.Start();
+            FileLogger.Log("서버 시작");    
             if (PacketHandler.USE_DB)
             {
                 RedisManager.Init();
-                DataManager.LoadSkillData();
-                DataManager.LoadAniData();
-                
-                DataManager.LoadDropData();
+
+                DataManager.LoadAllData();
                 Console.WriteLine("DB, redis 사용 모드로 실행합니다.");
             }
             else
             {
-                DataManager.LoadSkillData();
-                DataManager.LoadAniData();
-                
-                DataManager.LoadDropData();
+                DataManager.LoadAllData();
                 Console.WriteLine("DB, redis 미사용 모드로 실행합니다.");
             }
             CPacketBufferManger.initialize(1000000);//임시

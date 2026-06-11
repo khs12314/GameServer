@@ -96,7 +96,20 @@ namespace SnakeServer
                     C_MMOGetItem c_MMOGetItem = new C_MMOGetItem();
                     c_MMOGetItem.Read(packet);
                     PacketHandler.C_MMOGetItem_Handler(session, c_MMOGetItem);
+                    Console.WriteLine("getitem packet");
                     break;
+                case PacketID.C_SwapItem:
+                    C_SwapItem c_SwapItem = new C_SwapItem();
+                    c_SwapItem.Read(packet);
+                    PacketHandler.C_SwapItem_Handler(session, c_SwapItem);
+                    Console.WriteLine("swap inventory packet");
+                    break;
+                case PacketID.C_NpcInteract:
+                    C_NpcInteract c_NpcInteract = new C_NpcInteract();
+                    c_NpcInteract.Read(packet);
+                    PacketHandler.C_NpcInteract_Handler(session, c_NpcInteract);
+                    break;
+
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
                     Console.WriteLine($"{packet.position}");

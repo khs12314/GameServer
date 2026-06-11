@@ -14,7 +14,7 @@ namespace GridTest
         public static int GetRandomLoot(int monsterId)
         {
             // 1. 해당 몬스터의 드랍 리스트를 가져온다.
-            var lootList = DataManager.GetDropData(monsterId);
+            var lootList = ItemDataManager.GetDropData(monsterId);
             int rand = Random.Shared.Next(0, 10000); // 시드 초기화
                                                      // 2. 0 ~ 9999 사이의 난수 하나 발생
 

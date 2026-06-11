@@ -1,0 +1,2 @@
+﻿QuestId,Name,StartNpcId,CompleteNpcId,ReqLevel,PreQuestId,Target1_Type,Target1_Id,Target1_Count,Target2_Type,Target2_Id,Target2_Count,Target3_Type,Target3_Id,Target3_Count,RewardExp,RewardGold,RewardItemId,RewardItemCount,
+501,골렘잡기,1001,1001,0,0,1,1,5,0,0,0,0,0,0,0,0,102,3,

@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace GridTest
 {
+    public enum SwapResult { 
+        Failed, 
+        Swapped, 
+        MergedPartial, 
+        MergedComplete 
+    }
     public enum ItemType : byte
     {
         None = 0,

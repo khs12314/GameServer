@@ -12,23 +12,31 @@ namespace GridTest
 
     public class Inventory
     {
+        private List<short> changeSlotindex = new List<short>(4);
         const int MaxSlots = 20;
         public Item[] Slots { get; private set; } = new Item[MaxSlots];
         public Dictionary<long, Item> Items { get; private set; } = new Dictionary<long, Item>();
-        public bool AddItem(Item item)
+        public Inventory()
         {
+            Items = new Dictionary<long, Item>();
+            Slots = new Item[MaxSlots];
+
+        }
+        public List<short> AddItem(Item item)
+        {
+            changeSlotindex.Clear();
             if (item.SlotIndex != Item.INVALID_SLOT)
             {
-                return false; // 이미 어딘가에 소속된 아이템
+                return null; // 이미 어딘가에 소속된 아이템
             }
 
             // 아이템 타입 검사: 장비(2)가 아니면 모두 중첩 가능하다고 가정
-            bool isStackable = (item.ItemType != 2);
+            bool isStackable = (item.ItemType != 1);
 
             // 1단계: 소모품(Stackable)인 경우, 합칠 수 있는 기존 슬롯부터 찾는다.
             if (isStackable)
             {
-                for (int i = 0; i < MaxSlots; i++)
+                for (short i = 0; i < MaxSlots; i++)
                 {
                     Item existItem = Slots[i];
 
@@ -45,10 +53,11 @@ namespace GridTest
                         // ★ DB 저장을 위해 기존 아이템의 상태를 Dirty로 마킹
                         existItem.IsDirty = true;
 
+                        changeSlotindex.Add(i);
                         // 모두 합쳤으면 성공 반환
                         if (item.Count <= 0)
                         {
-                            return true;
+                            return changeSlotindex;
                         }
                     }
                 }
@@ -56,25 +65,67 @@ namespace GridTest
 
             // 2단계: 여전히 아이템이 남았거나, 처음부터 중첩 불가(장비)인 경우 빈 슬롯에 넣는다.
             // (조건: 파이프라인 단에서 이미 item.Count <= item.MaxStack 으로 맞춰져 들어왔다고 가정)
-            for (int i = 0; i < MaxSlots; i++)
+            for (short i = 0; i < MaxSlots; i++)
             {
                 if (Slots[i] == null)
                 {
                     // 투트랙(Two-Track) 컬렉션 양쪽에 등록
                     item.SlotIndex = i;
                     Slots[i] = item;
-                    Items[item.ItemID] = item;
+                    Items[item.Id] = item;
 
                     // DB 저장을 위해 새 아이템의 상태를 Dirty로 마킹
-                    item.IsDirty = true;
-
-                    return true;
+                    //item.IsDirty = true;
+                    changeSlotindex.Add(i);
+                    return changeSlotindex;
                 }
             }
 
             // 빈칸이 없으면 실패 (클라이언트에 인벤토리 풀(Full) 패킷 전송 필요)
-            return false;
+            return null;
 
+        }
+
+        public SwapResult SwapItem(short fromIndex, short toIndex)
+        {
+            if (fromIndex < 0 || fromIndex >= MaxSlots || toIndex < 0 || toIndex >= MaxSlots) return SwapResult.Failed;
+            if (fromIndex == toIndex) return SwapResult.Failed;
+
+            Item itemA = Slots[fromIndex];
+            Item itemB = Slots[toIndex];
+
+            if (itemA == null) return SwapResult.Failed; // 허공을 드래그함
+
+            // 1. 병합(Merge) 조건 검사: B가 있고, 같은 종류이며, 스택 가능한가?
+            if (itemB != null && itemA.ItemID == itemB.ItemID && itemA.ItemType != 1)
+            {
+                if (itemB.Count < itemB.MaxStack)
+                {
+                    int space = itemB.MaxStack - itemB.Count;
+                    int addCount = Math.Min(space, itemA.Count);
+
+                    itemB.Count += addCount;
+                    itemA.Count -= addCount;
+
+                    if (itemA.Count <= 0)
+                    {
+                        // A가 전부 B로 흡수됨 -> A 슬롯 비우기
+                        Slots[fromIndex] = null;
+                        Items.Remove(itemA.Id); // 딕셔너리에서도 제거
+                        return SwapResult.MergedComplete;
+                    }
+                    return SwapResult.MergedPartial;
+                }
+            }
+
+            // 2. 단순 스왑(Swap) 연산 (빈칸으로의 이동 포함)
+            Slots[fromIndex] = itemB;
+            if (itemB != null) itemB.SlotIndex = fromIndex;
+
+            Slots[toIndex] = itemA;
+            itemA.SlotIndex = toIndex;
+
+            return SwapResult.Swapped;
         }
     }
 }
@@ -132,7 +183,7 @@ public class Item : GameObject
     public int ItemID { get; set; } // 아이템 종류 식별용 ID (예: Potion=1, Sword=2 등)
     public int Count { get; set; } // 아이템 개수 (소모품인 경우 1~99, 장비는 항상 1)
     public byte ItemType { get; set; } // 아이템 타입 (예: Equipment, Consumables 등)
-    public int SlotIndex { get; set; } = INVALID_SLOT; // 인벤토리 슬롯 인덱스 (0~19), INVALID_SLOT은 인벤토리에 없는 상태를 의미
+    public short SlotIndex { get; set; } = INVALID_SLOT; // 인벤토리 슬롯 인덱스 (0~19), INVALID_SLOT은 인벤토리에 없는 상태를 의미
     public int MaxStack { get; set; } // 최대 스택 수량 (소모품인 경우 99, 장비는 1 등)
 
     public Item()
@@ -155,6 +206,7 @@ public class Item : GameObject
             ItemType = type;
             MaxStack = maxstack;
             Id = ObjectManager.GenerateId(GameObjectType.Item);
+            FileLogger.Log($"아이템 생성 시도: ID={Id},종류 = {itemId}, Type={type}, MaxStack={maxstack} at ({x}, {y}, {z})");
             S_MMOSpawnItem packet = new S_MMOSpawnItem()
             {
                 ItemID = this.ItemID,
@@ -281,7 +333,7 @@ public class ProJectile : GameObject
             damagePacket.state = (byte)PlayerState.DIE;
 
             // 부활 예약 (5초 뒤)
-            Room.PushAfter(5000, () => { targetmonster.OnDead(this.Room); });
+            Room.Push(() => { targetmonster.OnDead(this.Room); });
         }
         else
         {
@@ -299,6 +351,7 @@ public class Player : GameObject
 {
     public int PlayerID { get; set; }//플레이어 전용 고유 아이디 db에서 가져올 내용(계정 생성 순서에 따라 저정된 db의 pk값)
     public Inventory Inventory { get; set; } = new Inventory();
+    public QuestState QuestState { get; set; }
     public GameUser_Session Session { get; set; }
     private const int LOOT_COOLDOWN_MS = 200;
     private long _lastLootTick = 0;
@@ -308,6 +361,7 @@ public class Player : GameObject
         PlayerID = playerID;//db에서 발급받은 고유id
         Session = session;
         this.Id = ObjectManager.GenerateId(GameObjectType.Player);//방 접속 시 사용할 고유 id
+        this.QuestState = new QuestState();
     }
     public void RedisSave()
     {
@@ -372,21 +426,22 @@ public class Monster : GameObject
         TargetId = 0;
         this.Room = Room;
         ReSpawnTimeMs = 5000;
-        AtkWaitMs = DataManager.GetAniData(MonsterID).AtkWaitMs;
-        AtkTotalTimeMs = DataManager.GetAniData(MonsterID).AtkTotalMs;
+        AtkWaitMs = MonsterAniDataManager.GetAniData(MonsterID).AtkWaitMs;
+        AtkTotalTimeMs = MonsterAniDataManager.GetAniData(MonsterID).AtkTotalMs;
         Room.PushAfter(tickAfter, UpdateAI); // AI 업데이트 시작
         Console.WriteLine($"공격 토탈 시간 {AtkTotalTimeMs}");
     }
     public void OnDead(GameRoom_Logic Room)
     {
         this.Hp = 0;
-        ChangeStateAndBroadcast(PlayerState.DIE, Room);
-        //Console.WriteLine($"[몬스터 사망] 몬스터 {this.Id} 사망. {ReSpawnTimeMs / 1000}초 뒤 부활 예약.");
         int itemid = ItemDropManager.GetRandomLoot(this.MonsterID); // 몬스터 사망 시 아이템 드롭 처리
-        byte itemType = DataManager.GetItemData(itemid).type;
-        int maxstack = DataManager.GetItemData(itemid).MaxStack;
+        byte itemType = ItemDataManager.GetItemData(itemid).type;
+        int maxstack = ItemDataManager.GetItemData(itemid).MaxStack;
         Item droppedItem = new Item();
         droppedItem.Initialize(this.PosX, this.PosY, this.PosZ, Room, itemid, itemType, maxstack);
+       
+        ChangeStateAndBroadcast(PlayerState.DIE, Room);
+        //Console.WriteLine($"[몬스터 사망] 몬스터 {this.Id} 사망. {ReSpawnTimeMs / 1000}초 뒤 부활 예약.");
         Room.PushAfter(ReSpawnTimeMs, () =>
         {
             Respawn(Room);
@@ -569,8 +624,7 @@ public class Monster : GameObject
             if (MathUtils.IsHitValid(this.PosX, this.PosZ, this.RotY, targetPlayer.PosX, targetPlayer.PosZ, 2.0f, 60.0f))
             {
                 targetPlayer.Hp -= 10;
-                // Redis/DB 실시간 호출 절대 금지. 메모리만 바꾸고 나중에 Write-Back.
-                Console.WriteLine("타격");
+                // Redis DB 실시간 호출 절대 금지. 메모리만 바꾸고 나중에 Write-Back.
                 // 사망 처리
                 if (targetPlayer.Hp <= 0)
                 {

@@ -232,13 +232,66 @@
 		<float name="posZ"/>
 	</Packet>
 	<Packet name="C_MMOGetItem">
-		<int name="ItemID"/>
+		<int name="entityid"/>
 	</Packet>
 	<Packet name="S_MMOGetItem">
-		<int name="ItemID"/>
+		<int name="entityid"/>
 		<int name="playerid"/>
 	</Packet>
 	<Packet name="S_MMODespawnItem">
 		<int name="entityID"/>
+	</Packet>
+	<Packet name ="S_UpdateSlot">
+		<short name="SlotIndex"/>
+		<int name="entityid"/>
+		<int name="TemplateID"/>
+		<int name="Count"/>
+	</Packet>
+	<Packet name="C_SwapItem">
+		<short name="FromIndex"/>
+		<short name="ToIndex"/>
+	</Packet>
+	
+	<Packet name="C_NpcInteract">
+		<int name="NpcId"/>
+	</Packet>
+
+	<Packet name="S_NpcInteractResult">
+		<int name="NpcId"/>
+		<list name="AvailableQuests">
+			<int name="QuestId"/>
+		</list>
+		<list name="CompletableQuests">
+			<int name="QuestId"/>
+		</list>
+	</Packet>
+	
+	<Packet name="C_AcceptQuest">
+		<int name="NpcId"/>
+		<int name="QuestId"/>
+	</Packet>
+
+	<Packet name="S_AcceptQuest">
+		<int name="QuestId"/>
+		<int name="ErrorCode"/>
+	</Packet>
+	
+	<Packet name="S_UpdateQuestProgress">
+		<int name="QuestId"/>
+		<list name="Objectives">
+			<int name="ObjectiveIndex"/>
+			<int name="CurrentCount"/>
+		</list>
+	</Packet>
+	<Packet name="C_CompleteQuest">
+		<int name="NpcId"/>
+		<int name="QuestId"/>
+	</Packet>
+
+	<Packet name="S_CompleteQuest">
+		<int name="QuestId"/>
+		<int name="RewardItemId"/>
+		<int name="RewardItemCount"/>
+		<int name="ErrorCode"/>
 	</Packet>
 </PDL>
