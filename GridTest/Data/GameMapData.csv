@@ -1,0 +1,3 @@
+RoomId, MapFileName, MinX, MaxX, MinY, MaxY
+1, Map_00_01, 0, 50, 0, 50
+2, Map_00_02, 0, 50, 50, 100

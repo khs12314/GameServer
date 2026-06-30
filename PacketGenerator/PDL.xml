@@ -294,4 +294,19 @@
 		<int name="RewardItemCount"/>
 		<int name="ErrorCode"/>
 	</Packet>
+	<Packet name="S_GetExp">
+		<long name ="Exp"/>
+	</Packet>
+	<Packet name="S_LevelUp">
+		<int name="playerid"/>
+		<int name="level"/>
+	</Packet>
+	<Packet name ="C_UseItem">
+		<short name ="index"/>
+	</Packet>
+	<Packet name="S_PlayerStatusUpdate">
+		<int name="playerid"/>
+		<int name="Hp"/>
+		<int name="Mp"/>
+	</Packet>
 </PDL>
