@@ -37,7 +37,7 @@ namespace PacketGenerator
             string[] outputPaths =
  {
     @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Scripts\Application\GenPackets.cs",
-    @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\GenPackets.cs"
+    @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\Network\GenPackets.cs"
 };
 
             foreach (string path in outputPaths)
@@ -197,6 +197,11 @@ namespace PacketGenerator
                     case "string":
                         memberCode += string.Format("public {0} {1};\n", memberType, memberName);
                         readCode += string.Format("item.{0} = packet.pop_string();\n", memberName);
+                        writeCode += string.Format("packet.push(item.{0});\n", memberName);
+                        break;
+                    case "float":
+                        memberCode += string.Format("public {0} {1};\n", memberType, memberName);
+                        readCode += string.Format("item.{0} = packet.pop_float();\n", memberName);
                         writeCode += string.Format("packet.push(item.{0});\n", memberName);
                         break;
                         // 필요하다면 short, long, float 등도 위 패턴에 맞춰 똑같이 추가해라!

@@ -8,11 +8,11 @@ namespace GridTest.InGameObj.PlayerInfo
 {
     public class Equipment
     {
-        Item Weapon;
+        Item? Weapon;
         public void SetWeapon(Item Weapon)
         {
             this.Weapon = Weapon;
         }
-        public Item GetItem() { return Weapon; }
+        public Item? GetWeapon() { return Weapon; }
     }
 }

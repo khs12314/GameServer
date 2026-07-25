@@ -120,12 +120,16 @@ namespace GridTest.Manager
                     c_CompleteQuest.Read(packet);
                     PacketHandler.C_CompeleteQuest_Handler(session, c_CompleteQuest);
                     break;
-                    case PacketID.C_UseItem:
-                        C_UseItem c_consumeItme = new C_UseItem();
+                case PacketID.C_UseItem:
+                    C_UseItem c_consumeItme = new C_UseItem();
                     c_consumeItme.Read(packet);
-                    PacketHandler.C_ConsumeItem_Handler( session, c_consumeItme);
+                    PacketHandler.C_CUseItem_Handler(session, c_consumeItme);
                     break;
-                    
+                case PacketID.C_UnequipItem:
+                    C_UnequipItem c_equipItem = new C_UnequipItem();
+                    c_equipItem.Read(packet);
+                    PacketHandler.C_UnequipItem_Handler(session, c_equipItem);
+                    break;
                 default:
                     Console.WriteLine($"디폴트 {(PacketID)protocol_id}");
                     Console.WriteLine($"{packet.position}");

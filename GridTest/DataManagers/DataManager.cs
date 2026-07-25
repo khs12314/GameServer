@@ -24,6 +24,7 @@ namespace GridTest.DataManagers
             MonsterDataManager.LoadMonsterData(dataDir, "MMO_Monster.csv");
             MapDataManager.LoadAllMaps();
             MapDataManager.LoadMapData(dataDir, "GameMapData.csv");
+            WeaponDataManager.LoadWeaponData(dataDir, "Item_Weapon.csv");
         }      
     }
 }

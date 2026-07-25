@@ -10,12 +10,10 @@ using Microsoft.VisualBasic;
 using NetWorkModule;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
-using static System.Net.Mime.MediaTypeNames;
+
 
 namespace GridTest.Room
 {
@@ -39,7 +37,7 @@ namespace GridTest.Room
         public Action UpdateAction;
         GridManager grid;
         public const float CellSize = 10.0f;
-
+        private Dictionary<BorderDirection, GameRoom_Logic> _neighborRooms = new();
         // 컴파일러가 빌드할 때 1.0f / 10.0f를 미리 계산해서 0.1f로 박아버린다! (연산 비용 0)
         public const float InvCellSize = 1.0f / CellSize;
         GameMap gameMap;
@@ -50,7 +48,8 @@ namespace GridTest.Room
         const float PlayerRadius = 0.4f;
         private List<GameObject> _searchBuffer;
         private List<GameObject> _broadcastBuffer;
-        public GameRoom_Logic()
+        private Channel channel;
+        public GameRoom_Logic(Channel channel)
         {
 
             jobqueue = new JobQueue();
@@ -63,7 +62,7 @@ namespace GridTest.Room
             //map = new int[MapSizeY + 1, MapSizeX + 1];
             Is_Running = false;
             UserCount = 0;
-            grid = new GridManager(MapSizeX, (int)CellSize);
+            grid = new GridManager(MapSizeX, (int)CellSize, this);
             gameMap = new GameMap();
 
             _searchBuffer = new List<GameObject>(30);
@@ -75,7 +74,48 @@ namespace GridTest.Room
             SpawnMonster(11.5f, 0.5f, 11.5f, 1);
             SpawnMonster(10.5f, 0.5f, 11.5f, 1);
             Start();
+            this.channel = channel;
+        }
+        public void InitNeighbors()
+        {
+            int RoomMinX = gameMap.MinX;
+            int RoomMaxX = gameMap.MaxX;
+            int RoomMinZ = gameMap.MinY;
+            int RoomMaxZ = gameMap.MaxY;
 
+            // 1. 내 방의 가로(X) 세로(Z) 정중앙 좌표를 구한다. (안전한 탐색을 위해)
+            float midX = (RoomMinX + RoomMaxX) / 2f;
+            float midZ = (RoomMinZ + RoomMaxZ) / 2f;
+
+            // 2. 방 바깥으로 찔러볼 오프셋 (여유 있게 셀 1~2개 크기)
+            float offset = CellSize;
+
+            // 3. 중복 코드를 제거할 지역 함수 (Local Function) 선언
+            void TryCacheRoom(BorderDirection dir, float probeX, float probeZ)
+            {
+                GameRoom_Logic foundRoom = this.channel.FindRoomByGlobalPosition(probeX, probeZ);
+
+                // 찾은 방이 존재하고, 나 자신이 아니라면 캐싱한다.
+                if (foundRoom != null && foundRoom.Room_ID != this.Room_ID)
+                {
+                    _neighborRooms[dir] = foundRoom;
+                }
+            }
+
+            // 4. 방향별로 명확하게 매핑하여 찌르기 (Probing)
+            // 상하좌우 (직각)
+            TryCacheRoom(BorderDirection.Right, RoomMaxX + offset, midZ);
+            TryCacheRoom(BorderDirection.Left, RoomMinX - offset, midZ);
+            TryCacheRoom(BorderDirection.Up, midX, RoomMaxZ + offset);
+            TryCacheRoom(BorderDirection.Down, midX, RoomMinZ - offset);
+
+            // 대각선 (모서리)
+            TryCacheRoom(BorderDirection.Right | BorderDirection.Up, RoomMaxX + offset, RoomMaxZ + offset);
+            TryCacheRoom(BorderDirection.Right | BorderDirection.Down, RoomMaxX + offset, RoomMinZ - offset);
+            TryCacheRoom(BorderDirection.Left | BorderDirection.Up, RoomMinX - offset, RoomMaxZ + offset);
+            TryCacheRoom(BorderDirection.Left | BorderDirection.Down, RoomMinX - offset, RoomMinZ - offset);
+
+            Console.WriteLine($"[System] Room {this.Room_ID} 인접 룸 캐싱 완료. (총 {_neighborRooms.Count}개)");
         }
         public GameMap GetGameMap()
         {
@@ -100,7 +140,16 @@ namespace GridTest.Room
 
             });
         }
+        public void AOISpawnPlayer(GameObject recvsession, GameObject spawnobj)
+        {
 
+
+
+        }
+        public void AOIDespawnPlayer(GameObject recvsession, GameObject despawnobj)
+        {
+
+        }
         private void EnterPlayer(Player player)
         {
             Console.WriteLine($"유저 입장");
@@ -110,7 +159,7 @@ namespace GridTest.Room
                 player.Session.Enter_Room(this);
                 grid.Add(player);
                 Spawn_User(player.Session);
-                MMO_Spawn(player.Session);
+                //MMO_Spawn(player.Session);
 
             }
         }
@@ -198,8 +247,18 @@ namespace GridTest.Room
 
             grid.Add(gameObject);
         }
-        public void Item()
+        public void Item(Item item)
         {
+            S_MMOSpawnItem packet = new S_MMOSpawnItem()
+            {
+                ItemID = item.ItemID,
+                entityID = item.Id,
+                posX = item.PosX,
+                posY = item.PosY,
+                posZ = item.PosZ
+            };
+            Broadcast(packet.Write(), item);
+            SetObject(item);
             return;
         }
         public List<GameObject> GetAOIGameUsers(GameObject gameObject, List<GameObject> _objectsearchBuffer)
@@ -312,7 +371,7 @@ namespace GridTest.Room
                 session.MyPlayer.PosY = packet.posY;
                 session.MyPlayer.PosZ = packet.posZ;
                 session.MyPlayer.RotY = packet.rot;
-                RedisManager.SavePlayerPosition(session.MyPlayer.Id, session.MyPlayer.PosX, session.MyPlayer.PosY, session.MyPlayer.PosZ);
+                //RedisManager.SavePlayerPosition(session.MyPlayer.Id, session.MyPlayer.PosX, session.MyPlayer.PosY, session.MyPlayer.PosZ);
 
                 //Console.WriteLine($"주변 오브젝트{GetAOIGameUsers(session.MyPlayer, session.MyPlayer.AOIObjects).Count}");
                 grid.Move(session.MyPlayer);
@@ -324,6 +383,20 @@ namespace GridTest.Room
                 movePacket.playerid = session.MyPlayer.Id;
                 movePacket.state = (byte)PlayerState.MOVE;
                 Broadcast(movePacket.Write(), session.MyPlayer);
+                BorderDirection dir = grid.CheckBorder(player.CellX, player.CellY);
+                if (dir != BorderDirection.None)
+                {
+                    foreach (var kvp in _neighborRooms)
+                    {
+                        // 켜져 있는 방향 비트가 일치하는 방들에 모두 Job을 던진다
+                        if (dir.HasFlag(kvp.Key))
+                        {
+                            GameRoom_Logic targetRoom = kvp.Value;
+                            targetRoom.Push(() => targetRoom.UpdateOrAddGhost(player.Id, player.PosX,player.PosZ,player.RotY, player.State));
+                            
+                        }
+                    }
+                }
             }
             if (moveResult == MoveResult.Obstacle)
             {
@@ -352,6 +425,52 @@ namespace GridTest.Room
             //Console.WriteLine("이동 가능");
 
         }
+        // GameRoom_Logic 클래스 내부
+
+        public void UpdateOrAddGhost(int ghostId, float x, float z, float rot, PlayerState state)
+        {
+            // 1. B룸의 딕셔너리(유저 관리 리스트)에 이 고스트가 이미 존재하는지 확인한다. O(1)
+            if (WorldObjectList.TryGetValue(ghostId, out GameObject ghost))
+            {
+                if (ghost is Player player)
+                {
+                    // [분기 A: 이미 존재함] -> 좌표와 상태만 덮어씌운다.
+                    player.PosX = x;
+                    player.PosZ = z;
+                    player.RotY = rot;
+
+                    player.ChangeState(state);
+
+                    // B룸의 Grid 갱신. (이 안에서 B룸 사람들의 시야 차집합 연산이 돌아감)
+                    grid.Move(player);
+                }
+                // Console.WriteLine($"[System] B룸: 고스트({ghostId}) 위치 갱신 완료.");
+            }
+            else
+            {
+                // [분기 B: 처음 룸 경계를 넘어옴] -> 고스트를 새로 생성한다.
+                // ※ 주의: 현재는 new 할당을 쓰지만, 추후 Zero-Allocation을 위해 Object Pool에서 꺼내오도록 리팩토링 필수.
+                Player newGhost = new Player();
+
+                newGhost.Id = ghostId;
+                newGhost.IsGhost = true;  // [핵심] 나는 영혼 없는 더미 객체다.
+                newGhost.Session = null;  // [핵심] 클라이언트 소켓 연결이 없다.
+
+                newGhost.PosX = x;
+                newGhost.PosZ = z;
+                newGhost.RotY = rot;
+                newGhost.ChangeState(state);
+
+                // B룸의 딕셔너리에 등록
+                WorldObjectList.Add(ghostId, newGhost);
+
+                // B룸의 Grid에 추가. 
+                // -> 이 Add()가 실행되는 순간, B룸 경계선에 있던 진짜 유저들의 시야에 이 고스트가 잡히며 스폰 패킷이 날아간다!
+                grid.Add(newGhost);
+
+                Console.WriteLine($"[System] B룸: 고스트({ghostId}) 신규 생성 및 스폰 완료.");
+            }
+        }
         public void RedisSavePlayerInfo(GameObject gameObject)
         {
             if (gameObject is Player player)
@@ -359,51 +478,7 @@ namespace GridTest.Room
                 RedisManager.SavePlayerPosition(player.Id, player.PosX, player.PosY, player.PosZ);
             }
         }
-        public void MMO_Spawn(GameUser_Session gameuser)
-        {
-            S_Spawn MMO_Spawn = new S_Spawn();
-            foreach (var item in WorldObjectList.Values)
-            {
-                if (item is Player player)
-                {
-                    if (player.Id == gameuser.MyPlayer.Id)
-                        continue;
-                    MMO_Spawn.SpawnX = player.PosX;
-                    MMO_Spawn.SpawnY = player.PosY;
-                    MMO_Spawn.SpawnZ = player.PosZ;
-                    MMO_Spawn.entityID = player.Id;
-                    gameuser.UserToken.send(MMO_Spawn.Write());
-                }
-            }
-            S_MonsterSpawn monsterSpawn = new S_MonsterSpawn();
-            foreach (var item in WorldObjectList.Values)
-            {
-                if (item is Monster monster)
-                {
-                    monsterSpawn.SpawnX = monster.PosX;
-                    monsterSpawn.SpawnY = monster.PosY;
-                    monsterSpawn.SpawnZ = monster.PosZ;
-                    monsterSpawn.entityid = monster.Id;//내부 고유 id
-                    monsterSpawn.objectid = monster.MonsterID; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
-                    gameuser.UserToken.send(monsterSpawn.Write());
-                    Console.WriteLine($"몬스터 정보 전송 id는 {item.Id}");
-                }
-            }
-        }
 
-        public void Spawn_User(GameUser_Session gameuser)
-        {
-            S_Spawn packet = new S_Spawn();
-            {
-                packet.entityID = gameuser.MyPlayer.Id;
-                packet.SpawnX = gameuser.MyPlayer.PosX;
-                packet.SpawnY = gameuser.MyPlayer.PosY;
-                packet.SpawnZ = gameuser.MyPlayer.PosZ;
-                Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
-                Broadcast(packet.Write(), gameuser.MyPlayer);
-
-            }
-        }
         void Normal_Attack()
         {
 
@@ -578,35 +653,20 @@ namespace GridTest.Room
         }
         public void Broadcast(CPacket msg, GameObject player)
         {
-            // [1] 명단 확보 (이 부분은 아주 훌륭함. ThreadLocal + Lock 최소화 유지)
-            // ---------------------------------------------------------
+
             grid.GetNeighbors(player, _broadcastBuffer);
-            if (_broadcastBuffer == null)
+            if (_broadcastBuffer.Count == 0)
             {
                 Console.WriteLine("보낼 대상 없음");
                 return;
             }
 
-            //lock (_lock)
-            //{
-            //    foreach (var item in game_users)
-            //    {
-            //        GameUser_Session session = item.Value;
-            //        if (session.UserToken.socket != null && session.UserToken.socket.Connected)
-            //        {
-            //            targets.Add(session);
-            //        }
-            //    }
-            //}
-            // ---------------------------------------------------------
 
-            // [2] 전송 (Deep Copy 삭제 -> 참조 전달)
-            // ---------------------------------------------------------
             for (int i = 0; i < _broadcastBuffer.Count; i++)
             {
                 if (_broadcastBuffer[i] is Player players)
                 {
-                    //Console.WriteLine($"대상 플레이어 아이디: {players.Id}");
+
                     try
                     {
                         // [삭제된 것들]
@@ -627,15 +687,65 @@ namespace GridTest.Room
                 }
             }
 
-            //Console.WriteLine($"{session.GameUser_Session_Info.userID}");
-            // [3] 뒷정리 (매우 중요)
-            // ---------------------------------------------------------
-            // 나는(Broadcast 함수) 100명한테 뿌리는 임무를 완수했음.
-            // 내 손을 떠났으니 Release.
-            // (아직 전송 중인 세션들이 Retain을 잡고 있어서 Ref Count > 0 상태임. 안 죽음)
+
             msg.Release();
             _broadcastBuffer.Clear();
         }
+        public void Spawn_User(GameUser_Session gameuser)
+        {
+            S_Spawn packet = new S_Spawn();
+            {
+                packet.entityID = gameuser.MyPlayer.Id;
+                packet.SpawnX = gameuser.MyPlayer.PosX;
+                packet.SpawnY = gameuser.MyPlayer.PosY;
+                packet.SpawnZ = gameuser.MyPlayer.PosZ;
+                Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
+                Broadcast(packet.Write(), gameuser.MyPlayer);
+
+            }
+        }
+        public void MMO_Spawn(GameUser_Session gameuser)
+        {
+            foreach (var item in WorldObjectList.Values)
+            {
+                if (item is Player player)
+                {
+                    if (player.Id == gameuser.MyPlayer.Id)
+                        continue;
+                    S_Spawn MMO_Spawn = new S_Spawn();
+                    MMO_Spawn.SpawnX = player.PosX;
+                    MMO_Spawn.SpawnY = player.PosY;
+                    MMO_Spawn.SpawnZ = player.PosZ;
+                    MMO_Spawn.entityID = player.Id;
+                    gameuser.UserToken.send(MMO_Spawn.Write());
+                }
+                else if (item is Monster monster)
+                {
+                    S_MonsterSpawn monsterSpawn = new S_MonsterSpawn();
+                    monsterSpawn.SpawnX = monster.PosX;
+                    monsterSpawn.SpawnY = monster.PosY;
+                    monsterSpawn.SpawnZ = monster.PosZ;
+                    monsterSpawn.entityid = monster.Id;//내부 고유 id
+                    monsterSpawn.objectid = monster.MonsterID; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
+                    gameuser.UserToken.send(monsterSpawn.Write());
+                    Console.WriteLine($"몬스터 정보 전송 id는 {item.Id}");
+                }
+            }
+            //foreach (var item in WorldObjectList.Values)
+            //{
+            //    if (item is Monster monster)
+            //    {
+            //        monsterSpawn.SpawnX = monster.PosX;
+            //        monsterSpawn.SpawnY = monster.PosY;
+            //        monsterSpawn.SpawnZ = monster.PosZ;
+            //        monsterSpawn.entityid = monster.Id;//내부 고유 id
+            //        monsterSpawn.objectid = monster.MonsterID; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
+            //        gameuser.UserToken.send(monsterSpawn.Write());
+            //        Console.WriteLine($"몬스터 정보 전송 id는 {item.Id}");
+            //    }
+            //}
+        }
+
         public void SpawnMonster(float x, float y, float z, int obectid)
         {
             Monster monster = new Monster(obectid);
@@ -711,6 +821,7 @@ namespace GridTest.Room
                 //session.GameUser_Session_Info.dir = packet.direction;
             }
         }
+        #region 투사체 관련 메소드
         public ProJectile Get_Projectile()
         {
             if (proJectiles.Count > 0)
@@ -732,7 +843,7 @@ namespace GridTest.Room
             proJectile.Initialize(gameObject.Id,
                    gameObject.PosX, gameObject.PosY, gameObject.PosZ,
                     dirx, dirz, 3000, skillData.SkillId, skillData.Damage, gameObject, skillData.Speed);
-            Console.WriteLine($"{gameObject.PosX}");
+            
             S_UseSkill s_UseSkill = new S_UseSkill();
             s_UseSkill.playerid = gameObject.Id;
             s_UseSkill.posX = gameObject.PosX;
@@ -746,7 +857,46 @@ namespace GridTest.Room
 
 
         }
+        #endregion
+        #region 충돌 관련 메소드
+        private static bool CollisionCircle(Player player, float posx, float posz, float radius)
+        {
+            float dx = player.PosX - posx;
+            float dz = player.PosZ - posz;
+            float sqrDist = dx * dx + dz * dz;
+            if (sqrDist > radius * radius) // 예시로 1.0f 이상 떨어져 있으면 아이템 획득 불가
+            {
+                return false;
+            }
+            return true;
+        }
+        #endregion
+        #region 인벤토리 관련 메소드
+        private void SendUpdateSlot(Player player, short slotIdx)
+        {
+            if (slotIdx < 0 || slotIdx >= 20) return;//임시로 하드코딩
 
+            Item item = player.Inventory.Slots[slotIdx];
+            S_UpdateSlot s_UpdateSlot = new S_UpdateSlot();
+
+            // 1. 핵심: 슬롯 번호(인덱스)는 아이템 존재 여부와 상관없이 무조건 채운다.
+            s_UpdateSlot.SlotIndex = slotIdx;
+
+            // 2. 3항 연산자를 활용한 안전한 데이터 채우기 (Null 검증)
+            // item이 null이면(빈칸이면) 0을 넣고, 존재하면 진짜 데이터를 넣는다.
+            s_UpdateSlot.entityid = item != null ? item.Id : 0;
+            s_UpdateSlot.TemplateID = item != null ? item.ItemID : 0;
+            s_UpdateSlot.Count = item != null ? item.Count : 0;
+
+            // 3. 빈칸이든 아니든 패킷은 무조건 전송하여 클라이언트의 락을 해제시킨다.
+            player.Session.send(s_UpdateSlot.Write());
+        }
+        public void UpdateSlot(Player player, short slotIdx)
+        {
+            SendUpdateSlot(player, slotIdx);
+        }
+        #endregion
+        #region 스왑 관련 메소드
         public void Get_Item(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem)
         {
             GameObject obj = FindObjectById(c_MMOGetItem.entityid);
@@ -781,41 +931,7 @@ namespace GridTest.Room
 
 
         }
-        private static bool CollisionCircle(Player player, float posx, float posz, float radius)
-        {
-            float dx = player.PosX - posx;
-            float dz = player.PosZ - posz;
-            float sqrDist = dx * dx + dz * dz;
-            if (sqrDist > radius * radius) // 예시로 1.0f 이상 떨어져 있으면 아이템 획득 불가
-            {
-                return false;
-            }
-            return true;
-        }
 
-        private void SendUpdateSlot(Player player, short slotIdx)
-        {
-            if (slotIdx < 0 || slotIdx >= 20) return;//임시로 하드코딩
-
-            Item item = player.Inventory.Slots[slotIdx];
-            S_UpdateSlot s_UpdateSlot = new S_UpdateSlot();
-
-            // 1. 핵심: 슬롯 번호(인덱스)는 아이템 존재 여부와 상관없이 무조건 채운다.
-            s_UpdateSlot.SlotIndex = slotIdx;
-
-            // 2. 3항 연산자를 활용한 안전한 데이터 채우기 (Null 검증)
-            // item이 null이면(빈칸이면) 0을 넣고, 존재하면 진짜 데이터를 넣는다.
-            s_UpdateSlot.entityid = item != null ? item.Id : 0;
-            s_UpdateSlot.TemplateID = item != null ? item.ItemID : 0;
-            s_UpdateSlot.Count = item != null ? item.Count : 0;
-
-            // 3. 빈칸이든 아니든 패킷은 무조건 전송하여 클라이언트의 락을 해제시킨다.
-            player.Session.send(s_UpdateSlot.Write());
-        }
-        public void UpdateSlot(Player player, short slotIdx)
-        {
-            SendUpdateSlot(player, slotIdx);
-        }
         private void GetItemSendPacket(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem, Player player)
         {
             S_MMOGetItem s_MMOGetItem = new S_MMOGetItem();
@@ -879,7 +995,8 @@ namespace GridTest.Room
             }
 
         }
-
+        #endregion
+        #region NPC 관련 메소드
         public void Npc_Interact(GameUser_Session gameUser_Session, C_NpcInteract c_NpcInteract)
         {
             int npcId = c_NpcInteract.NpcId;
@@ -945,7 +1062,8 @@ namespace GridTest.Room
             }
             gameUser_Session.send(s_NpcInteractResult.Write());
         }
-
+        #endregion
+        #region 퀘스트 관련 메소드
         public void Accept_Quest(GameUser_Session gameUser_Session, C_AcceptQuest c_AcceptQuest)
         {
             Player player = gameUser_Session.MyPlayer;
@@ -1083,14 +1201,24 @@ namespace GridTest.Room
             player.Session.send(s_CompleteQuest.Write());
 
         }
-
+        #endregion
+        #region 레벨업 관련 메소드
         public void PlayerLevelUp(Player player)
         {
             S_LevelUp s_LevelUp = new S_LevelUp();
             s_LevelUp.playerid = player.Id;
             player.Room.Broadcast(s_LevelUp.Write(), player);
         }
+        #endregion
+        #region 스탯 관련 메소드
+        public void MyStatusUpdate(Player player)
+        {
+            S_MyStatUpdate s_MyStatUpdate = new S_MyStatUpdate();
+            s_MyStatUpdate.Attack = player.attack;
+            s_MyStatUpdate.MaxHp = player.MaxHp;
+            player.Session.send(s_MyStatUpdate.Write());
 
+        }
         public void PlayerStatusUpdate(Player player)
         {
             S_PlayerStatusUpdate s_PlayerStatusUpdate = new S_PlayerStatusUpdate();
@@ -1099,5 +1227,24 @@ namespace GridTest.Room
             s_PlayerStatusUpdate.Mp = player.Mp;
             Broadcast(s_PlayerStatusUpdate.Write(), player);
         }
+        #endregion
+        #region 장비 관련 메소드
+        public void UpdateEquipment(Player player)
+        {
+            //해제 메소드
+            S_EquipUpdate s_EquipUpdate = new S_EquipUpdate();
+            s_EquipUpdate.EquipType = -1; // 무기 해제
+            s_EquipUpdate.TemplateID = 0; // 장착 해제이므로 템플릿 ID는 0
+            Broadcast(s_EquipUpdate.Write(), player);
+        }
+        public void UpdateEquipment(Player player, Item item)
+        {
+            //장착 메소드
+            S_EquipUpdate s_EquipUpdate = new S_EquipUpdate();
+            s_EquipUpdate.EquipType = 0; // 장착 타입 현재는 0으로 무기만 있음 추후 추가 시 인자로 넘겨줄 예정
+            s_EquipUpdate.TemplateID = item.ItemID; // 장착 아이템의 템플릿 ID
+            Broadcast(s_EquipUpdate.Write(), player);
+        }
+        #endregion
     }
 }

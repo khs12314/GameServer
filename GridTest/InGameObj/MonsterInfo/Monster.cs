@@ -176,7 +176,13 @@ public class Monster : GameObject
         float dx = target.PosX - this.PosX;
         float dz = target.PosZ - this.PosZ;
         float sqrDist = (dx * dx) + (dz * dz);
-
+        if(sqrDist > 49.0f) // 시야 범위 7m 밖으로 완전히 벗어났다면?
+        {
+            ChangeStateAndBroadcast(PlayerState.IDLE, Room);
+            TargetId = 0;
+            //Console.WriteLine($"[AI] 몬스터 {this.Id} 타겟 {targetuser.Id} 완전 상실. 대기 모드로 전환.");
+            return 1000; // 타겟 완전 상실. 1초 대기 모드로 복귀
+        }
         // 사거리(예: 2m) 이내로 좁혀졌다면?
         if (sqrDist <= 4.0f) // 2의 제곱
         {
@@ -201,7 +207,7 @@ public class Monster : GameObject
         // (선택) 몬스터가 바라보는 방향 Y축 회전값 갱신
         this.RotY = (float)(Math.Atan2(dx, dz) * (180 / Math.PI));
 
-        // 5. 이동 패킷 브로드캐스트 (아까 낮에 추가한 state 필드 포함)
+        // 5. 이동 패킷 브로드캐스트 (아까 낮에 추가한 state 필드 포함) 추후 룸 로직으로 뺄 예정 여기에 있으면 안됨
         MMO_S_Move mMO_S_Move = new MMO_S_Move();
         mMO_S_Move.playerid = this.Id;
         mMO_S_Move.posX = this.PosX;

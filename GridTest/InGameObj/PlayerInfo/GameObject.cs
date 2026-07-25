@@ -46,6 +46,10 @@ namespace GridTest.InGameObj.PlayerInfo
             // 3. 룸을 통한 브로드캐스트
             room.Broadcast(statePacket.Write(), this);
         }
+        public void ChangeState(PlayerState newState)
+        {
+            State = newState;
+        }
         public virtual void Initialize()
         {
             State = PlayerState.IDLE;//예외적으로 GameObject는 초기화 시 IDLE 상태로 시작하도록 설정. Player나 Monster에서 별도의 초기화 로직이 있다면 그 안에서 다시 상태를 조정할 수 있음.

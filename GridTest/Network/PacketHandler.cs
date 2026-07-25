@@ -257,23 +257,18 @@ namespace GridTest.Network
 
         public static void C_UseSkill_Handler(IPeer peer, C_UseSkill c_UseSkill)
         {
-            if (true)
-            {
-
-            }
+            
             //보안검사 후
             if (peer is GameUser_Session session)
             {
-                SkillData? skillData = SkillDataManager.GetSkillData(c_UseSkill.skillId);
-
-                float angleRad = (float)(c_UseSkill.rotY * Math.PI / 180f);
-                float dirX = (float)Math.Sin(angleRad); // X가 Sin
-                float dirZ = (float)Math.Cos(angleRad); // Z가 Cos
                 session.room.Push(() =>
                 {
-                    ProJectile proJectile = session.room.Get_Projectile();
-                    session.room.Add_Projectile(skillData, dirX, dirZ, proJectile, session.MyPlayer);
+                    if (session.MyPlayer.State == PlayerState.DIE || session.MyPlayer.State == PlayerState.ATTACK)
+                        return;
+                    session.MyPlayer.UseSkill(c_UseSkill);
+                    
                 });
+               
             }
         }
 
@@ -378,7 +373,7 @@ namespace GridTest.Network
             }
         }
 
-        public static void C_ConsumeItem_Handler(IPeer session, C_UseItem c_consumeItme)
+        public static void C_CUseItem_Handler(IPeer session, C_UseItem c_consumeItme)
         {
             if(session is GameUser_Session gameUser_Sessions)
             {
@@ -386,6 +381,17 @@ namespace GridTest.Network
                 {
                     gameUser_Sessions.MyPlayer.UseItem(c_consumeItme);
 
+                });
+            }
+        }
+
+        internal static void C_UnequipItem_Handler(IPeer session, C_UnequipItem c_equipItem)
+        {
+            if (session is GameUser_Session gameUser_Sessions)
+            {
+                gameUser_Sessions.room.Push(() =>
+                {
+                    gameUser_Sessions.MyPlayer.UnEquipWeapon(c_equipItem);
                 });
             }
         }

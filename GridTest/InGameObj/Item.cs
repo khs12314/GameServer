@@ -37,17 +37,7 @@ public class Item : GameObject
             DbId = 0;
             Id = ObjectManager.GenerateId(GameObjectType.Temporary);
             FileLogger.Log($"아이템 생성 시도: ID={Id},종류 = {itemId}, Type={type}, MaxStack={maxstack} at ({x}, {y}, {z})");
-            S_MMOSpawnItem packet = new S_MMOSpawnItem()
-            {
-                ItemID = this.ItemID,
-                entityID = this.Id,
-                posX = this.PosX,
-                posY = this.PosY,
-                posZ = this.PosZ
-            };
-            Room.Broadcast(packet.Write(), this);
-            Room.SetObject(this);
-            Room.Item();
+            Room.Item(this);
         });
         Room.PushAfter(30000, () =>
         {

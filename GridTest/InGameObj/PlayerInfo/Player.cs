@@ -5,13 +5,19 @@ using GridTest.Server;
 using GridTest.Session;
 using GridTest.Util;
 using NetWorkModule;
-
+public struct PlayerSkillInfo
+{
+    public int SkillID;
+    public long Cooldown;
+}
 public class Player : GameObject
 {
     int Level = 1;
     long CurrentExp;
-    int attack;
+    public bool IsGhost = false;
+    public int attack { get; private set; }
     public Channel MyChannel;
+    public Dictionary<int, PlayerSkillInfo> PlayerSkillDic = new Dictionary<int, PlayerSkillInfo>();
     public int PlayerID { get; set; }//플레이어 전용 고유 아이디 db에서 가져올 내용(계정 생성 순서에 따라 저정된 db의 pk값)
     public Inventory Inventory { get; set; } = new Inventory();
     public QuestState QuestState { get; set; }
@@ -19,14 +25,36 @@ public class Player : GameObject
     public GameUser_Session Session { get; set; }
     private const int LOOT_COOLDOWN_MS = 200;
     private long _lastLootTick = 0;
+    public Player()
+    {
+        gameObjectType = GameObjectType.Player; // Player 타입
+        this.QuestState = new QuestState();
+        //추후 db에서 가져온 값으로 초기화
+        Equipment = new Equipment();
+
+        this.RefreshStatus();
+    }
     public Player(int playerID, GameUser_Session session, Channel channel)
     {
+
         this.MyChannel = channel;
         gameObjectType = GameObjectType.Player; // Player 타입
         PlayerID = playerID;//db에서 발급받은 고유id
         Session = session;
         this.Id = ObjectManager.GenerateId(GameObjectType.Player);//방 접속 시 사용할 고유 id
         this.QuestState = new QuestState();
+        foreach(var skillData in SkillDataManager.SkillDataDic.Values)
+        {
+            PlayerSkillInfo skillInfo = new PlayerSkillInfo
+            {
+                SkillID = skillData.SkillId,
+                Cooldown = 0
+            };
+            PlayerSkillDic[skillData.SkillId] = skillInfo;
+        }
+        //추후 db에서 가져온 값으로 초기화
+        Equipment = new Equipment();
+        this.RefreshStatus();
     }
     public void RedisSave()
     {
@@ -90,6 +118,7 @@ public class Player : GameObject
                 this.MaxHp = nextLevelData.MaxHp;
                 this.MaxMp = nextLevelData.MaxMp;
                 this.Hp = this.MaxHp;
+                RefreshStatus();
             }
         }
 
@@ -104,24 +133,6 @@ public class Player : GameObject
             this.Room.Broadcast(s_LevelUp.Write());
         }
     }
-    //public void AddLevelUp()
-    //{
-    //    if(Level == LevelDataManager.MaxLevel)
-    //    {
-    //        return;
-    //    }
-    //    LevelData levelData = LevelManager.GetLevelData((int)this.Level + 1);
-    //    MaxHp = levelData.MaxHp;
-    //    MaxMp = levelData.MaxMp;
-    //    this.Hp = MaxHp;
-    //    Level++;
-    //    Room.Push(() => {
-
-    //        Room.PlayerLevelUp(this);
-
-    //    } );
-    //}
-
     public void OnKillMonster(Monster monster)
     {
         int monsterid = monster.MonsterID;
@@ -137,9 +148,11 @@ public class Player : GameObject
             return;
 
         Item item = Inventory.Slots[index];
+        if (item == null) return;
         switch (item.ItemType)
         {
             case ItemType.Equipment:
+                SwapEquipment(item, index);
                 break;
             case ItemType.Consumables:
                 ConsumeItem(item, index);
@@ -150,17 +163,107 @@ public class Player : GameObject
     }
     public void SwapEquipment(Item item, short index)
     {
+        WeaponData weaponData = WeaponManager.GetWeaponData(item.ItemID);
+        if (weaponData == null)
+        {
+            // 무기 데이터 없음
+            return;
+        }
+        if (weaponData.ReqLevel > this.Level)
+        {
+            // 레벨 부족
+            return;
+        }
+        if (Equipment.GetWeapon() == null)
+        {
+            Equipment.SetWeapon(item);
+            Inventory.Slots[index] = null; // 인벤토리 슬롯 비우기
 
-        this.Equipment.SetWeapon(item);
+        }
+        else
+        {
+            // 기존 장착 무기와 교체
+            Item oldWeapon = Equipment.GetWeapon();
+            Inventory.Slots[index] = oldWeapon; // 인벤토리 슬롯에 기존 무기 넣기
+            Equipment.SetWeapon(item); // 새 무기 장착
+        }
+        this.RefreshStatus();
+        Room.UpdateSlot(this, index); // 인벤토리 슬롯 업데이트
+        Room.UpdateEquipment(this, item); // 장비 상태 업데이트
+        Room.MyStatusUpdate(this); // 공격력 등 상태 업데이트
     }
-    public void RefreshStatus(Item item)
+    public void RefreshStatus()
     {
+        Item weapon = Equipment.GetWeapon();
         this.attack = Level * 2;
+        if (weapon != null)
+        {
+            this.attack += WeaponManager.GetWeaponData(weapon.ItemID).AttackPower;
+        }
+    }
+    public void UnEquipWeapon(C_UnequipItem c_UnequipItem)
+    {
+        short index = c_UnequipItem.index;
+        Item weapon = Equipment.GetWeapon();
+        if (weapon == null)
+            return;
+        if (index != -1 && (index < 0 || index >= Inventory.Slots.Length))
+            return;
+        if (index != -1)
+        {
+            if (Inventory.Slots[index] != null) return;
+
+            // 포인터 맞교환 및 해제 완료
+            Inventory.Slots[index] = weapon;
+            Equipment.SetWeapon(null);
+        }
+        else
+        {
+            short freeSlotIndex = -1;
+            for (short i = 0; i < Inventory.Slots.Length; i++)
+            {
+                if (Inventory.Slots[i] == null)
+                {
+                    freeSlotIndex = i;
+                    break;
+                }
+            }
+            if (freeSlotIndex == -1) return; // 인벤토리 꽉참
+            Inventory.Slots[freeSlotIndex] = weapon;
+            Equipment.SetWeapon(null);
+            index = freeSlotIndex;
+        }
+        this.RefreshStatus();
+        Room.UpdateSlot(this, index);
+        Room.UpdateEquipment(this);
+        Room.MyStatusUpdate(this);
+    }
+    public void UseSkill(C_UseSkill packet)
+    {
+        int skillId = packet.skillId;
+        if (!PlayerSkillDic.TryGetValue(skillId, out PlayerSkillInfo skillinfo))
+            return;
+        long currentTime = Environment.TickCount64;
+        if (currentTime < skillinfo.Cooldown)
+            return; // 스킬 쿨타임 중
+        // 스킬 사용 로직 수행 및 브로드 캐스트
+        SkillData? skillData = SkillDataManager.GetSkillData(packet.skillId);
+        if(skillData == null)
+            return;
+        float angleRad = (float)(this.RotY * Math.PI / 180f);
+        float dirX = (float)Math.Sin(angleRad); // X가 Sin
+        float dirZ = (float)Math.Cos(angleRad); // Z가 Cos
+        ProJectile proJectile = this.Room.Get_Projectile();
+        this.Room.Add_Projectile(skillData, dirX, dirZ, proJectile,this);
+        // 쿨타임 갱신
+        skillinfo.Cooldown = currentTime + skillData.Cooldown;
+        PlayerSkillDic[skillId] = skillinfo;
         
+
     }
     public void ConsumeItem(Item item, short index)
     {
-        
+
         // 2. 널 체크 및 타입/수량 검증
         if (item == null || item.ItemType != ItemType.Consumables || item.Count <= 0)
             return;

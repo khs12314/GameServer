@@ -68,6 +68,13 @@ public enum PacketID
 	S_LevelUp = 59,
 	C_UseItem = 60,
 	S_PlayerStatusUpdate = 61,
+	C_UnequipItem = 62,
+	S_EquipUpdate = 63,
+	S_MyStatUpdate = 64,
+	S_MMOSpawnList = 65,
+	S_MMODespawnList = 66,
+	S_MMODespawn = 67,
+	S_MMOSpawn = 68,
 	
 }
 
@@ -938,7 +945,10 @@ public class Spawn_Object : IPacket
 {
     public struct ObjectsItem
 	{
-	    public int userid;
+	    public float SpawnX;
+		public float SpawnY;
+		public float SpawnZ;
+		public int userid;
 		public byte typeid;
 		
 	}
@@ -953,7 +963,10 @@ public class Spawn_Object : IPacket
 		for (int i = 0; i < ObjectsCount; i++)
 		{
 		    ObjectsItem item = new ObjectsItem();
-		    item.userid = packet.pop_int32();
+		    item.SpawnX = packet.pop_float();
+				item.SpawnY = packet.pop_float();
+				item.SpawnZ = packet.pop_float();
+				item.userid = packet.pop_int32();
 				item.typeid = packet.pop_byte();
 				
 		    this.Objects.Add(item);
@@ -967,7 +980,10 @@ public class Spawn_Object : IPacket
         packet.push(this.Objects.Count);
 		foreach (ObjectsItem item in this.Objects)
 		{
-		    packet.push(item.userid);
+		    packet.push(item.SpawnX);
+				packet.push(item.SpawnY);
+				packet.push(item.SpawnZ);
+				packet.push(item.userid);
 				packet.push(item.typeid);
 				
 		}
@@ -1448,6 +1464,203 @@ public class S_PlayerStatusUpdate : IPacket
         // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_PlayerStatusUpdate);
         packet.push(this.playerid);packet.push(this.Hp);packet.push(this.Mp);
+        return packet;
+    }
+}
+
+public class C_UnequipItem : IPacket
+{
+    public short index;
+
+    public short Protocol { get { return (short)PacketID.C_UnequipItem; } }
+
+    public void Read(CPacket packet)
+    {
+        this.index = packet.pop_int16();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.C_UnequipItem);
+        packet.push(this.index);
+        return packet;
+    }
+}
+
+public class S_EquipUpdate : IPacket
+{
+    public short EquipType;public int TemplateID;
+
+    public short Protocol { get { return (short)PacketID.S_EquipUpdate; } }
+
+    public void Read(CPacket packet)
+    {
+        this.EquipType = packet.pop_int16();this.TemplateID = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_EquipUpdate);
+        packet.push(this.EquipType);packet.push(this.TemplateID);
+        return packet;
+    }
+}
+
+public class S_MyStatUpdate : IPacket
+{
+    public int Attack;public int MaxHp;
+
+    public short Protocol { get { return (short)PacketID.S_MyStatUpdate; } }
+
+    public void Read(CPacket packet)
+    {
+        this.Attack = packet.pop_int32();this.MaxHp = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MyStatUpdate);
+        packet.push(this.Attack);packet.push(this.MaxHp);
+        return packet;
+    }
+}
+
+public class S_MMOSpawnList : IPacket
+{
+    public struct ObjectsItem
+	{
+	    public int entityid;
+		public float posX;
+		public float posY;
+		public float posZ;
+		public float rotY;
+		public byte state;
+		public byte typeid;
+		public int objectid;
+		
+	}
+	public List<ObjectsItem> Objects = new List<ObjectsItem>();
+
+    public short Protocol { get { return (short)PacketID.S_MMOSpawnList; } }
+
+    public void Read(CPacket packet)
+    {
+        this.Objects.Clear();
+		int ObjectsCount = packet.pop_int32();
+		for (int i = 0; i < ObjectsCount; i++)
+		{
+		    ObjectsItem item = new ObjectsItem();
+		    item.entityid = packet.pop_int32();
+				item.posX = packet.pop_float();
+				item.posY = packet.pop_float();
+				item.posZ = packet.pop_float();
+				item.rotY = packet.pop_float();
+				item.state = packet.pop_byte();
+				item.typeid = packet.pop_byte();
+				item.objectid = packet.pop_int32();
+				
+		    this.Objects.Add(item);
+		}
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MMOSpawnList);
+        packet.push(this.Objects.Count);
+		foreach (ObjectsItem item in this.Objects)
+		{
+		    packet.push(item.entityid);
+				packet.push(item.posX);
+				packet.push(item.posY);
+				packet.push(item.posZ);
+				packet.push(item.rotY);
+				packet.push(item.state);
+				packet.push(item.typeid);
+				packet.push(item.objectid);
+				
+		}
+        return packet;
+    }
+}
+
+public class S_MMODespawnList : IPacket
+{
+    public struct ObjectsItem
+	{
+	    public int entityid;
+		
+	}
+	public List<ObjectsItem> Objects = new List<ObjectsItem>();
+
+    public short Protocol { get { return (short)PacketID.S_MMODespawnList; } }
+
+    public void Read(CPacket packet)
+    {
+        this.Objects.Clear();
+		int ObjectsCount = packet.pop_int32();
+		for (int i = 0; i < ObjectsCount; i++)
+		{
+		    ObjectsItem item = new ObjectsItem();
+		    item.entityid = packet.pop_int32();
+				
+		    this.Objects.Add(item);
+		}
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MMODespawnList);
+        packet.push(this.Objects.Count);
+		foreach (ObjectsItem item in this.Objects)
+		{
+		    packet.push(item.entityid);
+				
+		}
+        return packet;
+    }
+}
+
+public class S_MMODespawn : IPacket
+{
+    public int entityid;
+
+    public short Protocol { get { return (short)PacketID.S_MMODespawn; } }
+
+    public void Read(CPacket packet)
+    {
+        this.entityid = packet.pop_int32();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MMODespawn);
+        packet.push(this.entityid);
+        return packet;
+    }
+}
+
+public class S_MMOSpawn : IPacket
+{
+    public int entityid;public float posX;public float posY;public float posZ;public float rotY;public byte state;
+
+    public short Protocol { get { return (short)PacketID.S_MMOSpawn; } }
+
+    public void Read(CPacket packet)
+    {
+        this.entityid = packet.pop_int32();this.posX = packet.pop_float();this.posY = packet.pop_float();this.posZ = packet.pop_float();this.rotY = packet.pop_float();this.state = packet.pop_byte();
+    }
+
+    public CPacket Write()
+    {
+        // 자네가 만든 CPacket.create 사용
+        CPacket packet = CPacket.create((short)PacketID.S_MMOSpawn);
+        packet.push(this.entityid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);packet.push(this.state);
         return packet;
     }
 }

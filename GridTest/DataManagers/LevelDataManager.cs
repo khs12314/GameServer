@@ -13,6 +13,7 @@ namespace GridTest.DataManagers
         public long RequiredExp; // [핵심] 이 레벨을 탈출하기 위해 필요한 경험치 통
         public int MaxHp;
         public int MaxMp;
+        
     }
     public static class LevelDataManager
     {
@@ -27,6 +28,7 @@ namespace GridTest.DataManagers
                 Console.WriteLine("[error] Monster_Ani.csv 파일이 없습니다.");
                 return;
             }
+            
             string fileContent = File.ReadAllText(filePath);
             ReadOnlySpan<char> span = fileContent.AsSpan();
             int headerIndex = span.IndexOf('\n');

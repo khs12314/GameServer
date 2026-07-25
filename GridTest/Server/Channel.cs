@@ -47,7 +47,7 @@ namespace GridTest.Server
                 int mapid = kvp.Key;
                 int[,] collisionData = kvp.Value;
 
-                GameRoom_Logic newRoom = new GameRoom_Logic();
+                GameRoom_Logic newRoom = new GameRoom_Logic(this);
                 // [핵심] Room을 초기화할 때, 새 배열을 만들지 않고 원본 배열의 참조(Reference)만 넘긴다.
                 newRoom.RoomInit(ChannelId, mapid, collisionData);
 

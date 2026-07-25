@@ -251,7 +251,7 @@
 		<short name="FromIndex"/>
 		<short name="ToIndex"/>
 	</Packet>
-	
+
 	<Packet name="C_NpcInteract">
 		<int name="NpcId"/>
 	</Packet>
@@ -265,7 +265,7 @@
 			<int name="QuestId"/>
 		</list>
 	</Packet>
-	
+
 	<Packet name="C_AcceptQuest">
 		<int name="NpcId"/>
 		<int name="QuestId"/>
@@ -275,7 +275,7 @@
 		<int name="QuestId"/>
 		<int name="ErrorCode"/>
 	</Packet>
-	
+
 	<Packet name="S_UpdateQuestProgress">
 		<int name="QuestId"/>
 		<list name="Objectives">
@@ -308,5 +308,45 @@
 		<int name="playerid"/>
 		<int name="Hp"/>
 		<int name="Mp"/>
+	</Packet>
+	<Packet name="C_UnequipItem">
+		<short name="index"/>
+	</Packet>
+	<Packet name="S_EquipUpdate">
+		<short name="EquipType"/>
+		<int name="TemplateID"/>
+	</Packet>
+	<Packet name="S_MyStatUpdate">
+		<int name="Attack"/>
+		<int name="MaxHp"/>
+	</Packet>
+	
+	<Packet name="S_MMOSpawnList">
+		<list name="Objects">
+			<int name="entityid"/>
+			<float name="posX"/>
+			<float name="posY"/>
+			<float name="posZ"/>
+			<float name="rotY"/>
+			<byte name="state"/>
+			<byte name="typeid"/>
+			<int name="objectid"/>
+		</list>
+	</Packet>
+	<Packet name="S_MMODespawnList">
+		<list name="Objects">
+			<int name="entityid"/>
+		</list>
+	</Packet>
+	<Packet name="S_MMODespawn">
+		<int name="entityid"/>
+	</Packet>
+	<Packet name="S_MMOSpawn">
+		<int name="entityid"/>
+		<float name="posX"/>
+		<float name="posY"/>
+		<float name="posZ"/>
+		<float name="rotY"/>
+		<byte name="state"/>
 	</Packet>
 </PDL>
