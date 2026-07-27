@@ -1,6 +1,7 @@
 ﻿using GridTest.DataManagers;
 using GridTest.InGameObj.PlayerInfo;
 using GridTest.Manager;
+using GridTest.Network;
 using GridTest.Server;
 using GridTest.Session;
 using GridTest.Util;
@@ -36,7 +37,7 @@ public class Player : GameObject
     }
     public Player(int playerID, GameUser_Session session, Channel channel)
     {
-
+        this.ObjectId = 0;
         this.MyChannel = channel;
         gameObjectType = GameObjectType.Player; // Player 타입
         PlayerID = playerID;//db에서 발급받은 고유id
@@ -125,17 +126,27 @@ public class Player : GameObject
         // 6. 한 번이라도 레벨업을 했다면, 루프를 다 빠져나온 뒤에 [단 한 번만] 브로드캐스트
         if (isLevelUp)
         {
-            S_LevelUp s_LevelUp = new S_LevelUp();
+            S_LevelUp s_LevelUp = NetworkPacketPool<S_LevelUp>.Pop();
+            s_LevelUp.Clear();
             s_LevelUp.playerid = this.Id;
             s_LevelUp.level = this.Level; // 몇 레벨이 되었는지도 알려줘야 클라이언트가 UI를 갱신함
 
             // 이미 Room 안에서 돌고 있으므로 Push 없이 즉시 브로드캐스트
             this.Room.Broadcast(s_LevelUp.Write());
+            NetworkPacketPool<S_LevelUp>.Push(s_LevelUp); // 재사용을 위해 풀에 반환
+        }
+        else
+        {
+            S_GetExp s_GetExp = NetworkPacketPool<S_GetExp>.Pop();
+            s_GetExp.Clear();
+            s_GetExp.Exp = this.CurrentExp;
+            this.Session.send(s_GetExp.Write());
+            NetworkPacketPool<S_GetExp>.Push(s_GetExp); // 재사용을 위해 풀에 반환
         }
     }
     public void OnKillMonster(Monster monster)
     {
-        int monsterid = monster.MonsterID;
+        int monsterid = monster.ObjectId;
         QuestState.UpdateObjectiveEvent(this, QuestObjectiveType.Kill, monsterid, 1);
         AddExp(monster.Exp);
     }
@@ -163,7 +174,7 @@ public class Player : GameObject
     }
     public void SwapEquipment(Item item, short index)
     {
-        WeaponData weaponData = WeaponManager.GetWeaponData(item.ItemID);
+        WeaponData weaponData = WeaponManager.GetWeaponData(item.ObjectId);
         if (weaponData == null)
         {
             // 무기 데이터 없음
@@ -198,7 +209,7 @@ public class Player : GameObject
         this.attack = Level * 2;
         if (weapon != null)
         {
-            this.attack += WeaponManager.GetWeaponData(weapon.ItemID).AttackPower;
+            this.attack += WeaponManager.GetWeaponData(weapon.ObjectId).AttackPower;
         }
     }
     public void UnEquipWeapon(C_UnequipItem c_UnequipItem)
@@ -269,7 +280,7 @@ public class Player : GameObject
             return;
 
         // 3. O(1) 데이터 룩업 (Data-Driven)
-        ConsumeItemData data = ConsumeItemDataManager.GetConsumeItemData(item.ItemID);
+        ConsumeItemData data = ConsumeItemDataManager.GetConsumeItemData(item.ObjectId);
         if (data == null)
             return;
 

@@ -34,7 +34,7 @@ namespace GridTest.Util
         HIT = 3,
         DIE = 4
     }
-    public enum GameObjectType : long
+    public enum GameObjectType : byte
     {
 
         Player = 0,

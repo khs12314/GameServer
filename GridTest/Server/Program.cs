@@ -15,6 +15,7 @@ namespace GridTest.Server
         {
             FileLogger.Start();
             FileLogger.Log("서버 시작");    
+            
             if (PacketHandler.USE_DB)
             {
                 RedisManager.Init();
@@ -59,7 +60,7 @@ namespace GridTest.Server
             Player player = new Player(1, gameUser_Session,channel);
             // 1. 기획자가 우편함으로 102번 물약 200개를 꽂았다고 가정 (더미 객체)
             Item dummyReward = new Item();
-            dummyReward.ItemID = 102;  // 빨간 물약
+            dummyReward.ObjectId = 102;  // 빨간 물약
             dummyReward.Count = 200;       // 지급 수량 (200개)
             dummyReward.MaxStack = 99;     // 최대 중첩 한도
 
@@ -72,7 +73,7 @@ namespace GridTest.Server
                 foreach (short slot in changedSlots)
                 {
                     Item addedItem =player.Inventory.Slots[slot];
-                    Console.WriteLine($"> [성공] 슬롯 번호: {slot:D2} | TemplateID: {addedItem.ItemID} | 수량: {addedItem.Count:D2} | DbId: {addedItem.DbId}");
+                    Console.WriteLine($"> [성공] 슬롯 번호: {slot:D2} | TemplateID: {addedItem.ObjectId} | 수량: {addedItem.Count:D2} | DbId: {addedItem.DbId}");
                 }
             }
             else

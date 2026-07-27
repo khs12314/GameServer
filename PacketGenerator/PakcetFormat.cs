@@ -33,10 +33,11 @@ public interface IPacket
 {1}
 ";
 
-        // {0}: 패킷 이름 (예: PlayerInfoReq)
+        // {0}: 패킷 이름
         // {1}: 멤버 변수 선언부
         // {2}: Read(pop) 구현부
         // {3}: Write(push) 구현부
+        // {4}: Clear 구현부 <-- 추가됨
         public static string packetFormat =
 @"
 public class {0} : IPacket
@@ -52,10 +53,15 @@ public class {0} : IPacket
 
     public CPacket Write()
     {{
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.{0});
         {3}
         return packet;
+    }}
+
+    
+    public void Clear()
+    {{
+        {4}
     }}
 }}
 ";
@@ -103,7 +109,16 @@ foreach ({0}Item item in this.{0})
 {{
     {1}
 }}";
+        // [일반 변수 Clear 포맷]
+        // {0}: 변수 이름
+        // {1}: 기본값 (숫자는 0, bool은 false, string은 null 등)
+        public static string clearFormat =
+@"this.{0} = {1};";
 
+        // [리스트 Clear 포맷]
+        // {0}: 리스트 이름
+        public static string listClearFormat =
+@"this.{0}.Clear();";
     }
 
 }

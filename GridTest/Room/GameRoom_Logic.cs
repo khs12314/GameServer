@@ -124,7 +124,8 @@ namespace GridTest.Room
         public void MoveToNextRoom(Player player, int nextRoomId)
         {
             RemovePlayer(player);
-            S_MMODespawnItem s_MMODespawnItem = new S_MMODespawnItem();
+            S_MMODespawnItem s_MMODespawnItem = NetworkPacketPool<S_MMODespawnItem>.Pop();
+            s_MMODespawnItem.Clear();
             s_MMODespawnItem.entityID = player.Id;
             Broadcast(s_MMODespawnItem.Write(), player);
 
@@ -206,12 +207,13 @@ namespace GridTest.Room
             }
             gameuser.MyPlayer.Id = ObjectManager.GenerateId(GameObjectType.Player);
             EnterPlayer(gameuser.MyPlayer);
-            S_EnterGame_Snake s_EnterGame = new S_EnterGame_Snake();//임시
+            S_EnterGame_Snake s_EnterGame = NetworkPacketPool<S_EnterGame_Snake>.Pop();//임시
+            s_EnterGame.Clear();
             s_EnterGame.userid = gameuser.MyPlayer.Id;
             s_EnterGame.mapSizeX = 0;
             s_EnterGame.mapSizeY = 0;
             gameuser.UserToken.send(s_EnterGame.Write());
-
+            NetworkPacketPool<S_EnterGame_Snake>.Push(s_EnterGame);
             gameuser.MyPlayer.RedisSave();
             Console.WriteLine($"플레이어 스폰 : {gameuser.MyPlayer.PosX}, {gameuser.MyPlayer.PosZ}");
 
@@ -249,14 +251,14 @@ namespace GridTest.Room
         }
         public void Item(Item item)
         {
-            S_MMOSpawnItem packet = new S_MMOSpawnItem()
-            {
-                ItemID = item.ItemID,
-                entityID = item.Id,
-                posX = item.PosX,
-                posY = item.PosY,
-                posZ = item.PosZ
-            };
+            S_MMOSpawnItem packet = NetworkPacketPool<S_MMOSpawnItem>.Pop();
+            packet.Clear();
+            packet.ItemID = item.ObjectId;
+            packet.entityID = item.Id;
+            packet.posX = item.PosX;
+            packet.posY = item.PosY;
+            packet.posZ = item.PosZ;
+
             Broadcast(packet.Write(), item);
             SetObject(item);
             return;
@@ -300,7 +302,8 @@ namespace GridTest.Room
                 return;
             }
             session.Is_Alive = false;
-            S_Die s_Die = new S_Die();
+            S_Die s_Die = NetworkPacketPool<S_Die>.Pop();
+            s_Die.Clear();  
             s_Die.userid = session.MyPlayer.Id;
             Broadcast(s_Die.Write(), session.MyPlayer);
             //S_Move deathPacket = new S_Move();
@@ -314,7 +317,8 @@ namespace GridTest.Room
         // 기능 5: 패킷 전송만 담당
         void BroadcastMove(GameUser_Session session, GameUser_Session.Pos pos, bool isEat)
         {
-            S_Move move = new S_Move();
+            S_Move move = NetworkPacketPool<S_Move>.Pop();
+            move.Clear();
             move.playerId = session.MyPlayer.Id;
             move.posX = pos.x;
             move.posY = pos.z;
@@ -339,7 +343,8 @@ namespace GridTest.Room
         }
         public void Sync_Pos(GameUser_Session session)
         {
-            S_Sync syncpacket = new S_Sync();
+            S_Sync syncpacket = NetworkPacketPool<S_Sync>.Pop();
+            syncpacket.Clear();
             syncpacket.posX = session.MyPlayer.PosX;
             syncpacket.posY = session.MyPlayer.PosY;
             syncpacket.posZ = session.MyPlayer.PosZ;
@@ -347,6 +352,7 @@ namespace GridTest.Room
             syncpacket.playerid = session.MyPlayer.Id;
             Console.WriteLine($"sync pos : {syncpacket.posX}, {syncpacket.posZ}");
             Broadcast(syncpacket.Write(), session.MyPlayer);
+            NetworkPacketPool<S_Sync>.Push(syncpacket);
         }
         public void MMO_Move(GameUser_Session session, MMO_C_Move packet)
         {
@@ -375,7 +381,8 @@ namespace GridTest.Room
 
                 //Console.WriteLine($"주변 오브젝트{GetAOIGameUsers(session.MyPlayer, session.MyPlayer.AOIObjects).Count}");
                 grid.Move(session.MyPlayer);
-                MMO_S_Move movePacket = new MMO_S_Move();
+                MMO_S_Move movePacket = NetworkPacketPool<MMO_S_Move>.Pop();
+                movePacket.Clear();
                 movePacket.posX = session.MyPlayer.PosX;
                 movePacket.posY = session.MyPlayer.PosY;
                 movePacket.posZ = session.MyPlayer.PosZ;
@@ -383,6 +390,7 @@ namespace GridTest.Room
                 movePacket.playerid = session.MyPlayer.Id;
                 movePacket.state = (byte)PlayerState.MOVE;
                 Broadcast(movePacket.Write(), session.MyPlayer);
+                NetworkPacketPool<MMO_S_Move>.Push(movePacket);
                 BorderDirection dir = grid.CheckBorder(player.CellX, player.CellY);
                 if (dir != BorderDirection.None)
                 {
@@ -392,8 +400,8 @@ namespace GridTest.Room
                         if (dir.HasFlag(kvp.Key))
                         {
                             GameRoom_Logic targetRoom = kvp.Value;
-                            targetRoom.Push(() => targetRoom.UpdateOrAddGhost(player.Id, player.PosX,player.PosZ,player.RotY, player.State));
-                            
+                            targetRoom.Push(() => targetRoom.UpdateOrAddGhost(player.Id, player.PosX, player.PosZ, player.RotY, player.State));
+
                         }
                     }
                 }
@@ -414,12 +422,14 @@ namespace GridTest.Room
                 }
                 else
                 {
-                    S_Sync SyncPos = new S_Sync();
+                    S_Sync SyncPos = NetworkPacketPool<S_Sync>.Pop();
+                    SyncPos.Clear();
                     SyncPos.posX = player.PosX;
                     SyncPos.posZ = player.PosZ;
                     SyncPos.posY = player.PosY;
                     SyncPos.rotY = player.RotY;
                     session.send(SyncPos.Write());
+                    NetworkPacketPool<S_Sync>.Push(SyncPos);
                 }
             }
             //Console.WriteLine("이동 가능");
@@ -491,7 +501,8 @@ namespace GridTest.Room
                 //메소드를 만들어 보안 검사 구현 예정
                 //예시로는 직업별로 가능한 공격인지 아닌지 판단 후 리턴
             }
-            MMO_S_Attack attackPacket = new MMO_S_Attack();
+            MMO_S_Attack attackPacket = NetworkPacketPool<MMO_S_Attack>.Pop();
+            attackPacket.Clear();
             attackPacket.playerid = session.MyPlayer.Id;
             attackPacket.skillId = packet.skillId;
             attackPacket.state = (byte)PlayerState.ATTACK;
@@ -530,6 +541,7 @@ namespace GridTest.Room
             }
             // 서버 권위 검증 실시
             Broadcast(attackPacket.Write(), session.MyPlayer);
+            NetworkPacketPool<MMO_S_Attack>.Push(attackPacket);
         }
 
         private void Use_Skill(GameUser_Session session, Func<Monster, bool> func)
@@ -562,10 +574,12 @@ namespace GridTest.Room
 
                 Console.WriteLine($"Target {target.Id} is dead.");
                 //S_Die
-                MMO_S_Die s_Die = new MMO_S_Die();
+                MMO_S_Die s_Die = NetworkPacketPool<MMO_S_Die>.Pop();
+                s_Die.Clear();
                 s_Die.playerid = target.Id;
                 s_Die.state = (byte)PlayerState.DIE;
                 Broadcast(s_Die.Write());
+                NetworkPacketPool<MMO_S_Die>.Push(s_Die);
                 if (target is Player player)
                 {
 
@@ -582,11 +596,13 @@ namespace GridTest.Room
             }
             else
             {
-                S_Damage s_Damage = new S_Damage();
+                S_Damage s_Damage = NetworkPacketPool<S_Damage>.Pop();
+                s_Damage.Clear();
                 s_Damage.playerid = target.Id;
                 s_Damage.damage = 10; // 예시로 10 데미지
                 s_Damage.state = (byte)PlayerState.HIT;
                 Broadcast(s_Damage.Write());
+                NetworkPacketPool<S_Damage>.Push(s_Damage);
             }
         }
         void ChangeHP(GameObject target, int damage)
@@ -597,10 +613,13 @@ namespace GridTest.Room
             {
                 Console.WriteLine($"Target {target.Id} is dead.");
                 //S_Die
-                MMO_S_Die s_Die = new MMO_S_Die();
+                MMO_S_Die s_Die = NetworkPacketPool<MMO_S_Die>.Pop();
+                s_Die.Clear();
                 s_Die.playerid = target.Id;
                 s_Die.state = (byte)PlayerState.DIE;
                 Broadcast(s_Die.Write());
+                NetworkPacketPool<MMO_S_Die>.Push(s_Die);
+
                 if (target is Player player)
                 {
                     jobTimer.PushAfter(5000, () =>
@@ -621,11 +640,12 @@ namespace GridTest.Room
             }
             else
             {
-                S_Damage s_Damage = new S_Damage();
+                S_Damage s_Damage = NetworkPacketPool<S_Damage>.Pop();
                 s_Damage.playerid = target.Id;
                 s_Damage.damage = damage; // 예시로 10 데미지
                 s_Damage.state = (byte)PlayerState.HIT;
                 Broadcast(s_Damage.Write());
+                NetworkPacketPool<S_Damage>.Push(s_Damage);
             }
         }
         public void Broadcast(CPacket msg)
@@ -693,16 +713,16 @@ namespace GridTest.Room
         }
         public void Spawn_User(GameUser_Session gameuser)
         {
-            S_Spawn packet = new S_Spawn();
-            {
-                packet.entityID = gameuser.MyPlayer.Id;
-                packet.SpawnX = gameuser.MyPlayer.PosX;
-                packet.SpawnY = gameuser.MyPlayer.PosY;
-                packet.SpawnZ = gameuser.MyPlayer.PosZ;
-                Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
-                Broadcast(packet.Write(), gameuser.MyPlayer);
+            S_Spawn packet = NetworkPacketPool<S_Spawn>.Pop();
+            packet.Clear();
+            packet.entityID = gameuser.MyPlayer.Id;
+            packet.SpawnX = gameuser.MyPlayer.PosX;
+            packet.SpawnY = gameuser.MyPlayer.PosY;
+            packet.SpawnZ = gameuser.MyPlayer.PosZ;
+            Console.WriteLine($"패킷 : {packet.SpawnX}, {packet.SpawnZ}");
+            Broadcast(packet.Write(), gameuser.MyPlayer);
+            NetworkPacketPool<S_Spawn>.Push(packet);
 
-            }
         }
         public void MMO_Spawn(GameUser_Session gameuser)
         {
@@ -712,7 +732,8 @@ namespace GridTest.Room
                 {
                     if (player.Id == gameuser.MyPlayer.Id)
                         continue;
-                    S_Spawn MMO_Spawn = new S_Spawn();
+                    S_Spawn MMO_Spawn = NetworkPacketPool<S_Spawn>.Pop();
+                    MMO_Spawn.Clear();
                     MMO_Spawn.SpawnX = player.PosX;
                     MMO_Spawn.SpawnY = player.PosY;
                     MMO_Spawn.SpawnZ = player.PosZ;
@@ -721,12 +742,13 @@ namespace GridTest.Room
                 }
                 else if (item is Monster monster)
                 {
-                    S_MonsterSpawn monsterSpawn = new S_MonsterSpawn();
+                    S_MonsterSpawn monsterSpawn = NetworkPacketPool<S_MonsterSpawn>.Pop();
+                    monsterSpawn.Clear();   
                     monsterSpawn.SpawnX = monster.PosX;
                     monsterSpawn.SpawnY = monster.PosY;
                     monsterSpawn.SpawnZ = monster.PosZ;
                     monsterSpawn.entityid = monster.Id;//내부 고유 id
-                    monsterSpawn.objectid = monster.MonsterID; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
+                    monsterSpawn.objectid = monster.ObjectId; // 오브젝트 ID로 고유 ID와는 별개로 몬스터 종류 구분
                     gameuser.UserToken.send(monsterSpawn.Write());
                     Console.WriteLine($"몬스터 정보 전송 id는 {item.Id}");
                 }
@@ -763,23 +785,27 @@ namespace GridTest.Room
         public void ReSpawnUser(Player player)
         {
             player.Hp = player.MaxHp;
-            S_Spawn spawnPacket = new S_Spawn();
+            S_Spawn spawnPacket = NetworkPacketPool<S_Spawn>.Pop();
+            spawnPacket.Clear();
             spawnPacket.entityID = player.Id;
             spawnPacket.SpawnX = player.PosX;
             spawnPacket.SpawnY = player.PosY;
             spawnPacket.SpawnZ = player.PosZ;
             Broadcast(spawnPacket.Write());
+            NetworkPacketPool<S_Spawn>.Push(spawnPacket);
         }
         public void ReSpawnMonster(Monster monster)
         {
             monster.Hp = monster.MaxHp;
-            S_MonsterSpawn spawnMonsterPacket = new S_MonsterSpawn();
+            S_MonsterSpawn spawnMonsterPacket = NetworkPacketPool<S_MonsterSpawn>.Pop();
+            spawnMonsterPacket.Clear();
             spawnMonsterPacket.entityid = monster.Id;//고유 id 클라에서도 오브젝트 매니저에서 관리할 번호
             spawnMonsterPacket.SpawnX = monster.PosX;
             spawnMonsterPacket.SpawnY = monster.PosY;
             spawnMonsterPacket.SpawnZ = monster.PosZ;
             spawnMonsterPacket.objectid = 1; // 몬스터 타입 ID 프리펩에서 생성할 때 구분짓기용
             Broadcast(spawnMonsterPacket.Write());
+            NetworkPacketPool<S_MonsterSpawn>.Push(spawnMonsterPacket);
         }
         public GameObject FindObjectById(int id)
         {
@@ -806,12 +832,15 @@ namespace GridTest.Room
                 else
                 {
                     WorldObjectList.Remove(playerID);
+                    grid.Remove(session.MyPlayer);
                 }
                 Console.WriteLine("체인지 피어");
                 session.Change_Peer();
-                S_PlayerLeave leave = new S_PlayerLeave();
+                S_PlayerLeave leave = NetworkPacketPool<S_PlayerLeave>.Pop();
+                leave.Clear();
                 leave.userid = session.MyPlayer.Id;
                 Broadcast(leave.Write(), session.MyPlayer);
+                NetworkPacketPool<S_PlayerLeave>.Push(leave);
             }
         }
         public void ChangeDir(GameUser_Session session, C_Move packet)
@@ -843,8 +872,9 @@ namespace GridTest.Room
             proJectile.Initialize(gameObject.Id,
                    gameObject.PosX, gameObject.PosY, gameObject.PosZ,
                     dirx, dirz, 3000, skillData.SkillId, skillData.Damage, gameObject, skillData.Speed);
-            
-            S_UseSkill s_UseSkill = new S_UseSkill();
+
+            S_UseSkill s_UseSkill = NetworkPacketPool<S_UseSkill>.Pop();
+            s_UseSkill.Clear();
             s_UseSkill.playerid = gameObject.Id;
             s_UseSkill.posX = gameObject.PosX;
             s_UseSkill.posY = gameObject.PosY;
@@ -877,19 +907,20 @@ namespace GridTest.Room
             if (slotIdx < 0 || slotIdx >= 20) return;//임시로 하드코딩
 
             Item item = player.Inventory.Slots[slotIdx];
-            S_UpdateSlot s_UpdateSlot = new S_UpdateSlot();
-
+            S_UpdateSlot s_UpdateSlot = NetworkPacketPool<S_UpdateSlot>.Pop();
+            s_UpdateSlot.Clear();
             // 1. 핵심: 슬롯 번호(인덱스)는 아이템 존재 여부와 상관없이 무조건 채운다.
             s_UpdateSlot.SlotIndex = slotIdx;
 
             // 2. 3항 연산자를 활용한 안전한 데이터 채우기 (Null 검증)
             // item이 null이면(빈칸이면) 0을 넣고, 존재하면 진짜 데이터를 넣는다.
             s_UpdateSlot.entityid = item != null ? item.Id : 0;
-            s_UpdateSlot.TemplateID = item != null ? item.ItemID : 0;
+            s_UpdateSlot.TemplateID = item != null ? item.ObjectId : 0;
             s_UpdateSlot.Count = item != null ? item.Count : 0;
 
             // 3. 빈칸이든 아니든 패킷은 무조건 전송하여 클라이언트의 락을 해제시킨다.
             player.Session.send(s_UpdateSlot.Write());
+            NetworkPacketPool<S_UpdateSlot>.Push(s_UpdateSlot);
         }
         public void UpdateSlot(Player player, short slotIdx)
         {
@@ -919,11 +950,11 @@ namespace GridTest.Room
             List<short> changedSlots = player.Inventory.AddItem(item);
 
             // 핸들러는 몇 개가 변했든 신경 쓰지 않고 무지성으로 foreach만 돌리면 끝난다.
-            FileLogger.Log($"{player.PlayerID}가 {item.Id} : {item.ItemID}획득");
+            FileLogger.Log($"{player.PlayerID}가 {item.Id} : {item.ObjectId}획득");
             foreach (short slotIdx in changedSlots)
             {
                 SendUpdateSlot(player, slotIdx);
-                FileLogger.Log($"{player.PlayerID}의 인벤토리 업데이트 : {slotIdx} 슬롯에 {item.Id} : {item.ItemID}이(가) 들어감");
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 업데이트 : {slotIdx} 슬롯에 {item.Id} : {item.ObjectId}이(가) 들어감");
                 FileLogger.Log($"{player.PlayerID}의 인벤토리 상태 : {slotIdx} 슬롯의 Count{player.Inventory.Slots[slotIdx].Count}");
             }
 
@@ -934,14 +965,18 @@ namespace GridTest.Room
 
         private void GetItemSendPacket(GameUser_Session gameUser_Session, C_MMOGetItem c_MMOGetItem, Player player)
         {
-            S_MMOGetItem s_MMOGetItem = new S_MMOGetItem();
+            S_MMOGetItem s_MMOGetItem = NetworkPacketPool<S_MMOGetItem>.Pop();
+            s_MMOGetItem.Clear();
             s_MMOGetItem.entityid = c_MMOGetItem.entityid;
             Broadcast(s_MMOGetItem.Write(), gameUser_Session.MyPlayer);
-            S_MMODespawnItem s_MMODespawnItem = new S_MMODespawnItem();
+            S_MMODespawnItem s_MMODespawnItem = NetworkPacketPool<S_MMODespawnItem>.Pop();
+            s_MMODespawnItem.Clear();
             s_MMODespawnItem.entityID = c_MMOGetItem.entityid;
             Broadcast(s_MMODespawnItem.Write(), gameUser_Session.MyPlayer);
             //WorldObjectList.Remove(c_MMOGetItem.entityid);
             //DirtySet.Add(player);
+            NetworkPacketPool<S_MMOGetItem>.Push(s_MMOGetItem);
+            NetworkPacketPool<S_MMODespawnItem>.Push(s_MMODespawnItem);
         }
 
         public void Swap_Item(GameUser_Session gameUser_Session, C_SwapItem c_SwapItem)
@@ -956,7 +991,7 @@ namespace GridTest.Room
                 // 강제 롤백 패킷 발송 (이전 상태 복구)
                 SendUpdateSlot(player, fromindex);
                 SendUpdateSlot(player, toindex);
-                FileLogger.Log($"{player.PlayerID}의 인벤토리 롤백: {fromindex}의 {player.Inventory.Slots[fromindex].ItemID} :{player.Inventory.Slots[fromindex].Id} 복구,{toindex}의 {player.Inventory.Slots[toindex].ItemID} :{player.Inventory.Slots[toindex].Id} 복구");
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 롤백: {fromindex}의 {player.Inventory.Slots[fromindex].ObjectId} :{player.Inventory.Slots[fromindex].Id} 복구,{toindex}의 {player.Inventory.Slots[toindex].ObjectId} :{player.Inventory.Slots[toindex].Id} 복구");
 
 
 
@@ -977,10 +1012,10 @@ namespace GridTest.Room
 
                 // itemA가 null이면 ?. 연산자가 null을 반환하고, ?? 연산자가 이를 캐치하여 0(또는 "빈칸")을 반환한다.
                 int idA = itemA?.Id ?? 0;
-                int tempA = itemA?.ItemID ?? 0;
+                int tempA = itemA?.ObjectId ?? 0;
 
                 long idB = itemB?.Id ?? 0;
-                int tempB = itemB?.ItemID ?? 0;
+                int tempB = itemB?.ObjectId ?? 0;
 
                 FileLogger.Log($"[스왑 완료] {player.PlayerID} : {fromindex}칸(DB:{idA}/Temp:{tempA}) <-> {toindex}칸(DB:{idB}/Temp:{tempB})");
                 SendUpdateSlot(player, fromindex);
@@ -991,7 +1026,7 @@ namespace GridTest.Room
                 // 병합이 일어났으므로 두 슬롯의 최신 상태를 모두 쏴서 동기화
                 SendUpdateSlot(player, fromindex);
                 SendUpdateSlot(player, toindex);
-                FileLogger.Log($"{player.PlayerID}의 인벤토리 병합: {fromindex}의 {player.Inventory.Slots[fromindex].ItemID} :{player.Inventory.Slots[fromindex].Id}의 현재 남은 갯수 {player.Inventory.Slots[fromindex].Count},{fromindex}의 {player.Inventory.Slots[toindex].ItemID} :{player.Inventory.Slots[toindex].Id} 복구");
+                FileLogger.Log($"{player.PlayerID}의 인벤토리 병합: {fromindex}의 {player.Inventory.Slots[fromindex].ObjectId} :{player.Inventory.Slots[fromindex].Id}의 현재 남은 갯수 {player.Inventory.Slots[fromindex].Count},{fromindex}의 {player.Inventory.Slots[toindex].ObjectId} :{player.Inventory.Slots[toindex].Id} 복구");
             }
 
         }
@@ -1014,7 +1049,8 @@ namespace GridTest.Room
                 Console.WriteLine("NPC와의 상호작용 범위 벗어남");
                 return;
             }
-            S_NpcInteractResult s_NpcInteractResult = new S_NpcInteractResult();
+            S_NpcInteractResult s_NpcInteractResult = NetworkPacketPool<S_NpcInteractResult>.Pop();
+            s_NpcInteractResult.Clear();
             s_NpcInteractResult.NpcId = c_NpcInteract.NpcId;
             // 퀘스트 데이터베이스에서 해당 NPC와 관련된 퀘스트 정보를 조회하여 패킷에 담는다.
             foreach (int questId in QuestManager.GetAvailableQuestsFromNpc(npcId))
@@ -1061,6 +1097,7 @@ namespace GridTest.Room
                 }
             }
             gameUser_Session.send(s_NpcInteractResult.Write());
+            NetworkPacketPool<S_NpcInteractResult>.Push(s_NpcInteractResult);
         }
         #endregion
         #region 퀘스트 관련 메소드
@@ -1071,25 +1108,32 @@ namespace GridTest.Room
 
             int questId = c_AcceptQuest.QuestId;
             int npcId = c_AcceptQuest.NpcId;
-
+            S_AcceptQuest s_AcceptQuest = NetworkPacketPool<S_AcceptQuest>.Pop();
+            s_AcceptQuest.Clear();
             // 1. O(1) 딕셔너리 단일 탐색 및 유효성 검증 (여기서 TryGetValue 패턴을 써야 서버가 안 터진다)
             if (!QuestDataManager.QuestTemplates.TryGetValue(questId, out QuestTemplate template))
             {
-                player.Session.send(new S_AcceptQuest { QuestId = questId, ErrorCode = 1 }.Write());
+                s_AcceptQuest.QuestId = questId;
+                s_AcceptQuest.ErrorCode = 1; // 잘못된 퀘스트 ID
+                player.Session.send(s_AcceptQuest.Write());
                 return;
             }
 
             // 2. NPC 일치 여부 검증
             if (template.StartNpcId != npcId)
             {
-                player.Session.send(new S_AcceptQuest { QuestId = questId, ErrorCode = 2 }.Write());
+                s_AcceptQuest.QuestId = questId;
+                s_AcceptQuest.ErrorCode = 2; // 잘못된 NPC ID
+                player.Session.send(s_AcceptQuest.Write());
                 return;
             }
 
             // 3. 유저 상태(중복 수락) 검증
             if (player.QuestState.IsComplete(questId) || player.QuestState.IsActive(questId))
             {
-                player.Session.send(new S_AcceptQuest { QuestId = questId, ErrorCode = 3 }.Write());
+                s_AcceptQuest.QuestId = questId;
+                s_AcceptQuest.ErrorCode = 3; // 이미 완료했거나 진행 중인 퀘스트
+                player.Session.send(s_AcceptQuest.Write());
                 return;
             }
 
@@ -1097,7 +1141,9 @@ namespace GridTest.Room
             NPCData npcData = NPCManager.GetNpcData(npcId);
             if (npcData == null)
             {
-                player.Session.send(new S_AcceptQuest { QuestId = questId, ErrorCode = 4 }.Write());
+                s_AcceptQuest.QuestId = questId;
+                s_AcceptQuest.ErrorCode = 4; // NPC 데이터 없음
+                player.Session.send(s_AcceptQuest.Write());
                 return;
             }
 
@@ -1108,7 +1154,9 @@ namespace GridTest.Room
 
             if (sqrDist > 100.0f) // (10.0f의 제곱)
             {
-                player.Session.send(new S_AcceptQuest { QuestId = questId, ErrorCode = 5 }.Write());
+                s_AcceptQuest.QuestId = questId;
+                s_AcceptQuest.ErrorCode = 5; // NPC와의 거리가 너무 멀다
+                player.Session.send(s_AcceptQuest.Write());
                 return;
             }
 
@@ -1129,12 +1177,10 @@ namespace GridTest.Room
             player.QuestState.ActiveQuests.Add(questId, newProgress);
 
             // 7. 성공 패킷(ErrorCode 0) 전송
-            S_AcceptQuest res = new S_AcceptQuest
-            {
-                QuestId = questId,
-                ErrorCode = 0
-            };
-            player.Session.send(res.Write());
+           
+            player.Session.send(s_AcceptQuest.Write());
+            NetworkPacketPool<S_AcceptQuest>.Push(s_AcceptQuest);
+
         }
 
         public void CompleteQuest(GameUser_Session gameUser_Session, C_CompleteQuest c_CompleteQuest)
@@ -1205,45 +1251,54 @@ namespace GridTest.Room
         #region 레벨업 관련 메소드
         public void PlayerLevelUp(Player player)
         {
-            S_LevelUp s_LevelUp = new S_LevelUp();
+            S_LevelUp s_LevelUp = NetworkPacketPool<S_LevelUp>.Pop();
+            s_LevelUp.Clear();
             s_LevelUp.playerid = player.Id;
             player.Room.Broadcast(s_LevelUp.Write(), player);
+            NetworkPacketPool<S_LevelUp>.Push(s_LevelUp);
         }
         #endregion
         #region 스탯 관련 메소드
         public void MyStatusUpdate(Player player)
         {
-            S_MyStatUpdate s_MyStatUpdate = new S_MyStatUpdate();
+            S_MyStatUpdate s_MyStatUpdate = NetworkPacketPool<S_MyStatUpdate>.Pop();
+            s_MyStatUpdate.Clear();
             s_MyStatUpdate.Attack = player.attack;
             s_MyStatUpdate.MaxHp = player.MaxHp;
             player.Session.send(s_MyStatUpdate.Write());
-
+            NetworkPacketPool<S_MyStatUpdate>.Push(s_MyStatUpdate);
         }
         public void PlayerStatusUpdate(Player player)
         {
-            S_PlayerStatusUpdate s_PlayerStatusUpdate = new S_PlayerStatusUpdate();
+            S_PlayerStatusUpdate s_PlayerStatusUpdate = NetworkPacketPool<S_PlayerStatusUpdate>.Pop();
+            s_PlayerStatusUpdate.Clear();
             s_PlayerStatusUpdate.playerid = player.Id;
             s_PlayerStatusUpdate.Hp = player.Hp;
             s_PlayerStatusUpdate.Mp = player.Mp;
             Broadcast(s_PlayerStatusUpdate.Write(), player);
+            NetworkPacketPool<S_PlayerStatusUpdate>.Push(s_PlayerStatusUpdate);
         }
         #endregion
         #region 장비 관련 메소드
         public void UpdateEquipment(Player player)
         {
             //해제 메소드
-            S_EquipUpdate s_EquipUpdate = new S_EquipUpdate();
+            S_EquipUpdate s_EquipUpdate = NetworkPacketPool<S_EquipUpdate>.Pop();
+            s_EquipUpdate.Clear();
             s_EquipUpdate.EquipType = -1; // 무기 해제
             s_EquipUpdate.TemplateID = 0; // 장착 해제이므로 템플릿 ID는 0
             Broadcast(s_EquipUpdate.Write(), player);
+            NetworkPacketPool<S_EquipUpdate>.Push(s_EquipUpdate);
         }
         public void UpdateEquipment(Player player, Item item)
         {
             //장착 메소드
-            S_EquipUpdate s_EquipUpdate = new S_EquipUpdate();
+            S_EquipUpdate s_EquipUpdate = NetworkPacketPool<S_EquipUpdate>.Pop();
+            s_EquipUpdate.Clear();
             s_EquipUpdate.EquipType = 0; // 장착 타입 현재는 0으로 무기만 있음 추후 추가 시 인자로 넘겨줄 예정
-            s_EquipUpdate.TemplateID = item.ItemID; // 장착 아이템의 템플릿 ID
+            s_EquipUpdate.TemplateID = item.ObjectId; // 장착 아이템의 템플릿 ID
             Broadcast(s_EquipUpdate.Write(), player);
+            NetworkPacketPool<S_EquipUpdate>.Push(s_EquipUpdate);
         }
         #endregion
     }

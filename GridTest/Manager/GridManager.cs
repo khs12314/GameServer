@@ -1,4 +1,5 @@
 ﻿using GridTest.InGameObj.PlayerInfo;
+using GridTest.Network;
 using GridTest.Room;
 using GridTest.Util;
 using System;
@@ -28,7 +29,7 @@ namespace GridTest.Manager
             // 전체 맵 길이를 셀 크기로 나눈 올림 -> 셀 개수
             _gridSizeX = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
             _gridSizeY = Math.Max(1, (mapSize + cellSize - 1) / cellSize);
-           
+
             _cells = new HashSet<GameObject>[_gridSizeY, _gridSizeX];
             for (int y = 0; y < _gridSizeY; y++)
             {
@@ -71,36 +72,48 @@ namespace GridTest.Manager
                 _cells[y, x] = list;
             }
             list.Add(gameobject);
-            if(gameobject is Player player)
+            if (gameobject is Player player)
             {
                 GetNeighbors(player, player.AOIObjects);
                 //추후 수정 예정
-                
-                foreach(var obj in player.AOIObjects)
+                //1번 이동한 본인에게 해당 aoi에 있는 유저 및 몬스터 정보 모두 전송
+                S_MMOSpawnList TargetMMOSpawn = NetworkPacketPool<S_MMOSpawnList>.Pop();
+                TargetMMOSpawn.Clear();
+                TargetMMOSpawn.Objects.Add(new S_MMOSpawnList.ObjectsItem
                 {
-                    if(obj is Player targetPlayer)
-                    {
-                        S_Spawn s_TargetSpawn = new S_Spawn();
-                        s_TargetSpawn.entityID = targetPlayer.Id;
-                        s_TargetSpawn.SpawnX = targetPlayer.PosX;
-                        s_TargetSpawn.SpawnY = targetPlayer.PosY;
-                        s_TargetSpawn.SpawnZ = targetPlayer.PosZ;
-                        s_TargetSpawn.typeid = (int)targetPlayer.gameObjectType;
-                        s_TargetSpawn.objectid = 0;
-                        player.Session.send(s_TargetSpawn.Write());
-                    }
-                    if(obj is Monster monster)
-                    {
-                        S_MonsterSpawn s_MonsterSpawn = new S_MonsterSpawn();
-                        s_MonsterSpawn.entityid = monster.Id;
-                        s_MonsterSpawn.objectid = monster.MonsterID;
-                        s_MonsterSpawn.SpawnX = monster.PosX;
-                        s_MonsterSpawn.SpawnY = monster.PosY;
-                        s_MonsterSpawn.SpawnZ = monster.PosZ;
-                        player.Session.send(s_MonsterSpawn.Write());
-                    }
+                    entityid = player.Id,
+                    posX = player.PosX,
+                    posZ = player.PosZ,
+                    posY = player.PosY,
+                    objectid = player.ObjectId,
+                    rotY = player.RotY,
+                    state = (byte)player.State,
+                    typeid = (byte)player.gameObjectType
 
+                });
+                player.Room.Broadcast(TargetMMOSpawn.Write(), player);
+                S_MMOSpawnList s_MMOSpawnList = NetworkPacketPool<S_MMOSpawnList>.Pop();
+                s_MMOSpawnList.Clear();
+                foreach (var obj in player.AOIObjects)
+                {
+
+                    
+
+                    s_MMOSpawnList.Objects.Add(new S_MMOSpawnList.ObjectsItem
+                    {
+                        entityid = obj.Id,
+                        posX = obj.PosX,
+                        posZ = obj.PosZ,
+                        posY = obj.PosY,
+                        typeid = (byte)obj.gameObjectType,
+                        rotY = obj.RotY,
+                        state = (byte)obj.State,
+                        objectid = obj.ObjectId,
+                    });
                 }
+                player.Session.send(s_MMOSpawnList.Write());
+                NetworkPacketPool<S_MMOSpawnList>.Push(TargetMMOSpawn);
+                NetworkPacketPool<S_MMOSpawnList>.Push(s_MMOSpawnList);
             }
 
         }
@@ -147,11 +160,14 @@ namespace GridTest.Manager
             }
 
             // 5. 새 셀에 추가 (미리 만들어뒀으므로 null 체크나 new 할당이 아예 필요 없다!)
-            GetNeighbors(player, tempNew);
             Add(player);
-            S_MMODespawnList s_MyDespawnList = new S_MMODespawnList();
-            S_MMOSpawnList s_MySpawnList = new S_MMOSpawnList();
-
+            GetNeighbors(player, tempNew);
+            S_MMODespawnList s_MyDespawnList = NetworkPacketPool<S_MMODespawnList>.Pop();
+            S_MMOSpawnList s_MySpawnList = NetworkPacketPool<S_MMOSpawnList>.Pop();
+            s_MyDespawnList.Objects.Clear();
+            s_MySpawnList.Objects.Clear();
+            s_MyDespawnList.Clear();
+            s_MyDespawnList.Clear();
             // 1. 디스폰(Despawn) 처리: 내 시야에서 멀어진 유저들
             foreach (var oldobj in tempOld)
             {
@@ -163,15 +179,20 @@ namespace GridTest.Manager
                     // ② 핵심: 상대방(oldobj)의 화면에서도 나(player)를 지워줘야 함!
                     if (oldobj is Player targetPlayer)
                     {
-                        S_MMODespawnList s_TargetDespawn = new S_MMODespawnList();
+                        S_MMODespawnList s_TargetDespawn = NetworkPacketPool<S_MMODespawnList>.Pop();
+                        s_MyDespawnList.Clear();
                         s_TargetDespawn.Objects.Add(new S_MMODespawnList.ObjectsItem { entityid = player.Id });
                         targetPlayer.Session.send(s_TargetDespawn.Write());
+                        NetworkPacketPool<S_MMODespawnList>.Push(s_TargetDespawn);
                     }
                 }
             }
             // 나에게 디스폰 패킷 쏘기 (리스트에 데이터가 있을 때만)
             if (s_MyDespawnList.Objects.Count > 0)
+            {
                 player.Session.send(s_MyDespawnList.Write());
+                NetworkPacketPool<S_MMODespawnList>.Push(s_MyDespawnList);
+            }
 
 
             // 2. 스폰(Spawn) 처리: 내 시야에 새로 들어온 유저들
@@ -182,7 +203,7 @@ namespace GridTest.Manager
 
                 if (!tempOld.Contains(newobj)) // 이전 셀에 없었던 경우 (새로 만남)
                 {
-                 
+
                     s_MySpawnList.Objects.Add(new S_MMOSpawnList.ObjectsItem
                     {
                         entityid = newobj.Id,
@@ -193,10 +214,11 @@ namespace GridTest.Manager
                         state = (byte)newobj.State
                     });
 
-                    
+
                     if (newobj is Player targetPlayer)
                     {
-                        S_MMOSpawnList s_TargetSpawn = new S_MMOSpawnList();
+                        S_MMOSpawnList s_TargetSpawn = NetworkPacketPool<S_MMOSpawnList>.Pop();
+                        s_MyDespawnList.Clear();
                         s_TargetSpawn.Objects.Add(new S_MMOSpawnList.ObjectsItem
                         {
                             entityid = player.Id,
@@ -207,12 +229,16 @@ namespace GridTest.Manager
                             state = (byte)player.State
                         });
                         targetPlayer.Session.send(s_TargetSpawn.Write());
+                        NetworkPacketPool<S_MMOSpawnList>.Push(s_TargetSpawn);
                     }
                 }
             }
             // 나에게 스폰 패킷 쏘기 (리스트에 데이터가 있을 때만)
             if (s_MySpawnList.Objects.Count > 0)
+            {
                 player.Session.send(s_MySpawnList.Write());
+                NetworkPacketPool<S_MMOSpawnList>.Push(s_MySpawnList);
+            }
         }
 
         public void GetNeighbors(GameObject gameobject, ICollection<GameObject> outBuffer)

@@ -1,13 +1,14 @@
 ﻿using GridTest.DataManagers;
 using GridTest.InGameObj.PlayerInfo;
 using GridTest.Manager;
+using GridTest.Network;
 using GridTest.Room;
 using GridTest.Util;
 using NetWorkModule;
 
 public class Monster : GameObject
 {
-    public int MonsterID { get; set; }  // 몬스터 종류 식별용 ID (예: Goblin=1, Orc=2 등)
+   
     public long NextSearchTime { get; set; } = 0;
     public long NextMoveTime { get; set; } = 0;
     public long NextAttackTime { get; set; } = 0;
@@ -29,7 +30,7 @@ public class Monster : GameObject
         this.State = PlayerState.IDLE; // 태어날 땐 무조건 대기 상태
         tickAfter = 1000; // 1초마다 AI 업데이트
         Room = null;
-        MonsterID = objectid;
+        ObjectId = objectid;
         gameObjectType = GameObjectType.Monster; // Monster 타입
         this.Id = ObjectManager.GenerateId(GameObjectType.Monster);//방 접속 시 사용할 고유 id
 
@@ -42,7 +43,7 @@ public class Monster : GameObject
         PosZ = z;
         ReSpawnPosX = x;
         ReSpawnPosZ = z;
-        MonsterData data = MonsterDataManager.GetMonsterData(this.MonsterID);
+        MonsterData data = MonsterDataManager.GetMonsterData(this.ObjectId);
         if (data != null)
         {
             this.MaxHp = data.MaxHp;
@@ -54,20 +55,20 @@ public class Monster : GameObject
         TargetId = 0;
         this.Room = Room;
         ReSpawnTimeMs = 5000;
-        AtkWaitMs = MonsterAniDataManager.GetAniData(MonsterID).AtkWaitMs;
-        AtkTotalTimeMs = MonsterAniDataManager.GetAniData(MonsterID).AtkTotalMs;
+        AtkWaitMs = MonsterAniDataManager.GetAniData(ObjectId).AtkWaitMs;
+        AtkTotalTimeMs = MonsterAniDataManager.GetAniData(ObjectId).AtkTotalMs;
         Room.PushAfter(tickAfter, UpdateAI); // AI 업데이트 시작
         Console.WriteLine($"공격 토탈 시간 {AtkTotalTimeMs}");
     }
     public void OnDead(GameRoom_Logic Room)
     {
         this.Hp = 0;
-        int itemid = ItemDropManager.GetRandomLoot(this.MonsterID); // 몬스터 사망 시 아이템 드롭 처리
+        int itemid = ItemDropManager.GetRandomLoot(this.ObjectId); // 몬스터 사망 시 아이템 드롭 처리
         ItemType itemType = (ItemType)ItemDataManager.GetItemData(itemid).type;
         int maxstack = ItemDataManager.GetItemData(itemid).MaxStack;
         Item droppedItem = new Item();
         droppedItem.Initialize(this.PosX, this.PosY, this.PosZ, Room, itemid, itemType, maxstack);
-       
+
         ChangeStateAndBroadcast(PlayerState.DIE, Room);
         //Console.WriteLine($"[몬스터 사망] 몬스터 {this.Id} 사망. {ReSpawnTimeMs / 1000}초 뒤 부활 예약.");
         Room.PushAfter(ReSpawnTimeMs, () =>
@@ -77,15 +78,15 @@ public class Monster : GameObject
     }
     public void OnDead(GameObject attacker)
     {
-        if(attacker is Player playerAttacker)
+        if (attacker is Player playerAttacker)
         {
             playerAttacker.OnKillMonster(this);
-            
+
         }
         else
         {
-            
-        }   
+
+        }
     }
 
     private void Respawn(GameRoom_Logic Room)
@@ -94,15 +95,16 @@ public class Monster : GameObject
         this.PosX = ReSpawnPosX;
         this.PosZ = ReSpawnPosZ;
         ChangeStateAndBroadcast(PlayerState.IDLE, Room);
-        S_Sync s_Sync = new S_Sync()
-        {
-            playerid = this.Id,
-            posX = this.PosX,
-            posY = this.PosY,
-            posZ = this.PosZ,
-            rotY = this.RotY
-        };
+        S_Sync s_Sync = NetworkPacketPool<S_Sync>.Pop();
+        s_Sync.Clear();
+        s_Sync.posX = this.PosX;
+        s_Sync.playerid = this.Id;
+        s_Sync.posY = this.PosY;
+        s_Sync.posZ = this.PosZ;
+        s_Sync.rotY = this.RotY;
+
         Room.Broadcast(s_Sync.Write(), this);
+        NetworkPacketPool<S_Sync>.Push(s_Sync);
         //Console.WriteLine($"[몬스터 부활] 몬스터 {this.Id} 부활 완료. 위치: ({this.PosX}, {this.PosZ})");
         UpdateAI(); // 부활과 동시에 AI 업데이트 시작
     }
@@ -176,7 +178,7 @@ public class Monster : GameObject
         float dx = target.PosX - this.PosX;
         float dz = target.PosZ - this.PosZ;
         float sqrDist = (dx * dx) + (dz * dz);
-        if(sqrDist > 49.0f) // 시야 범위 7m 밖으로 완전히 벗어났다면?
+        if (sqrDist > 49.0f) // 시야 범위 7m 밖으로 완전히 벗어났다면?
         {
             ChangeStateAndBroadcast(PlayerState.IDLE, Room);
             TargetId = 0;
@@ -310,13 +312,14 @@ public class Monster : GameObject
             targetPlayer.ChangeStateAndBroadcast(PlayerState.IDLE, Room);
 
             // 클라이언트로 텔레포트(부활) 패킷 발송
-            S_Sync spawnPacket = new S_Sync()
-            {
-                playerid = targetPlayer.Id,
-                posX = targetPlayer.PosX,
-                posZ = targetPlayer.PosZ
-            };
+            S_Sync spawnPacket = NetworkPacketPool<S_Sync>.Pop();
+            spawnPacket.Clear();
+            spawnPacket.playerid = targetPlayer.Id;
+            spawnPacket.posX = targetPlayer.PosX;
+            spawnPacket.posZ = targetPlayer.PosZ;
+
             Room.Broadcast(spawnPacket.Write(), this);
+            NetworkPacketPool<S_Sync>.Push(spawnPacket);
         });
     }
 }

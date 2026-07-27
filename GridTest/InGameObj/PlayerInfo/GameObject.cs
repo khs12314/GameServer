@@ -1,4 +1,5 @@
-﻿using GridTest.Room;
+﻿using GridTest.Network;
+using GridTest.Room;
 using GridTest.Util;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ namespace GridTest.InGameObj.PlayerInfo
         public struct Pos { public float x, z; }
         public int CellX { get; set; }
         public int CellY { get; set; }
-
+        public int ObjectId { get; set; } //csv파일의 id 식별용, csv파일에 정의되어있고 범위는 독스파일에 정의되어있음
         public GameRoom_Logic Room { get; set; }
         public List<GameObject> AOIObjects { get; set; } = new List<GameObject>();
         public PlayerState State { get; protected set; }
@@ -39,12 +40,14 @@ namespace GridTest.InGameObj.PlayerInfo
             State = newState;
 
             // 2. 패킷 조립 (Zero-Allocation을 위한 struct 또는 Pool 사용 권장)
-            S_ChangeState statePacket = new S_ChangeState();
+            S_ChangeState statePacket = NetworkPacketPool<S_ChangeState>.Pop();
+            statePacket.Clear();
             statePacket.playerid = Id;
             statePacket.state = (byte)State;
             Console.WriteLine($"상태 변화 {State}");
             // 3. 룸을 통한 브로드캐스트
             room.Broadcast(statePacket.Write(), this);
+            NetworkPacketPool<S_ChangeState>.Push(statePacket); // 패킷 반환
         }
         public void ChangeState(PlayerState newState)
         {

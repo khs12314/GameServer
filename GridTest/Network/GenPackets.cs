@@ -83,7 +83,8 @@ public interface IPacket
 {
 	short Protocol { get; }
 	void Read(CPacket packet);
-	CPacket Write();
+    public void Clear();
+    CPacket Write();
 }
 
 
@@ -100,10 +101,17 @@ public class PlayerInfoReq : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.PlayerInfoReq);
         packet.push(this.playerId);packet.push(this.name);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerId = 0;
+		this.name = null;
+		
     }
 }
 
@@ -120,10 +128,18 @@ public class TestMove : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.TestMove);
         packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		
     }
 }
 
@@ -140,10 +156,15 @@ public class C_Login : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Login);
         
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        
     }
 }
 
@@ -160,10 +181,16 @@ public class C_EnterGame : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_EnterGame);
         packet.push(this.userId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.userId = 0;
+		
     }
 }
 
@@ -180,10 +207,15 @@ public class C_LoadingComplete : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_LoadingComplete);
         
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        
     }
 }
 
@@ -200,10 +232,17 @@ public class C_HitMole : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_HitMole);
         packet.push(this.moleIndex);packet.push(this.UserID);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.moleIndex = 0;
+		this.UserID = 0;
+		
     }
 }
 
@@ -220,10 +259,16 @@ public class S_LoginOk : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_LoginOk);
         packet.push(this.ServerUserID);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.ServerUserID = 0;
+		
     }
 }
 
@@ -240,10 +285,16 @@ public class S_ScoreUpdate : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_ScoreUpdate);
         packet.push(this.score);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.score = 0;
+		
     }
 }
 
@@ -260,10 +311,16 @@ public class S_StartLoading : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_StartLoading);
         packet.push(this.PlayerIndex);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.PlayerIndex = 0;
+		
     }
 }
 
@@ -280,10 +337,16 @@ public class S_Spawn_Mole : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Spawn_Mole);
         packet.push(this.moleIndex);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.moleIndex = 0;
+		
     }
 }
 
@@ -300,10 +363,16 @@ public class S_GameStart : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_GameStart);
         packet.push(this.duration);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.duration = 0;
+		
     }
 }
 
@@ -320,10 +389,16 @@ public class S_PlayerInfo : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_PlayerInfo);
         packet.push(this.playerIndex);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerIndex = 0;
+		
     }
 }
 
@@ -340,10 +415,15 @@ public class S_RoomRemoved : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_RoomRemoved);
         
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        
     }
 }
 
@@ -360,10 +440,17 @@ public class C_Login_DB : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Login_DB);
         packet.push(this.ID);packet.push(this.PassWord);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.ID = null;
+		this.PassWord = null;
+		
     }
 }
 
@@ -380,10 +467,18 @@ public class S_Login_DB : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Login_DB);
         packet.push(this.Sucess);packet.push(this.UserID);packet.push(this.Nickname);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Sucess = false;
+		this.UserID = 0;
+		this.Nickname = null;
+		
     }
 }
 
@@ -400,10 +495,18 @@ public class C_SignUp_DB : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_SignUp_DB);
         packet.push(this.ID);packet.push(this.PassWord);packet.push(this.nickname);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.ID = null;
+		this.PassWord = null;
+		this.nickname = null;
+		
     }
 }
 
@@ -420,10 +523,17 @@ public class S_SignUp_DB : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SignUp_DB);
         packet.push(this.Sucess);packet.push(this.nickname);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Sucess = false;
+		this.nickname = null;
+		
     }
 }
 
@@ -440,10 +550,18 @@ public class S_EnterGame_Snake : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_EnterGame_Snake);
         packet.push(this.mapSizeX);packet.push(this.mapSizeY);packet.push(this.userid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.mapSizeX = 0f;
+		this.mapSizeY = 0f;
+		this.userid = 0;
+		
     }
 }
 
@@ -460,10 +578,21 @@ public class S_Spawn : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Spawn);
         packet.push(this.SpawnX);packet.push(this.SpawnY);packet.push(this.SpawnZ);packet.push(this.entityID);packet.push(this.typeid);packet.push(this.objectid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.SpawnX = 0f;
+		this.SpawnY = 0f;
+		this.SpawnZ = 0f;
+		this.entityID = 0;
+		this.typeid = 0;
+		this.objectid = 0;
+		
     }
 }
 
@@ -480,10 +609,16 @@ public class Search_Room_id : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.Search_Room_id);
         packet.push(this.Room_ID);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Room_ID = false;
+		
     }
 }
 
@@ -500,10 +635,17 @@ public class C_EnterGame_Snake : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_EnterGame_Snake);
         packet.push(this.userId);packet.push(this.Room_id);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.userId = 0;
+		this.Room_id = 0;
+		
     }
 }
 
@@ -520,10 +662,16 @@ public class C_Move : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_Move);
         packet.push(this.direction);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.direction = 0;
+		
     }
 }
 
@@ -540,10 +688,19 @@ public class S_Move : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Move);
         packet.push(this.playerId);packet.push(this.posX);packet.push(this.posY);packet.push(this.IsEat);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerId = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.IsEat = false;
+		
     }
 }
 
@@ -560,10 +717,18 @@ public class S_SpawnItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_SpawnItem);
         packet.push(this.ItemID);packet.push(this.posX);packet.push(this.posY);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.ItemID = 0;
+		this.posX = 0;
+		this.posY = 0;
+		
     }
 }
 
@@ -580,10 +745,16 @@ public class S_PlayerLeave : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_PlayerLeave);
         packet.push(this.userid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.userid = 0;
+		
     }
 }
 
@@ -600,10 +771,16 @@ public class S_Die : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Die);
         packet.push(this.userid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.userid = 0;
+		
     }
 }
 
@@ -620,10 +797,16 @@ public class C_PlayerLeave : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_PlayerLeave);
         packet.push(this.userid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.userid = 0;
+		
     }
 }
 
@@ -640,10 +823,19 @@ public class MMO_C_Move : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_C_Move);
         packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rot);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rot = 0f;
+		
     }
 }
 
@@ -660,10 +852,21 @@ public class MMO_S_Move : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Move);
         packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rot);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rot = 0f;
+		this.state = 0;
+		
     }
 }
 
@@ -680,10 +883,18 @@ public class MMO_S_Attack : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Attack);
         packet.push(this.playerid);packet.push(this.skillId);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.skillId = 0;
+		this.state = 0;
+		
     }
 }
 
@@ -700,10 +911,16 @@ public class MMO_C_Attack : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_C_Attack);
         packet.push(this.skillId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.skillId = 0;
+		
     }
 }
 
@@ -720,10 +937,17 @@ public class MMO_S_Die : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.MMO_S_Die);
         packet.push(this.playerid);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.state = 0;
+		
     }
 }
 
@@ -740,10 +964,17 @@ public class S_ReSpawn : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_ReSpawn);
         packet.push(this.playerid);packet.push(this.typeid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.typeid = 0;
+		
     }
 }
 
@@ -760,10 +991,18 @@ public class S_Damage : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Damage);
         packet.push(this.playerid);packet.push(this.damage);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.damage = 0;
+		this.state = 0;
+		
     }
 }
 
@@ -780,10 +1019,20 @@ public class S_Sync : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_Sync);
         packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rotY = 0f;
+		
     }
 }
 
@@ -800,10 +1049,20 @@ public class S_MonsterSpawn : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MonsterSpawn);
         packet.push(this.SpawnX);packet.push(this.SpawnY);packet.push(this.SpawnZ);packet.push(this.entityid);packet.push(this.objectid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.SpawnX = 0f;
+		this.SpawnY = 0f;
+		this.SpawnZ = 0f;
+		this.entityid = 0;
+		this.objectid = 0;
+		
     }
 }
 
@@ -839,7 +1098,6 @@ public class S_ResCharacterList : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_ResCharacterList);
         packet.push(this.Characters.Count);
 		foreach (CharactersItem item in this.Characters)
@@ -851,6 +1109,13 @@ public class S_ResCharacterList : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Characters.Clear();
+		
     }
 }
 
@@ -886,7 +1151,6 @@ public class C_ResCharacterList : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_ResCharacterList);
         packet.push(this.Characters.Count);
 		foreach (CharactersItem item in this.Characters)
@@ -898,6 +1162,13 @@ public class C_ResCharacterList : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Characters.Clear();
+		
     }
 }
 
@@ -914,10 +1185,20 @@ public class C_UseSkill : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_UseSkill);
         packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);packet.push(this.skillId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rotY = 0f;
+		this.skillId = 0;
+		
     }
 }
 
@@ -934,10 +1215,24 @@ public class S_UseSkill : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_UseSkill);
         packet.push(this.playerid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);packet.push(this.dirx);packet.push(this.dirz);packet.push(this.skillId);packet.push(this.Cooldown);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rotY = 0f;
+		this.dirx = 0f;
+		this.dirz = 0f;
+		this.skillId = 0;
+		this.Cooldown = false;
+		
     }
 }
 
@@ -975,7 +1270,6 @@ public class Spawn_Object : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.Spawn_Object);
         packet.push(this.Objects.Count);
 		foreach (ObjectsItem item in this.Objects)
@@ -988,6 +1282,13 @@ public class Spawn_Object : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Objects.Clear();
+		
     }
 }
 
@@ -1004,10 +1305,17 @@ public class S_ChangeState : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_ChangeState);
         packet.push(this.playerid);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.state = 0;
+		
     }
 }
 
@@ -1024,10 +1332,17 @@ public class C_CreateCharacter : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_CreateCharacter);
         packet.push(this.Nickname);packet.push(this.CharacterType);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Nickname = null;
+		this.CharacterType = 0;
+		
     }
 }
 
@@ -1044,10 +1359,18 @@ public class S_CreateCharacter : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_CreateCharacter);
         packet.push(this.Success);packet.push(this.Nickname);packet.push(this.CharacterType);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Success = false;
+		this.Nickname = null;
+		this.CharacterType = 0;
+		
     }
 }
 
@@ -1064,10 +1387,16 @@ public class C_DeleteCharacter : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_DeleteCharacter);
         packet.push(this.CharacterId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.CharacterId = 0;
+		
     }
 }
 
@@ -1084,10 +1413,20 @@ public class S_MMOSpawnItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMOSpawnItem);
         packet.push(this.ItemID);packet.push(this.entityID);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.ItemID = 0;
+		this.entityID = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		
     }
 }
 
@@ -1104,10 +1443,16 @@ public class C_MMOGetItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_MMOGetItem);
         packet.push(this.entityid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.entityid = 0;
+		
     }
 }
 
@@ -1124,10 +1469,17 @@ public class S_MMOGetItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMOGetItem);
         packet.push(this.entityid);packet.push(this.playerid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.entityid = 0;
+		this.playerid = 0;
+		
     }
 }
 
@@ -1144,10 +1496,16 @@ public class S_MMODespawnItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMODespawnItem);
         packet.push(this.entityID);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.entityID = 0;
+		
     }
 }
 
@@ -1164,10 +1522,19 @@ public class S_UpdateSlot : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_UpdateSlot);
         packet.push(this.SlotIndex);packet.push(this.entityid);packet.push(this.TemplateID);packet.push(this.Count);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.SlotIndex = 0;
+		this.entityid = 0;
+		this.TemplateID = 0;
+		this.Count = 0;
+		
     }
 }
 
@@ -1184,10 +1551,17 @@ public class C_SwapItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_SwapItem);
         packet.push(this.FromIndex);packet.push(this.ToIndex);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.FromIndex = 0;
+		this.ToIndex = 0;
+		
     }
 }
 
@@ -1204,10 +1578,16 @@ public class C_NpcInteract : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_NpcInteract);
         packet.push(this.NpcId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.NpcId = 0;
+		
     }
 }
 
@@ -1250,7 +1630,6 @@ public class S_NpcInteractResult : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_NpcInteractResult);
         packet.push(this.NpcId);packet.push(this.AvailableQuests.Count);
 		foreach (AvailableQuestsItem item in this.AvailableQuests)
@@ -1264,6 +1643,15 @@ public class S_NpcInteractResult : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.NpcId = 0;
+		this.AvailableQuests.Clear();
+		this.CompletableQuests.Clear();
+		
     }
 }
 
@@ -1280,10 +1668,17 @@ public class C_AcceptQuest : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_AcceptQuest);
         packet.push(this.NpcId);packet.push(this.QuestId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.NpcId = 0;
+		this.QuestId = 0;
+		
     }
 }
 
@@ -1300,10 +1695,17 @@ public class S_AcceptQuest : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_AcceptQuest);
         packet.push(this.QuestId);packet.push(this.ErrorCode);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.QuestId = 0;
+		this.ErrorCode = 0;
+		
     }
 }
 
@@ -1335,7 +1737,6 @@ public class S_UpdateQuestProgress : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_UpdateQuestProgress);
         packet.push(this.QuestId);packet.push(this.Objectives.Count);
 		foreach (ObjectivesItem item in this.Objectives)
@@ -1345,6 +1746,14 @@ public class S_UpdateQuestProgress : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.QuestId = 0;
+		this.Objectives.Clear();
+		
     }
 }
 
@@ -1361,10 +1770,17 @@ public class C_CompleteQuest : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_CompleteQuest);
         packet.push(this.NpcId);packet.push(this.QuestId);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.NpcId = 0;
+		this.QuestId = 0;
+		
     }
 }
 
@@ -1381,10 +1797,19 @@ public class S_CompleteQuest : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_CompleteQuest);
         packet.push(this.QuestId);packet.push(this.RewardItemId);packet.push(this.RewardItemCount);packet.push(this.ErrorCode);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.QuestId = 0;
+		this.RewardItemId = 0;
+		this.RewardItemCount = 0;
+		this.ErrorCode = 0;
+		
     }
 }
 
@@ -1401,10 +1826,16 @@ public class S_GetExp : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_GetExp);
         packet.push(this.Exp);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Exp = 0;
+		
     }
 }
 
@@ -1421,10 +1852,17 @@ public class S_LevelUp : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_LevelUp);
         packet.push(this.playerid);packet.push(this.level);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.level = 0;
+		
     }
 }
 
@@ -1441,10 +1879,16 @@ public class C_UseItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_UseItem);
         packet.push(this.index);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.index = 0;
+		
     }
 }
 
@@ -1461,10 +1905,18 @@ public class S_PlayerStatusUpdate : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_PlayerStatusUpdate);
         packet.push(this.playerid);packet.push(this.Hp);packet.push(this.Mp);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.playerid = 0;
+		this.Hp = 0;
+		this.Mp = 0;
+		
     }
 }
 
@@ -1481,10 +1933,16 @@ public class C_UnequipItem : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.C_UnequipItem);
         packet.push(this.index);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.index = 0;
+		
     }
 }
 
@@ -1501,10 +1959,17 @@ public class S_EquipUpdate : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_EquipUpdate);
         packet.push(this.EquipType);packet.push(this.TemplateID);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.EquipType = 0;
+		this.TemplateID = 0;
+		
     }
 }
 
@@ -1521,10 +1986,17 @@ public class S_MyStatUpdate : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MyStatUpdate);
         packet.push(this.Attack);packet.push(this.MaxHp);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Attack = 0;
+		this.MaxHp = 0;
+		
     }
 }
 
@@ -1568,7 +2040,6 @@ public class S_MMOSpawnList : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMOSpawnList);
         packet.push(this.Objects.Count);
 		foreach (ObjectsItem item in this.Objects)
@@ -1584,6 +2055,13 @@ public class S_MMOSpawnList : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Objects.Clear();
+		
     }
 }
 
@@ -1613,7 +2091,6 @@ public class S_MMODespawnList : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMODespawnList);
         packet.push(this.Objects.Count);
 		foreach (ObjectsItem item in this.Objects)
@@ -1622,6 +2099,13 @@ public class S_MMODespawnList : IPacket
 				
 		}
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.Objects.Clear();
+		
     }
 }
 
@@ -1638,10 +2122,16 @@ public class S_MMODespawn : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMODespawn);
         packet.push(this.entityid);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.entityid = 0;
+		
     }
 }
 
@@ -1658,10 +2148,21 @@ public class S_MMOSpawn : IPacket
 
     public CPacket Write()
     {
-        // 자네가 만든 CPacket.create 사용
         CPacket packet = CPacket.create((short)PacketID.S_MMOSpawn);
         packet.push(this.entityid);packet.push(this.posX);packet.push(this.posY);packet.push(this.posZ);packet.push(this.rotY);packet.push(this.state);
         return packet;
+    }
+
+    
+    public void Clear()
+    {
+        this.entityid = 0;
+		this.posX = 0f;
+		this.posY = 0f;
+		this.posZ = 0f;
+		this.rotY = 0f;
+		this.state = 0;
+		
     }
 }
 

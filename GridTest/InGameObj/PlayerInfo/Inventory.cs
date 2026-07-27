@@ -33,7 +33,7 @@ namespace GridTest.InGameObj.PlayerInfo
                     Item existItem = Slots[i];
 
                     // 빈칸이 아니고, 같은 종류의 아이템이며, 아직 덜 찬 경우
-                    if (existItem != null && existItem.ItemID == item.ItemID && existItem.Count < existItem.MaxStack)
+                    if (existItem != null && existItem.ObjectId == item.ObjectId && existItem.Count < existItem.MaxStack)
                     {
                         int space = existItem.MaxStack - existItem.Count;
                         int addCount = Math.Min(space, item.Count);
@@ -73,7 +73,7 @@ namespace GridTest.InGameObj.PlayerInfo
                 // [핵심] 파라미터로 들어온 item을 돌려쓰면 절대 안 된다!
                 // DB와 독립적으로 엮일 새로운 아이템 인스턴스를 힙(Heap) 메모리에 새로 찍어내야 한다.
                 Item newItem = new Item(); // (또는 ItemFactory.CreateItem(...) 사용)
-                newItem.ItemID = item.ItemID;
+                newItem.ObjectId = item.ObjectId;
                 newItem.Count = addAmount;
                 newItem.SlotIndex = emptySlot;
 
@@ -116,7 +116,7 @@ namespace GridTest.InGameObj.PlayerInfo
             if (itemA == null) return SwapResult.Failed; // 허공을 드래그함
 
             // 1. 병합(Merge) 조건 검사: B가 있고, 같은 종류이며, 스택 가능한가?
-            if (itemB != null && itemA.ItemID == itemB.ItemID && itemA.ItemType != ItemType.Equipment)
+            if (itemB != null && itemA.ObjectId == itemB.ObjectId && itemA.ItemType != ItemType.Equipment)
             {
                 if (itemB.Count < itemB.MaxStack)
                 {

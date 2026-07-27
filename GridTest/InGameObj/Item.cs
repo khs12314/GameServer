@@ -8,7 +8,6 @@ public class Item : GameObject
     public const int INVALID_SLOT = -1;
     internal bool IsDirty;
     public long DbId { get; set; }
-    public int ItemID { get; set; } // 아이템 종류 식별용 ID (예: Potion=1, Sword=2 등)
     public int Count { get; set; } // 아이템 개수 (소모품인 경우 1~99, 장비는 항상 1)
     public ItemType ItemType { get; set; } // 아이템 타입 (예: Equipment, Consumables 등)
     public short SlotIndex { get; set; } = INVALID_SLOT; // 인벤토리 슬롯 인덱스 (0~19), INVALID_SLOT은 인벤토리에 없는 상태를 의미
@@ -31,7 +30,7 @@ public class Item : GameObject
             CellX = (int)(PosX * GameRoom_Logic.InvCellSize);
             CellY = (int)(PosZ * GameRoom_Logic.InvCellSize);
             this.Room = Room;
-            ItemID = itemId;
+            ObjectId = itemId;
             ItemType = type;
             MaxStack = maxstack;
             DbId = 0;

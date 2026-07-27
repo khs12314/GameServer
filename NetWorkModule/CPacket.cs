@@ -33,6 +33,7 @@ namespace NetWorkModule
         public static CPacket create(byte[] buffer, IPeer owner)
         {
             CPacket packet = CPacketBufferManger.pop();
+            
             packet._refCount = 1;
             packet.is_using = true;
             packet.owner = owner;

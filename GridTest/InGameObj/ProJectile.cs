@@ -1,5 +1,6 @@
 ﻿using GridTest.InGameObj.PlayerInfo;
 using GridTest.Manager;
+using GridTest.Network;
 using GridTest.Room;
 using GridTest.Util;
 
@@ -100,7 +101,11 @@ public class ProJectile : GameObject
         targetmonster.Hp -= this.Damage;
 
         // 패킷 생성 및 브로드캐스트
-        S_Damage damagePacket = new S_Damage() { playerid = targetmonster.Id, damage = this.Damage };
+        S_Damage damagePacket = NetworkPacketPool<S_Damage>.Pop();
+        damagePacket.Clear();
+
+        damagePacket.playerid = targetmonster.Id;
+        damagePacket.damage = this.Damage;
 
         if (targetmonster.Hp <= 0)
         {
@@ -109,7 +114,8 @@ public class ProJectile : GameObject
             damagePacket.state = (byte)PlayerState.DIE;
 
             // 부활 예약 (5초 뒤)
-            Room.Push(() => { 
+            Room.Push(() =>
+            {
                 targetmonster.OnDead(this.Room);
                 targetmonster.OnDead(Owner);
             });
@@ -120,7 +126,7 @@ public class ProJectile : GameObject
         }
 
         Room.Broadcast(damagePacket.Write(), targetmonster);
-
+        NetworkPacketPool<S_Damage>.Push(damagePacket);
         // 투사체 소멸 및 반납
         Room.Return_Projectile(this);
     }

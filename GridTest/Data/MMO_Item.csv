@@ -2,5 +2,5 @@ TemplateId,Name,Grade,MaxStack,Type
 101,Stone,Common,99,3
 102,Iron_Ore,Uncommon,99,3
 103,Ruby_Ore,Rare,10,3
-301,Red_Potion,None,99,2
-1001,sword,None,1,1
+201,Red_Potion,None,99,2
+301,sword,None,1,1

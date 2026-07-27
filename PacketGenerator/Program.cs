@@ -1,20 +1,23 @@
-﻿using System.Xml;
+﻿using System;
+using System.IO;
+using System.Xml;
 
 namespace PacketGenerator
 {
     internal class Program
     {
         // 1. 결과물이 담길 변수들
-        static string genPackets; // 클래스 코드들이 여기 다 합쳐짐
-        static ushort packetId;   // 패킷 번호 (0부터 자동 증가)
+        static string genPackets;  // 클래스 코드들이 여기 다 합쳐짐
+        static ushort packetId;    // 패킷 번호 (0부터 자동 증가)
         static string packetEnums; // "PlayerInfoReq = 0," 같은 Enum 정의
+
         static void Main(string[] args)
         {
             string pdlPath = "PDL.xml";
 
             XmlReaderSettings settings = new XmlReaderSettings()
             {
-                IgnoreComments = true, // 주석 무시
+                IgnoreComments = true,  // 주석 무시
                 IgnoreWhitespace = true // 공백 무시
             };
 
@@ -35,10 +38,10 @@ namespace PacketGenerator
             string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
 
             string[] outputPaths =
- {
-    @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Scripts\Application\GenPackets.cs",
-    @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\Network\GenPackets.cs"
-};
+            {
+                @"C:\Users\qpqpq\OneDrive\문서\GitHub\mmo_unity\My project (33)\Assets\Scripts\Application\GenPackets.cs",
+                @"C:\Users\qpqpq\source\repos\NetWorkModule\GridTest\Network\GenPackets.cs"
+            };
 
             foreach (string path in outputPaths)
             {
@@ -63,15 +66,13 @@ namespace PacketGenerator
                 return;
             }
 
-            // [핵심] 내부 멤버 변수들(<long>, <string> 등) 파싱해오기
-            // t.Item1 = 변수 선언 코드
-            // t.Item2 = Read(pop) 코드
-            // t.Item3 = Write(push) 코드
-            Tuple<string, string, string> t = ParseMembers(r);
+            // [핵심] 4번째 요소인 clearCode(t.Item4)까지 함께 파싱
+            Tuple<string, string, string, string> t = ParseMembers(r);
 
-            // 포맷에 끼워 넣기
+            // PacketFormat.packetFormat의 {0}~{4} 구멍에 데이터 바인딩
+            // {0}: packetName, {1}: memberCode, {2}: readCode, {3}: writeCode, {4}: clearCode
             string newPacket = string.Format(PacketFormat.packetFormat,
-                packetName, t.Item1, t.Item2, t.Item3);
+                packetName, t.Item1, t.Item2, t.Item3, t.Item4);
 
             // 결과물에 누적
             genPackets += newPacket;
@@ -81,13 +82,15 @@ namespace PacketGenerator
         }
 
         // 패킷 안의 멤버들 (<int>, <float> 등) 처리
-        static Tuple<string, string, string> ParseMembers(XmlReader r)
+        // 반환형: Tuple<memberCode, readCode, writeCode, clearCode>
+        static Tuple<string, string, string, string> ParseMembers(XmlReader r)
         {
             string packetName = r["name"];
 
             string memberCode = ""; // public int age;
-            string readCode = "";   // this.age = packet.pop_int();
+            string readCode = "";   // this.age = packet.pop_int32();
             string writeCode = "";  // packet.push(this.age);
+            string clearCode = "";  // this.age = 0; (Clear 구현부)
 
             int depth = r.Depth + 1; // <Packet>보다 한 단계 깊은 곳
 
@@ -100,8 +103,6 @@ namespace PacketGenerator
 
                 string memberType = r.Name.ToLower(); // 예: "long"
 
-                // [중요] XML 타입 <-> 자네 CPacket 메서드 매핑
-                // 자네 CPacket에 있는 메서드 이름(pop_int32 등)과 정확히 같아야 함!
                 switch (memberType)
                 {
                     case "byte":
@@ -109,49 +110,53 @@ namespace PacketGenerator
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
                         readCode += string.Format(PacketFormat.readFormat, memberName, "byte");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = 0;\n", memberName);
                         break;
                     case "bool":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "bool"); // bool은 byte로 처리
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "bool");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = false;\n", memberName);
                         break;
                     case "short":
                     case "ushort":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "int16"); // pop_int16
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "int16");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = 0;\n", memberName);
                         break;
                     case "int":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "int32"); // pop_int32
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "int32");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = 0;\n", memberName);
                         break;
                     case "long":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "int64"); // pop_int64
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "int64");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = 0;\n", memberName);
                         break;
                     case "float":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "float"); // pop_float
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "float");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        clearCode += string.Format("this.{0} = 0f;\n", memberName);
                         break;
                     case "string":
                         memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
-                        readCode += string.Format(PacketFormat.readFormat, memberName, "string"); // pop_string
+                        readCode += string.Format(PacketFormat.readFormat, memberName, "string");
                         writeCode += string.Format(PacketFormat.writeFormat, memberName);
+                        // [중요] string 참조 끊기
+                        clearCode += string.Format("this.{0} = null;\n", memberName);
                         break;
                     case "list":
-                        // 1. 리스트의 자식 노드들을 파싱해오는 전용 함수 호출
                         Tuple<string, string, string> t = ParseList(r);
-
-                        // 2. 아까 PacketFormat.cs에 추가했던 리스트 전용 템플릿에 데이터 삽입
-                        // t.Item1: 구조체 안에 들어갈 변수들
-                        // t.Item2: 역직렬화(Read) 루프 안의 pop 코드들
-                        // t.Item3: 직렬화(Write) 루프 안의 push 코드들
                         memberCode += string.Format(PacketFormat.listMemberFormat, memberName, t.Item1);
                         readCode += string.Format(PacketFormat.listReadFormat, memberName, t.Item2);
                         writeCode += string.Format(PacketFormat.listWriteFormat, memberName, t.Item3);
+                        // [중요] List는 null로 만드는 것이 아니라 Clear()를 호출함
+                        clearCode += string.Format("this.{0}.Clear();\n", memberName);
                         break;
                 }
             }
@@ -160,9 +165,11 @@ namespace PacketGenerator
             memberCode = memberCode.Replace("\n", "\n\t");
             readCode = readCode.Replace("\n", "\n\t\t");
             writeCode = writeCode.Replace("\n", "\n\t\t");
+            clearCode = clearCode.Replace("\n", "\n\t\t");
 
-            return new Tuple<string, string, string>(memberCode, readCode, writeCode);
+            return new Tuple<string, string, string, string>(memberCode, readCode, writeCode, clearCode);
         }
+
         static Tuple<string, string, string> ParseList(XmlReader r)
         {
             string memberCode = "";
@@ -180,7 +187,6 @@ namespace PacketGenerator
 
                 string memberType = r.Name.ToLower();
 
-                // [핵심] 리스트 안에서는 this. 가 아니라 item. 을 사용해야 한다!
                 switch (memberType)
                 {
                     case "byte":
@@ -204,7 +210,6 @@ namespace PacketGenerator
                         readCode += string.Format("item.{0} = packet.pop_float();\n", memberName);
                         writeCode += string.Format("packet.push(item.{0});\n", memberName);
                         break;
-                        // 필요하다면 short, long, float 등도 위 패턴에 맞춰 똑같이 추가해라!
                 }
             }
 

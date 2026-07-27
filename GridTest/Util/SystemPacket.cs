@@ -28,5 +28,9 @@ namespace GridTest.Util
             // 데이터 없이 ID만 찍어서 보냄
             return CPacket.create((short)SystemPacketID.InternalDisconnect);
         }
+        public void Clear()
+        {
+            return;
+        }
     }
 }

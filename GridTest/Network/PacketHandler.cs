@@ -38,7 +38,9 @@ namespace GridTest.Network
             if (peer is User_Session user_Session)
             {
                 List<CharacterInfo> dbInfos = await DBMananger.GetCharacterInfos((peer as User_Session).Uid);
-                S_ResCharacterList resPacket = new S_ResCharacterList();
+                S_ResCharacterList resPacket = NetworkPacketPool<S_ResCharacterList>.Pop();
+                resPacket.Clear();
+                resPacket.Characters.Clear();
                 foreach (CharacterInfo dbInfo in dbInfos)
                 {
                     S_ResCharacterList.CharactersItem item = new S_ResCharacterList.CharactersItem();
@@ -49,6 +51,7 @@ namespace GridTest.Network
                     resPacket.Characters.Add(item);
                 }
                 peer.CUserToken.send(resPacket.Write());
+                NetworkPacketPool<S_ResCharacterList>.Push(resPacket);
             }
         }
 
@@ -57,7 +60,8 @@ namespace GridTest.Network
             try
             {
                 User_Session? session = peer as User_Session;
-                S_Login_DB login = new S_Login_DB();
+                S_Login_DB login = NetworkPacketPool<S_Login_DB>.Pop();
+                login.Clear();
                 Console.WriteLine($"로그인받음{packet.ID}");
                 if (session == null)
                 {
@@ -91,7 +95,7 @@ namespace GridTest.Network
 
                         // 5. 응답 전송 및 입장
                         peer.send(login.Write());
-
+                        NetworkPacketPool<S_Login_DB>.Push(login);
                         // 로비 입장 및 서버 메모리에 유저 등록
                         session.Enter_Loby(Program.game_server);
                         Program.game_server.Set_User_Session(session, fakeUserId);
@@ -111,6 +115,7 @@ namespace GridTest.Network
                         login.Nickname = packet.ID;
 
                         peer.send(login.Write());
+                        NetworkPacketPool<S_Login_DB>.Push(login);
                         session.Enter_Loby(Program.game_server);
                         Program.game_server.Set_User_Session(session, tempId);
                     }
@@ -130,6 +135,7 @@ namespace GridTest.Network
                         login.UserID = resultCode;
                         login.Nickname = nickname;
                         peer.send(login.Write());
+                        NetworkPacketPool<S_Login_DB>.Push(login);
                         session.Enter_Loby(Program.game_server);
                         Program.game_server.Set_User_Session(session, resultCode);
                         await ReqCharacterList(session);
@@ -141,6 +147,7 @@ namespace GridTest.Network
                         login.UserID = 0;
                         login.Nickname = "";
                         peer.send(login.Write());
+                        NetworkPacketPool<S_Login_DB>.Push(login);
                         return;
                     }
 
@@ -150,12 +157,12 @@ namespace GridTest.Network
             {
                 Console.WriteLine($"{ex}");
             }
-
+            NetworkPacketPool<C_Login_DB>.Push(packet);
         }
         public static void C_SignUpDBHandler(IPeer peer, C_SignUp_DB packet)
         {
             User_Session? session = peer as User_Session;
-            S_SignUp_DB signUp = new S_SignUp_DB();
+            S_SignUp_DB signUp = NetworkPacketPool<S_SignUp_DB>.Pop();
 
 
         }
@@ -171,11 +178,12 @@ namespace GridTest.Network
             //if (gameUser_Session == null) {
             //    Console.WriteLine("이것도 널");
             //}
-            S_EnterGame_Snake enterGame = new S_EnterGame_Snake();
+            S_EnterGame_Snake enterGame = NetworkPacketPool<S_EnterGame_Snake>.Pop();
+            enterGame.Clear();
             int room_id = packet.Room_id;
             Console.WriteLine($"패킷 핸들러 실행");
             Program.game_server.Enter_Game_Request(session, packet.userId, room_id);
-
+            NetworkPacketPool<S_EnterGame_Snake>.Push(enterGame);
         }
         public static void C_Move_SnakeHandler(IPeer peer, C_Move pakcet)
         {
@@ -188,7 +196,7 @@ namespace GridTest.Network
                     session.room.ChangeDir(session, pakcet);
                 });
             }
-
+            NetworkPacketPool<C_Move>.Push(pakcet);
 
         }
         //public static void MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO_Move)
@@ -214,6 +222,7 @@ namespace GridTest.Network
                 return;
 
             }
+            NetworkPacketPool<C_PlayerLeave>.Push(c_PlayerLeave);
         }
         public static void C_MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO)
         {
@@ -232,6 +241,7 @@ namespace GridTest.Network
                     session.room.MMO_Move(session, c_MMO);
                 });
             }
+            NetworkPacketPool<MMO_C_Move>.Push(c_MMO);
         }
         public static void C_MMO_Attack_Handler(IPeer peer, MMO_C_Attack c_MMO_Attack)
         {
@@ -251,13 +261,14 @@ namespace GridTest.Network
                 });
 
             }
+            NetworkPacketPool<MMO_C_Attack>.Push(c_MMO_Attack);
         }
 
 
 
         public static void C_UseSkill_Handler(IPeer peer, C_UseSkill c_UseSkill)
         {
-            
+
             //보안검사 후
             if (peer is GameUser_Session session)
             {
@@ -266,10 +277,11 @@ namespace GridTest.Network
                     if (session.MyPlayer.State == PlayerState.DIE || session.MyPlayer.State == PlayerState.ATTACK)
                         return;
                     session.MyPlayer.UseSkill(c_UseSkill);
-                    
+
                 });
-               
+
             }
+            NetworkPacketPool<C_UseSkill>.Push(c_UseSkill);
         }
 
         internal static void C_ResCharacterList_Handler(IPeer session, C_ResCharacterList c_ResCharacterList)
@@ -291,27 +303,31 @@ namespace GridTest.Network
                 if (success)
                 {
                     Console.WriteLine($"캐릭터 생성 성공: {c_CreateCharacter.Nickname} (ID: {user_Session.Uid})");
-                    S_CreateCharacter resPacket = new S_CreateCharacter();
+                    S_CreateCharacter resPacket = NetworkPacketPool<S_CreateCharacter>.Pop();
+                    resPacket.Clear();
                     resPacket.Success = true;
                     resPacket.Nickname = c_CreateCharacter.Nickname;
                     resPacket.CharacterType = c_CreateCharacter.CharacterType;
                     user_Session.CUserToken.send(resPacket.Write());
+                    NetworkPacketPool<S_CreateCharacter>.Push(resPacket);
                     if (USE_DB)
                         await ReqCharacterList(user_Session); // 캐릭터 리스트 갱신
                 }
                 else
                 {
                     Console.WriteLine($"캐릭터 생성 실패: {c_CreateCharacter.Nickname}");
-                    S_CreateCharacter resPacket = new S_CreateCharacter();
+                    S_CreateCharacter resPacket = NetworkPacketPool<S_CreateCharacter>.Pop();
+                    resPacket.Clear();
                     resPacket.Success = false;
                     resPacket.Nickname = c_CreateCharacter.Nickname;
                     resPacket.CharacterType = c_CreateCharacter.CharacterType;
                     user_Session.CUserToken.send(resPacket.Write());
-
+                    NetworkPacketPool<S_CreateCharacter>.Push(resPacket);
                     // 실패 응답 패킷 보내기 (필요하다면)
                 }
 
             }
+            NetworkPacketPool<C_CreateCharacter>.Push(c_CreateCharacter);
         }
 
         public static void C_MMOGetItem_Handler(IPeer session, C_MMOGetItem c_MMOGetItem)
@@ -327,6 +343,7 @@ namespace GridTest.Network
                     gameUser_Session.room.Get_Item(gameUser_Session, c_MMOGetItem);
                 });
             }
+            NetworkPacketPool<C_MMOGetItem>.Push(c_MMOGetItem);
         }
 
         public static void C_SwapItem_Handler(IPeer session, C_SwapItem c_SwapItem)
@@ -338,6 +355,7 @@ namespace GridTest.Network
                     gameUser_Session.room.Swap_Item(gameUser_Session, c_SwapItem);
                 });
             }
+            NetworkPacketPool<C_SwapItem>.Push(c_SwapItem);
         }
 
         public static void C_NpcInteract_Handler(IPeer session, C_NpcInteract c_NpcInteract)
@@ -349,6 +367,7 @@ namespace GridTest.Network
                     gameUser_Session.room.Npc_Interact(gameUser_Session, c_NpcInteract);
                 });
             }
+            NetworkPacketPool<C_NpcInteract>.Push(c_NpcInteract);
         }
 
         public static void C_AcceptQuest_Handler(IPeer session, C_AcceptQuest c_AcceptQuest)
@@ -360,29 +379,32 @@ namespace GridTest.Network
                     gameUser_Session.room.Accept_Quest(gameUser_Session, c_AcceptQuest);
                 });
             }
+            NetworkPacketPool<C_AcceptQuest>.Push(c_AcceptQuest);   
         }
 
         public static void C_CompeleteQuest_Handler(IPeer session, C_CompleteQuest c_CompleteQuest)
         {
             if (session is GameUser_Session gameUser_Session)
             {
-                gameUser_Session.room.Push(()=> {
+                gameUser_Session.room.Push(() =>
+                {
 
                     gameUser_Session.room.CompleteQuest(gameUser_Session, c_CompleteQuest);
-                } );
+                });
             }
         }
 
         public static void C_CUseItem_Handler(IPeer session, C_UseItem c_consumeItme)
         {
-            if(session is GameUser_Session gameUser_Sessions)
+            if (session is GameUser_Session gameUser_Sessions)
             {
-                gameUser_Sessions.room.Push(() => 
+                gameUser_Sessions.room.Push(() =>
                 {
                     gameUser_Sessions.MyPlayer.UseItem(c_consumeItme);
 
                 });
             }
+            NetworkPacketPool<C_UseItem>.Push(c_consumeItme);
         }
 
         internal static void C_UnequipItem_Handler(IPeer session, C_UnequipItem c_equipItem)
@@ -394,6 +416,7 @@ namespace GridTest.Network
                     gameUser_Sessions.MyPlayer.UnEquipWeapon(c_equipItem);
                 });
             }
+            NetworkPacketPool<C_UnequipItem>.Push(c_equipItem);
         }
     }
 }

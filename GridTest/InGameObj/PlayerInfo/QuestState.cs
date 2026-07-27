@@ -1,4 +1,5 @@
 ﻿using GridTest.DataManagers;
+using GridTest.Network;
 using GridTest.Util;
 using System;
 using System.Collections.Generic;
@@ -42,7 +43,8 @@ namespace GridTest.InGameObj.PlayerInfo
                         if (progress.AddKillCount(targetId, amount))
                         {
                             // isChanged 변수로 밖에서 관리할 필요 없이, 변했을 때 즉시 패킷을 조립한다.
-                            S_UpdateQuestProgress res = new S_UpdateQuestProgress();
+                            S_UpdateQuestProgress res =NetworkPacketPool<S_UpdateQuestProgress>.Pop();
+                            res.Clear();
                             res.QuestId = questId;
 
                             // 5. '어떤 인덱스가 변했는지' 복잡하게 찾지 말고, 현재 퀘스트의 모든 진행도를 다 때려 넣는다. (State Sync)
@@ -58,6 +60,7 @@ namespace GridTest.InGameObj.PlayerInfo
 
                             // 6. 클라이언트로 패킷 발송
                             player.Session.send(res.Write());
+                            NetworkPacketPool<S_UpdateQuestProgress>.Push(res); // 패킷 풀에 반환
                         }
                     }
                 }
