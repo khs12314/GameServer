@@ -161,7 +161,7 @@ namespace SnakeServer
         bool CanGo(GameUser_Session.Pos pos, GameUser_Session session)
         {
             // 맵 범위 체크
-            if (pos.x < 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY)
+            if (pos.x <= 0 || pos.x >= MapSizeX || pos.y < 0 || pos.y >= MapSizeY)
             {
                 Interlocked.Decrement(ref UserCount);
                 return false; 
@@ -241,7 +241,7 @@ namespace SnakeServer
                 int x = rnd.Next(1, MapSizeX); // 맵 크기(50)
                 int y = rnd.Next(1, MapSizeY);
 
-                // 유저랑 겹치는지 체크
+                // 유저랑 겹치는지 체크 현재 머리 좌표만 체크함. 몸통까지 체크하려면 BodyList까지 확인해야함
                 bool overlapped = false;
                 foreach (var user in game_users.Values)
                 {

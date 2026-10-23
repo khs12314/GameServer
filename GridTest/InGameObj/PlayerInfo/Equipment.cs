@@ -13,6 +13,10 @@ namespace GridTest.InGameObj.PlayerInfo
         {
             this.Weapon = Weapon;
         }
+        public void Clear()
+        {
+            Weapon = null;  
+        }
         public Item? GetWeapon() { return Weapon; }
     }
 }

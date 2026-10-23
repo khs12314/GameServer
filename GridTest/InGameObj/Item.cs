@@ -3,7 +3,7 @@ using GridTest.Manager;
 using GridTest.Room;
 using GridTest.Util;
 
-public class Item : GameObject
+public class Item : GameObject, IPoolable
 {
     public const int INVALID_SLOT = -1;
     internal bool IsDirty;
@@ -44,6 +44,15 @@ public class Item : GameObject
             Room.Broadcast(new S_MMODespawnItem() { entityID = this.Id }.Write(), this);
             Room.GetGameUsers().Remove(this.Id); // 룸의 오브젝트 리스트에서도 제거
         });
+    }
+    public void Reset()
+    {
+        IsDirty = false;
+        DbId = 0;
+        Count = 0;
+        ItemType = ItemType.None;
+        SlotIndex = INVALID_SLOT;
+        MaxStack = 0;
     }
 }
 

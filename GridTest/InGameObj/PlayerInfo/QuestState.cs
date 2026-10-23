@@ -13,7 +13,11 @@ namespace GridTest.InGameObj.PlayerInfo
     {
         HashSet<int> CompleteQuests = new HashSet<int>();
         public Dictionary<int, QuestProgress> ActiveQuests = new Dictionary<int, QuestProgress>();
-
+        public void Clear()
+        {
+            CompleteQuests.Clear();
+            ActiveQuests.Clear();
+        }
 
         public bool IsComplete(int questId)
         {
@@ -43,7 +47,7 @@ namespace GridTest.InGameObj.PlayerInfo
                         if (progress.AddKillCount(targetId, amount))
                         {
                             // isChanged 변수로 밖에서 관리할 필요 없이, 변했을 때 즉시 패킷을 조립한다.
-                            S_UpdateQuestProgress res =NetworkPacketPool<S_UpdateQuestProgress>.Pop();
+                            S_UpdateQuestProgress res = NetworkPacketPool<S_UpdateQuestProgress>.Pop();
                             res.Clear();
                             res.QuestId = questId;
 
@@ -68,7 +72,7 @@ namespace GridTest.InGameObj.PlayerInfo
         }
         public bool SetCompeleteQuest(int questid)
         {
-            if(!ActiveQuests.ContainsKey(questid))
+            if (!ActiveQuests.ContainsKey(questid))
             {
                 return false;
             }

@@ -6,6 +6,7 @@ using NetWorkModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,7 +36,7 @@ namespace GridTest.Session
         public CUserToken UserToken;
         public User_Session User_session;
         public GameRoom_Logic room {  get; set; }
-        public GameUser_Session(CUserToken token, int id, User_Session user_session, Channel channel)
+        public GameUser_Session(CUserToken token, int id, User_Session user_session, Channel channel, GameRoom_Logic room)
         {
             UserToken = token;
             //GameUser_Session_Info = new GameUser_Session_Info();
@@ -47,13 +48,9 @@ namespace GridTest.Session
             User_session = user_session;
             //GameUser_Session_Info.CellX = 0;
             //GameUser_Session_Info.CellY = 0;
-            MyPlayer = new Player(User_session.Uid, this, channel);
-            MyPlayer.Session = this;
-            MyPlayer.PosX = 0;
-            MyPlayer.PosY = 0;
-            MyPlayer.PosZ = 0;
-            MyPlayer.PlayerID = id;
-            MyPlayer.Id = ObjectManager.GenerateId(GameObjectType.Player);
+            MyPlayer = ObjectPool<Player>.Pop();
+            MyPlayer.Initialize(User_session.Uid,this, channel);
+            this.room = room;
 
 
         }

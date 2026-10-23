@@ -17,7 +17,19 @@ namespace GridTest.Manager
     {
         // [접속 정보] 본인 MySQL 비번으로 수정 필수!
         // Pooling=true: 커넥션 풀 사용 (매번 연결/해제하면 서버 터짐. 미리 만들어둔 거 재사용)
-        static string connString = "Server=127.0.0.1;Port=3306;Database=game_db;Uid=root;Pwd=1234;Pooling=true;MinPoolSize=10;MaxPoolSize=100;";
+        // Connection settings are stored in the Windows user environment, not in Git.
+        static string connString
+        {
+            get
+            {
+                string? value = Environment.GetEnvironmentVariable("GRIDTEST_DB_CONNECTION_STRING");
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new InvalidOperationException("Set the GRIDTEST_DB_CONNECTION_STRING environment variable before using the database.");
+                }
+                return value;
+            }
+        }
 
         // 1. 커넥션 풀에서 연결 객체 하나 꺼내오기
         public static MySqlConnection? GetConnection()

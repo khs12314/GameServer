@@ -11,13 +11,15 @@ public struct PlayerSkillInfo
     public int SkillID;
     public long Cooldown;
 }
-public class Player : GameObject
+public class Player : GameObject, IPoolable
 {
     int Level = 1;
     long CurrentExp;
     public bool IsGhost = false;
+    public int GhostFunction = 2;// 0은 leaveandtransfer, 1은 UpdateGhost
     public int attack { get; private set; }
     public Channel MyChannel;
+    private BorderDirection _borderDirection = BorderDirection.None;
     public Dictionary<int, PlayerSkillInfo> PlayerSkillDic = new Dictionary<int, PlayerSkillInfo>();
     public int PlayerID { get; set; }//플레이어 전용 고유 아이디 db에서 가져올 내용(계정 생성 순서에 따라 저정된 db의 pk값)
     public Inventory Inventory { get; set; } = new Inventory();
@@ -44,7 +46,7 @@ public class Player : GameObject
         Session = session;
         this.Id = ObjectManager.GenerateId(GameObjectType.Player);//방 접속 시 사용할 고유 id
         this.QuestState = new QuestState();
-        foreach(var skillData in SkillDataManager.SkillDataDic.Values)
+        foreach (var skillData in SkillDataManager.SkillDataDic.Values)
         {
             PlayerSkillInfo skillInfo = new PlayerSkillInfo
             {
@@ -56,6 +58,54 @@ public class Player : GameObject
         //추후 db에서 가져온 값으로 초기화
         Equipment = new Equipment();
         this.RefreshStatus();
+    }
+    public void Initialize(int playerID, GameUser_Session session, Channel channel)
+    {
+
+        PosX = 0;
+        PosY = 0;
+        PosZ = 0;
+        Id = ObjectManager.GenerateId(GameObjectType.Player);
+        this.ObjectId = 0;
+        this.MyChannel = channel;
+        gameObjectType = GameObjectType.Player; // Player 타입
+        PlayerID = playerID;//db에서 발급받은 고유id
+        Session = session;
+        this.Id = ObjectManager.GenerateId(GameObjectType.Player);//방 접속 시 사용할 고유 id
+        this.QuestState = new QuestState();
+        foreach (var skillData in SkillDataManager.SkillDataDic.Values)
+        {
+            PlayerSkillInfo skillInfo = new PlayerSkillInfo
+            {
+                SkillID = skillData.SkillId,
+                Cooldown = 0
+            };
+            PlayerSkillDic[skillData.SkillId] = skillInfo;
+        }
+        //추후 db에서 가져온 값으로 초기화
+        Equipment = new Equipment();
+        this.RefreshStatus();
+    }
+    public void Reset()
+    {
+        this.Id = 0;
+        this.PlayerID = 0;
+        this.Level = 1;
+        this.CurrentExp = 0;
+        this.attack = 0;
+        Inventory.Clear();
+        this.QuestState.Clear();
+        this.Equipment.Clear();
+        this.IsGhost = false;
+        this.PlayerSkillDic.Clear();
+    }
+    public void SetBorderDirection(BorderDirection direction)
+    {
+        _borderDirection = direction;
+    }
+    public BorderDirection GetBorderDirection()
+    {
+        return _borderDirection;
     }
     public void RedisSave()
     {
@@ -259,17 +309,17 @@ public class Player : GameObject
             return; // 스킬 쿨타임 중
         // 스킬 사용 로직 수행 및 브로드 캐스트
         SkillData? skillData = SkillDataManager.GetSkillData(packet.skillId);
-        if(skillData == null)
+        if (skillData == null)
             return;
         float angleRad = (float)(this.RotY * Math.PI / 180f);
         float dirX = (float)Math.Sin(angleRad); // X가 Sin
         float dirZ = (float)Math.Cos(angleRad); // Z가 Cos
         ProJectile proJectile = this.Room.Get_Projectile();
-        this.Room.Add_Projectile(skillData, dirX, dirZ, proJectile,this);
+        this.Room.Add_Projectile(skillData, dirX, dirZ, proJectile, this);
         // 쿨타임 갱신
         skillinfo.Cooldown = currentTime + skillData.Cooldown;
         PlayerSkillDic[skillId] = skillinfo;
-        
+
 
     }
     public void ConsumeItem(Item item, short index)

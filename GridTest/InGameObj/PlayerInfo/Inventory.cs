@@ -98,12 +98,24 @@ namespace GridTest.InGameObj.PlayerInfo
         {
             for (short i = 0; i < MaxSlots; i++)
             {
-                if(Slots[i] == null)
+                if (Slots[i] == null)
                 {
                     return i;
                 }
-            } 
+            }
             return -1;
+        }
+        public void Clear()
+        {
+            if(Slots == null) return;
+            foreach (Item item in Slots)
+            {
+                if(item == null) continue;
+                ObjectPool<Item>.Push(item);
+            }
+            // 2. 껍데기(List)는 버리지 않고 초기화만 진행
+            Items.Clear();
+            Items.Clear();
         }
         public SwapResult SwapItem(short fromIndex, short toIndex)
         {

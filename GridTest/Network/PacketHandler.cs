@@ -194,9 +194,9 @@ namespace GridTest.Network
                 room.Push(() =>
                 {
                     session.room.ChangeDir(session, pakcet);
+                    NetworkPacketPool<C_Move>.Push(pakcet);
                 });
             }
-            NetworkPacketPool<C_Move>.Push(pakcet);
 
         }
         //public static void MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO_Move)
@@ -218,11 +218,11 @@ namespace GridTest.Network
                 session.room.Push(() =>
                 {
                     session.room.LeavGame(session, c_PlayerLeave.userid);
+                    NetworkPacketPool<C_PlayerLeave>.Push(c_PlayerLeave);
                 });
                 return;
 
             }
-            NetworkPacketPool<C_PlayerLeave>.Push(c_PlayerLeave);
         }
         public static void C_MMO_Move_Handler(IPeer peer, MMO_C_Move c_MMO)
         {
@@ -233,15 +233,16 @@ namespace GridTest.Network
                     session.room.Push(() =>
                     {
                         session.room.Sync_Pos(session);
+                        NetworkPacketPool<MMO_C_Move>.Push(c_MMO);
                     });
                     return;
                 }
                 session.room.Push(() =>
                 {
                     session.room.MMO_Move(session, c_MMO);
+                    NetworkPacketPool<MMO_C_Move>.Push(c_MMO);
                 });
             }
-            NetworkPacketPool<MMO_C_Move>.Push(c_MMO);
         }
         public static void C_MMO_Attack_Handler(IPeer peer, MMO_C_Attack c_MMO_Attack)
         {
@@ -257,11 +258,11 @@ namespace GridTest.Network
                     session.room.PushAfter(500, () =>
                     {
                         session.MyPlayer.ChangeStateAndBroadcast(PlayerState.IDLE, session.room);
+                        NetworkPacketPool<MMO_C_Attack>.Push(c_MMO_Attack);
                     });
                 });
 
             }
-            NetworkPacketPool<MMO_C_Attack>.Push(c_MMO_Attack);
         }
 
 
@@ -278,14 +279,15 @@ namespace GridTest.Network
                         return;
                     session.MyPlayer.UseSkill(c_UseSkill);
 
+                    NetworkPacketPool<C_UseSkill>.Push(c_UseSkill);
                 });
 
             }
-            NetworkPacketPool<C_UseSkill>.Push(c_UseSkill);
         }
 
         internal static void C_ResCharacterList_Handler(IPeer session, C_ResCharacterList c_ResCharacterList)
         {
+            //리스트를 클라이언트에서 보낼리 없으니 삭제 예정
             throw new NotImplementedException();
         }
 
@@ -327,7 +329,7 @@ namespace GridTest.Network
                 }
 
             }
-            NetworkPacketPool<C_CreateCharacter>.Push(c_CreateCharacter);
+            //NetworkPacketPool<C_CreateCharacter>.Push(c_CreateCharacter);
         }
 
         public static void C_MMOGetItem_Handler(IPeer session, C_MMOGetItem c_MMOGetItem)
@@ -336,14 +338,15 @@ namespace GridTest.Network
             {
                 if (!gameUser_Session.MyPlayer.CanLoot())
                 {
+                    NetworkPacketPool<C_MMOGetItem>.Push(c_MMOGetItem);
                     return;
                 }
                 gameUser_Session.room.Push(() =>
                 {
                     gameUser_Session.room.Get_Item(gameUser_Session, c_MMOGetItem);
+                    NetworkPacketPool<C_MMOGetItem>.Push(c_MMOGetItem);
                 });
             }
-            NetworkPacketPool<C_MMOGetItem>.Push(c_MMOGetItem);
         }
 
         public static void C_SwapItem_Handler(IPeer session, C_SwapItem c_SwapItem)
@@ -353,9 +356,9 @@ namespace GridTest.Network
                 gameUser_Session.room.Push(() =>
                 {
                     gameUser_Session.room.Swap_Item(gameUser_Session, c_SwapItem);
+                    NetworkPacketPool<C_SwapItem>.Push(c_SwapItem);
                 });
             }
-            NetworkPacketPool<C_SwapItem>.Push(c_SwapItem);
         }
 
         public static void C_NpcInteract_Handler(IPeer session, C_NpcInteract c_NpcInteract)
@@ -365,9 +368,9 @@ namespace GridTest.Network
                 gameUser_Session.room.Push(() =>
                 {
                     gameUser_Session.room.Npc_Interact(gameUser_Session, c_NpcInteract);
+                    NetworkPacketPool<C_NpcInteract>.Push(c_NpcInteract);
                 });
             }
-            NetworkPacketPool<C_NpcInteract>.Push(c_NpcInteract);
         }
 
         public static void C_AcceptQuest_Handler(IPeer session, C_AcceptQuest c_AcceptQuest)
@@ -377,9 +380,9 @@ namespace GridTest.Network
                 gameUser_Session.room.Push(() =>
                 {
                     gameUser_Session.room.Accept_Quest(gameUser_Session, c_AcceptQuest);
+                    NetworkPacketPool<C_AcceptQuest>.Push(c_AcceptQuest);
                 });
             }
-            NetworkPacketPool<C_AcceptQuest>.Push(c_AcceptQuest);   
         }
 
         public static void C_CompeleteQuest_Handler(IPeer session, C_CompleteQuest c_CompleteQuest)
@@ -390,6 +393,7 @@ namespace GridTest.Network
                 {
 
                     gameUser_Session.room.CompleteQuest(gameUser_Session, c_CompleteQuest);
+                    NetworkPacketPool<C_CompleteQuest>.Push(c_CompleteQuest);
                 });
             }
         }
@@ -401,10 +405,10 @@ namespace GridTest.Network
                 gameUser_Sessions.room.Push(() =>
                 {
                     gameUser_Sessions.MyPlayer.UseItem(c_consumeItme);
+                    NetworkPacketPool<C_UseItem>.Push(c_consumeItme);
 
                 });
             }
-            NetworkPacketPool<C_UseItem>.Push(c_consumeItme);
         }
 
         internal static void C_UnequipItem_Handler(IPeer session, C_UnequipItem c_equipItem)
@@ -414,9 +418,9 @@ namespace GridTest.Network
                 gameUser_Sessions.room.Push(() =>
                 {
                     gameUser_Sessions.MyPlayer.UnEquipWeapon(c_equipItem);
+                    NetworkPacketPool<C_UnequipItem>.Push(c_equipItem);
                 });
             }
-            NetworkPacketPool<C_UnequipItem>.Push(c_equipItem);
         }
     }
 }

@@ -9,13 +9,13 @@ namespace GridTest.Network
 {
     public static class NetworkPacketPool<T> where T : IPacket, new()
     {
-        private static readonly ConcurrentQueue<T> _pool = new ConcurrentQueue<T>();
+        private static readonly ConcurrentBag<T> _pool = new ConcurrentBag<T>();
         private const int MAX_POOL_SIZE = 10000;
 
         public static T Pop()
         {
             // 큐에서 패킷을 하나 성공적으로 꺼냈다면(Dequeue)
-            if (_pool.TryDequeue(out T packet))
+            if (_pool.TryTake(out T packet))
             {
                 // [중요] 남이 쓰던 데이터를 확실하게 백지화시키고 반환한다.
                 packet.Clear();
@@ -39,7 +39,7 @@ namespace GridTest.Network
             }
 
             // 여유가 있다면 큐의 꼬리(Tail)에 안전하게 반납한다.
-            _pool.Enqueue(packet);
+            _pool.Add(packet);
         }
     }
 }

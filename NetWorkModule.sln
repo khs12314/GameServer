@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketGenerator", "PacketGe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeServer", "SnakeServer\SnakeServer.csproj", "{5F3FCF07-BE49-4210-BD4C-5E030866A403}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridTest", "GridTest\GridTest.csproj", "{E941493B-5344-41E2-86D3-09FBC299D2F9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MMORPG", "GridTest\MMORPG.csproj", "{E941493B-5344-41E2-86D3-09FBC299D2F9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RandomMapGenerater", "RandomMapGenerater\RandomMapGenerater.csproj", "{6E07486C-5C3B-40C5-ACB0-F401CE9E6282}"
 EndProject

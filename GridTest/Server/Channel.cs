@@ -53,6 +53,10 @@ namespace GridTest.Server
 
                 room.Add(mapid, newRoom);
             }
+            foreach(var room in room.Values)
+            {
+                room.InitNeighbors();
+            }
         }
         // Channel.cs 또는 MapDataManager 내부에 존재해야 할 핵심 탐색 함수
         public GameRoom_Logic FindRoomByGlobalPosition(float globalX, float globalY)

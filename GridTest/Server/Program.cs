@@ -34,7 +34,7 @@ namespace GridTest.Server
             service.session_created_callback += on_session_created;
 
             service.initialize();
-            service.listen("127.0.0.1", 8000, 5000);
+            service.listen("127.0.0.1",  8000, 5000);
             Console.WriteLine("Listening....");
             //Thread timerThread = new Thread(GlobalTimerLoop);
             //timerThread.IsBackground = true;
@@ -55,7 +55,7 @@ namespace GridTest.Server
             CUserToken cUserToken = new CUserToken();
             User_Session user_Session = new User_Session(cUserToken);
             Channel channel = new Channel(100);
-            GameUser_Session gameUser_Session = new GameUser_Session(cUserToken,1,user_Session, channel);
+            GameUser_Session gameUser_Session = new GameUser_Session(cUserToken,1,user_Session, channel, null);
 
             Player player = new Player(1, gameUser_Session,channel);
             // 1. 기획자가 우편함으로 102번 물약 200개를 꽂았다고 가정 (더미 객체)

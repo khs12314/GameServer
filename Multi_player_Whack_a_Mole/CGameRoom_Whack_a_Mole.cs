@@ -82,7 +82,7 @@ namespace Multi_player_Whack_a_Mole
             //msg.push(_currentMoleIndex);
             S_Spawn_Mole msgPacket = new S_Spawn_Mole();
             msgPacket.moleIndex = _currentMoleIndex;
-            Console.WriteLine($"스폰된 두더지 인덱스@@@@@@@@@@@@@@@{_currentMoleIndex}");
+            //Console.WriteLine($"스폰된 두더지 인덱스@@@@@@@@@@@@@@@{_currentMoleIndex}");
             broadcast(msgPacket.Write());
         }
         //메시지 전송
@@ -198,12 +198,12 @@ namespace Multi_player_Whack_a_Mole
             //로딩 시작
             foreach (var item in players)
             {
-                S_StartLoading msg = new S_StartLoading();
-                msg.PlayerIndex = item.player_index;
-                item.send(msg.Write());
-                //CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
-                //msg.push(item.player_index);
-                //item.send(msg);
+                //S_StartLoading msg = new S_StartLoading();
+                //msg.PlayerIndex = item.player_index;
+                //item.send(msg.Write());
+                CPacket msg = CPacket.create((short)PROTOCOL.START_LOADING);
+                msg.push(item.player_index);
+                item.send(msg);
             }
 
         }

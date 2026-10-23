@@ -50,10 +50,10 @@ namespace Multi_player_Whack_a_Mole
             GameUser session = peer as GameUser;
             
             int hitIndex = packet.moleIndex; // 변수명으로 바로 접근!
-            Console.WriteLine($"클라이언트가 보낸 인덱스{packet.moleIndex}");
+            //Console.WriteLine($"클라이언트가 보낸 인덱스{packet.moleIndex}");
             int userId = packet.UserID;
-            Console.WriteLine($"클라 아이디 {userId}");
-            Console.WriteLine($"세션 아이디 {session.UserID}");
+            //Console.WriteLine($"클라 아이디 {userId}");
+            //Console.WriteLine($"세션 아이디 {session.UserID}");
             if (session.battle_room != null)
             {
                 session.battle_room.HandleHit(session, hitIndex, userId);

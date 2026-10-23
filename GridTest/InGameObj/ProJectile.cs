@@ -4,7 +4,7 @@ using GridTest.Network;
 using GridTest.Room;
 using GridTest.Util;
 
-public class ProJectile : GameObject
+public class ProJectile : GameObject, IPoolable
 {
     public GameObject Owner { get; set; }
     public int OwnerId { get; set; }
@@ -94,7 +94,18 @@ public class ProJectile : GameObject
         // 4. 아무것도 안 맞았고 수명도 남았다면 다음 틱 예약
         Room.PushAfter(100, Update);
     }
-
+    public void Reset()
+    {
+               // 초기화 로직 (필요에 따라 구현)
+        this.Owner = null;
+        this.OwnerId = 0;
+        this.Speed = 0;
+        this.DirectionX = 0;
+        this.DirectionZ = 0;
+        this.ExpireTime = 0;
+        this.ProjectileId = 0;
+        this.Damage = 0;
+    }
     private void HandleHit(Monster targetmonster)
     {
         // 데미지 적용

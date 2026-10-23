@@ -26,13 +26,13 @@ namespace Multi_player_Whack_a_Mole
         public void OnRecvPacket(IPeer session, CPacket packet)
         {
             // 1. 프로토콜 ID 추출 (short)
-            Console.WriteLine($"팝 프로토콜 전{packet.position}");
+            //Console.WriteLine($"팝 프로토콜 전{packet.position}");
             
             
             short protocolId = packet.pop_protocol_id();
-            Console.WriteLine("패킷 매니저 실행");
-            Console.WriteLine($"팝 프로토콜 후{packet.position}");
-            Console.WriteLine($"{(PacketID)protocolId}");
+            //Console.WriteLine("패킷 매니저 실행");
+            //Console.WriteLine($"팝 프로토콜 후{packet.position}");
+           // Console.WriteLine($"{(PacketID)protocolId}");
             
             // 2. ID에 따라 알맞은 패킷 생성 및 핸들러 호출
             switch ((PacketID)protocolId)
